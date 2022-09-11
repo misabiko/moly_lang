@@ -1,14 +1,14 @@
 use core::fmt;
 use core::fmt::Formatter;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token {
 	pub token_type: TokenType,
 	//TODO Replace keywords and symbols with Literal::Default or something
 	pub literal: Option<String>,
 }
 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Copy, Clone)]
 pub enum TokenType {
 	Illegal,
 	EOF,
@@ -18,7 +18,7 @@ pub enum TokenType {
 	Int,  // 1343456
 
 	// Operators
-	Assing,
+	Assign,
 	Plus,
 	Minus,
 	Bang,
@@ -58,7 +58,7 @@ impl fmt::Display for TokenType {
 			TokenType::Ident => "IDENT",
 			TokenType::Int => "INT",
 
-			TokenType::Assing => "=",
+			TokenType::Assign => "=",
 			TokenType::Plus => "+",
 			TokenType::Minus => "-",
 			TokenType::Bang => "!",

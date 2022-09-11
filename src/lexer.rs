@@ -50,7 +50,7 @@ impl Lexer {
 					self.read_char();
 					new_token(TokenType::Eq, Some("==".to_owned()))
 				} else {
-					new_token(TokenType::Assing, Some(ch.to_string()))
+					new_token(TokenType::Assign, Some(ch.to_string()))
 				},
 				'+' => new_token(TokenType::Plus, Some(ch.to_string())),
 				'-' => new_token(TokenType::Minus, Some(ch.to_string())),

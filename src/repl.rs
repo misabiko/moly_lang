@@ -1,5 +1,4 @@
 use std::io::Write;
-use std::process::ExitCode;
 use ctrlc;
 use crate::{
 	lexer::Lexer,

@@ -1,6 +1,7 @@
 use core::fmt;
 use core::fmt::Formatter;
 
+#[derive(Debug)]
 pub struct Token {
 	pub token_type: TokenType,
 	//TODO Replace keywords and symbols with Literal::Default or something

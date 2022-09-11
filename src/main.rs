@@ -1,3 +1,9 @@
+use moly_lang::repl::start;
+
 fn main() {
-	println!("Hello, world!");
+	//TODO Compare motd
+	//TODO Show how to exit
+	println!("Enter commands");
+
+	start();
 }

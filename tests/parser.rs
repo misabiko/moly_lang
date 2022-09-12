@@ -20,7 +20,7 @@ let foobar = 838383;
 	let program = parser.parse_program();
 	check_parser_errors(&parser);
 
-	assert_eq!(program.statements.len(), 3);
+	assert_eq!(program.statements.len(), 3, "program.statements does not contain 3 statements");
 
 	let identifiers = vec![
 		"x",
@@ -30,6 +30,29 @@ let foobar = 838383;
 
 	for (expected, stmt) in identifiers.into_iter().zip(program.statements.iter()) {
 		test_let_statement(stmt, expected);
+	}
+}
+
+#[test]
+fn test_return_statements() {
+	//TODO Remove semicolon
+	const INPUT: &str = "
+return 5;
+return 10;
+return 993322;
+";
+
+	let mut parser = Parser::new(Lexer::new(INPUT));
+
+	let program = parser.parse_program();
+	check_parser_errors(&parser);
+
+	assert_eq!(program.statements.len(), 3, "program.statements does not contain 3 statements");
+
+	for stmt in program.statements {
+		if !matches!(stmt, Statement::Return(Some(_))) {
+			assert!(false, "{:?} not Statement::Return(Some(n))", stmt)
+		}
 	}
 }
 

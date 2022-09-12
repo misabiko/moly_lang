@@ -18,13 +18,16 @@ pub enum Statement {
 	Let {
 		name: Expression,
 		value: Expression,
-	}
+	},
+	Return(Option<Expression>),
 }
 
 impl fmt::Display for Statement {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match self {
 			Statement::Let { name, value } => write!(f, "let {} = {}", name, value),
+			Statement::Return(Some(value)) => write!(f, "return {}", value),
+			Statement::Return(None) => write!(f, "return"),
 		}
 	}
 }

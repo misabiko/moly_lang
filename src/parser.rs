@@ -56,6 +56,7 @@ impl Parser {
 	fn parse_statement(&mut self) -> Option<Statement> {
 		match self.cur_token.token_type {
 			TokenType::Let => self.parse_let_statement(),
+			TokenType::Return => self.parse_return_statement(),
 			_ => None,
 		}
 	}
@@ -81,6 +82,18 @@ impl Parser {
 			name,
 			value: Expression::Identifier("".to_owned()),
 		})
+	}
+
+	fn parse_return_statement(&mut self) -> Option<Statement> {
+		self.next_token();
+
+		// TODO: We're skipping the expressions until we
+		// encounter a semicolon
+		while !self.cur_token_is(TokenType::Semicolon) {
+			self.next_token();
+		}
+
+		Some(Statement::Return (Some(Expression::Identifier("".to_owned()))))
 	}
 
 	fn cur_token_is(&self, t: TokenType) -> bool {

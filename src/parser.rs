@@ -1,4 +1,4 @@
-use crate::ast::{Expression, Program, Statement};
+use crate::ast::{BlockStatement, Expression, Program, Statement};
 use crate::lexer::Lexer;
 use crate::token::{Token, TokenType};
 
@@ -35,6 +35,15 @@ impl Parser {
 			))
 	}
 
+	fn no_prefix_parse_fn_error(&mut self, token_type: TokenType) {
+		self.errors.push(
+			format!(
+				"no prefix parse function for {} found",
+				token_type
+			)
+		)
+	}
+
 	pub fn next_token(&mut self) {
 		self.cur_token = std::mem::replace(&mut self.peek_token, self.lexer.next_token());
 	}
@@ -57,7 +66,7 @@ impl Parser {
 		match self.cur_token.token_type {
 			TokenType::Let => self.parse_let_statement(),
 			TokenType::Return => self.parse_return_statement(),
-			_ => None,
+			_ => self.parse_expression_statement(),
 		}
 	}
 
@@ -72,28 +81,280 @@ impl Parser {
 			return None;
 		}
 
-		// TODO: We're skipping the expressions until we
-		// encounter a semicolon
-		while !self.cur_token_is(TokenType::Semicolon) {
+		self.next_token();
+
+		let value = self.parse_expression(Precedence::Lowest)?;
+
+		if self.peek_token_is(TokenType::Semicolon) {
 			self.next_token();
 		}
 
 		Some(Statement::Let {
 			name,
-			value: Expression::Identifier("".to_owned()),
+			value,
 		})
 	}
 
 	fn parse_return_statement(&mut self) -> Option<Statement> {
 		self.next_token();
 
-		// TODO: We're skipping the expressions until we
-		// encounter a semicolon
-		while !self.cur_token_is(TokenType::Semicolon) {
+		let return_value = if !self.cur_token_is(TokenType::Semicolon) {
+			self.parse_expression(Precedence::Lowest)
+		}else {
+			None
+		};
+
+		if self.peek_token_is(TokenType::Semicolon) {
 			self.next_token();
 		}
 
-		Some(Statement::Return (Some(Expression::Identifier("".to_owned()))))
+		Some(Statement::Return (return_value))
+	}
+
+	fn parse_expression_statement(&mut self) -> Option<Statement> {
+		let expression = self.parse_expression(Precedence::Lowest);
+
+		if self.peek_token_is(TokenType::Semicolon) {
+			self.next_token();
+		}
+
+		Some(Statement::Expression(expression?))
+	}
+
+	fn parse_expression(&mut self, precedence: Precedence) -> Option<Expression> {
+		let mut left_exp = match self.cur_token.token_type {
+			TokenType::Ident => self.parse_identifier(),
+			TokenType::Int => self.parse_integer_literal()?,
+			TokenType::Bang | TokenType::Minus => self.parse_prefix_expression()?,
+			TokenType::True | TokenType::False => self.parse_boolean(),
+			TokenType::LParen => self.parse_grouped_expression()?,
+			TokenType::If => self.parse_if_expression()?,
+			TokenType::Function => self.parse_function_literal()?,
+			t => {
+				self.no_prefix_parse_fn_error(t);
+				return None
+			}
+		};
+
+		while !self.peek_token_is(TokenType::Semicolon) && precedence < self.peek_precedence() {
+			let infix = match self.peek_token.token_type {
+				TokenType::Plus |
+				TokenType::Minus |
+				TokenType::Slash |
+				TokenType::Asterisk |
+				TokenType::Eq |
+				TokenType::NotEq |
+				TokenType::LT |
+				TokenType::GT => Parser::parse_infix_expression,
+				TokenType::LParen => Parser::parse_call_expression,
+				_ => return Some(left_exp)
+			};
+
+			self.next_token();
+
+			left_exp = infix(self, left_exp)?;
+		}
+
+		Some(left_exp)
+	}
+
+	fn parse_identifier(&self) -> Expression {
+		Expression::Identifier(self.cur_token.literal.clone().unwrap())
+	}
+
+	fn parse_integer_literal(&mut self) -> Option<Expression> {
+		match self.cur_token.literal.clone().unwrap().parse::<i64>() {
+			Ok(value) => Some(Expression::Integer(value)),
+			Err(err) => {
+				self.errors.push(format!("could not parse {:?} as integer ({:?})", self.cur_token.literal, err));
+				None
+			}
+		}
+	}
+
+	fn parse_boolean(&self) -> Expression {
+		let value = match self.cur_token.token_type {
+			TokenType::True => true,
+			TokenType::False => false,
+			_ => panic!("{:?} isn't a boolean token", self.cur_token)
+		};
+
+		Expression::Boolean(value)
+	}
+
+	fn parse_prefix_expression(&mut self) -> Option<Expression> {
+		//TODO Try std::mem::take
+		let operator = self.cur_token.literal.clone().unwrap();
+
+		self.next_token();
+
+		//TODO Throw parse error instead of option
+		let right = self.parse_expression(Precedence::Prefix)?;
+
+		Some(Expression::Prefix {
+			operator,
+			right: Box::new(right),
+		})
+	}
+
+	fn parse_infix_expression(&mut self, left: Expression) -> Option<Expression> {
+		//TODO Try std::mem::take
+		let operator = self.cur_token.literal.clone().unwrap();
+
+		let precedence = self.cur_precedence();
+		self.next_token();
+		//TODO Throw parse error instead of option
+		let right = self.parse_expression(precedence)?;
+
+		Some(Expression::Infix {
+			left: Box::new(left),
+			operator,
+			right: Box::new(right),
+		})
+	}
+
+	fn parse_grouped_expression(&mut self) -> Option<Expression> {
+		self.next_token();
+
+		let exp = self.parse_expression(Precedence::Lowest);
+
+		if !self.expect_peek(TokenType::RParen) {
+			return None;
+		}
+
+		return exp;
+	}
+
+	fn parse_if_expression(&mut self) -> Option<Expression> {
+		//TODO Remove parentheses from if
+		if !self.expect_peek(TokenType::LParen) {
+			return None
+		}
+
+		self.next_token();
+		let condition = self.parse_expression(Precedence::Lowest)?;
+
+		if !self.expect_peek(TokenType::RParen) {
+			return None
+		}
+
+		if !self.expect_peek(TokenType::LBrace) {
+			return None
+		}
+
+		let consequence = self.parse_block_statement();
+
+		let alternative = if self.peek_token_is(TokenType::Else) {
+			self.next_token();
+
+			if !self.expect_peek(TokenType::LBrace) {
+				return None
+			}
+
+			Some(self.parse_block_statement())
+		}else {
+			None
+		};
+
+		Some(Expression::If {
+			condition: Box::new(condition),
+			consequence,
+			alternative,
+		})
+	}
+
+	fn parse_block_statement(&mut self) -> BlockStatement {
+		self.next_token();
+
+		let mut statements = vec![];
+
+		//TODO Parse error on EOF
+		while !self.cur_token_is(TokenType::RBrace) && !self.cur_token_is(TokenType::EOF) {
+			if let Some(stmt) = self.parse_statement() {
+				statements.push(stmt);
+			}
+
+			self.next_token();
+		}
+
+		BlockStatement { statements }
+	}
+
+	fn parse_function_literal(&mut self) -> Option<Expression> {
+		if !self.expect_peek(TokenType::LParen) {
+			return None
+		}
+
+		let parameters = self.parse_function_parameters()?;
+
+		if !self.expect_peek(TokenType::LBrace) {
+			return None
+		}
+
+		let body = self.parse_block_statement();
+
+		Some(Expression::Function {
+			parameters,
+			body,
+		})
+	}
+
+	/// returns only Vec<Expression::Identifier>
+	fn parse_function_parameters(&mut self) -> Option<Vec<Expression>> {
+		let mut identifiers = vec![];
+
+		if self.peek_token_is(TokenType::RParen) {
+			self.next_token();
+			return Some(identifiers)
+		}
+
+		self.next_token();
+
+		identifiers.push(Expression::Identifier(self.cur_token.literal.clone().unwrap()));
+
+		while self.peek_token_is(TokenType::Comma) {
+			self.next_token();
+			self.next_token();
+
+			identifiers.push(Expression::Identifier(self.cur_token.literal.clone().unwrap()));
+		}
+
+		if !self.expect_peek(TokenType::RParen) {
+			return None;
+		}
+
+		Some(identifiers)
+	}
+
+	fn parse_call_expression(&mut self, function: Expression) -> Option<Expression> {
+		Some(Expression::Call {
+			function: Box::new(function),
+			arguments: self.parse_call_arguments()?,
+		})
+	}
+
+	fn parse_call_arguments(&mut self) -> Option<Vec<Expression>> {
+		let mut args = vec![];
+
+		if self.peek_token_is(TokenType::RParen) {
+			self.next_token();
+			return Some(args)
+		}
+
+		self.next_token();
+		args.push(self.parse_expression(Precedence::Lowest)?);
+
+		while self.peek_token_is(TokenType::Comma) {
+			self.next_token();
+			self.next_token();
+			args.push(self.parse_expression(Precedence::Lowest)?);
+		}
+
+		if !self.expect_peek(TokenType::RParen) {
+			return None
+		}
+
+		Some(args)
 	}
 
 	fn cur_token_is(&self, t: TokenType) -> bool {
@@ -112,5 +373,39 @@ impl Parser {
 			self.peek_error(t);
 			false
 		}
+	}
+
+	fn peek_precedence(&self) -> Precedence {
+		precedences(self.peek_token.token_type).unwrap_or(Precedence::Lowest)
+	}
+
+	fn cur_precedence(&self) -> Precedence {
+		precedences(self.cur_token.token_type).unwrap_or(Precedence::Lowest)
+	}
+}
+
+#[derive(PartialOrd, Ord, PartialEq, Eq, Copy, Clone)]
+enum Precedence {
+	Lowest,
+	Equals,
+	LessGreater,
+	Sum,
+	Product,
+	Prefix,
+	Call,
+}
+
+const fn precedences(token_type: TokenType) -> Option<Precedence> {
+	match token_type {
+		TokenType::Eq |
+		TokenType::NotEq => Some(Precedence::Equals),
+		TokenType::LT |
+		TokenType::GT => Some(Precedence::LessGreater),
+		TokenType::Plus |
+		TokenType::Minus => Some(Precedence::Sum),
+		TokenType::Slash |
+		TokenType::Asterisk => Some(Precedence::Product),
+		TokenType::LParen => Some(Precedence::Call),
+		_ => None,
 	}
 }

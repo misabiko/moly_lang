@@ -2,8 +2,8 @@ use std::io::Write;
 use ctrlc;
 use crate::{
 	lexer::Lexer,
-	token::TokenType
 };
+use crate::parser::Parser;
 
 const PROMPT: &'static str = ">> ";
 
@@ -20,15 +20,20 @@ pub fn start() {
 		std::io::stdin().read_line(&mut buffer)
 			.expect("Failed to read line from stdin");
 
-		let mut lexer = Lexer::new(&buffer);
+		let mut parser = Parser::new(Lexer::new(&buffer));
 
-		loop {
-			let token = lexer.next_token();
-			if let TokenType::EOF = token.token_type {
-				break;
-			}
-
-			println!("{:?}", token);
+		let program = parser.parse_program();
+		if !parser.errors.is_empty() {
+			print_parser_errors(&parser.errors);
+			continue;
 		}
+
+		println!("{}", program);
+	}
+}
+
+fn print_parser_errors(errors: &Vec<String>) {
+	for msg in errors {
+		println!("\t{}", msg);
 	}
 }

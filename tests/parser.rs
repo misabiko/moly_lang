@@ -9,49 +9,379 @@ use moly_lang::ast::Expression;
 #[test]
 fn test_let_statements() {
 	//TODO Remove semicolon
-	const INPUT: &str = "
-let x = 5;
-let y = 10;
-let foobar = 838383;
-";
-
-	let mut parser = Parser::new(Lexer::new(INPUT));
-
-	let program = parser.parse_program();
-	check_parser_errors(&parser);
-
-	assert_eq!(program.statements.len(), 3, "program.statements does not contain 3 statements");
-
-	let identifiers = vec![
-		"x",
-		"y",
-		"foobar"
+	let tests = vec![
+		("let x = 5;", "x", Expression::Integer(5)),
+		("let y = true;", "y", Expression::Boolean(true)),
+		//TODO ("let foobar = y;", "foobar", Expression::String("y")),
 	];
 
-	for (expected, stmt) in identifiers.into_iter().zip(program.statements.iter()) {
-		test_let_statement(stmt, expected);
+	for (input, expected_identifier, expected_value) in tests {
+		match parse_single_statement(input) {
+			Statement::Let { name, value } => {
+				test_let_statement(&name, expected_identifier);
+
+				test_literal_expression(&value, &expected_value)
+			},
+			stmt => panic!("{:?} not Let", stmt),
+		}
 	}
 }
 
 #[test]
 fn test_return_statements() {
 	//TODO Remove semicolon
-	const INPUT: &str = "
-return 5;
-return 10;
-return 993322;
-";
+	let tests = vec![
+		("return 5;", Expression::Integer(5)),
+		("return true;", Expression::Boolean(true)),
+		//TODO ("return foobar;", "foobar"),
+	];
 
-	let mut parser = Parser::new(Lexer::new(INPUT));
+	for (input, expected_value) in tests {
+		match parse_single_statement(input) {
+			Statement::Return(Some(value)) => {
 
-	let program = parser.parse_program();
-	check_parser_errors(&parser);
+				test_literal_expression(&value, &expected_value)
+			},
+			Statement::Return(None) => panic!("missing returned value"),
+			stmt => panic!("{:?} not Return", stmt),
+		}
+	}
+}
 
-	assert_eq!(program.statements.len(), 3, "program.statements does not contain 3 statements");
+#[test]
+fn test_identifier_expression() {
+	const INPUT: &str = "foobar;";
 
-	for stmt in program.statements {
-		if !matches!(stmt, Statement::Return(Some(_))) {
-			assert!(false, "{:?} not Statement::Return(Some(n))", stmt)
+	let stmt = parse_single_statement(INPUT);
+
+	if let Statement::Expression(Expression::Identifier(ident)) = stmt {
+		assert_eq!(ident, "foobar");
+	}else {
+		panic!("{:?} not Expression(Identifier)", stmt)
+	}
+}
+
+#[test]
+fn test_integer_literal_expression() {
+	const INPUT: &str = "5;";
+
+	let stmt = parse_single_statement(INPUT);
+
+	if let Statement::Expression(Expression::Integer(value)) = stmt {
+		assert_eq!(value, 5);
+	}else {
+		panic!("{:?} not Expression(Integer)", stmt)
+	}
+}
+
+#[test]
+fn test_boolean_expression() {
+	let tests = vec![
+		("true;", true),
+		("false;", false),
+	];
+
+	for (input, expected_value) in tests {
+		let stmt = parse_single_statement(input);
+
+		if let Statement::Expression(Expression::Boolean(value)) = stmt {
+			assert_eq!(value, expected_value);
+		}else {
+			panic!("{:?} not Expression(Boolean)", stmt)
+		}
+	}
+}
+
+#[test]
+fn test_parsing_prefix_expressions() {
+	let prefix_tests = vec![
+		("!5;", "!", Expression::Integer(5)),
+		("-15;", "-", Expression::Integer(15)),
+		("!true;", "!", Expression::Boolean(true)),
+		("!false;", "!", Expression::Boolean(false)),
+	];
+
+	for (input, op, value) in prefix_tests {
+		let stmt = parse_single_statement(input);
+
+		if let Statement::Expression(Expression::Prefix { operator, right }) = stmt {
+			assert_eq!(operator, op);
+
+			//Could dereference and move "right" instead of passing box
+			test_literal_expression(right.as_ref(), &value);
+		}else {
+			panic!("{:?} is not Expression(Prefix)", stmt)
+		}
+	}
+}
+
+#[test]
+fn test_parsing_infix_expressions() {
+	let infix_tests = vec![
+		("5 + 5;", Expression::Integer(5), "+", Expression::Integer(5)),
+		("5 - 5;", Expression::Integer(5), "-", Expression::Integer(5)),
+		("5 * 5;", Expression::Integer(5), "*", Expression::Integer(5)),
+		("5 / 5;", Expression::Integer(5), "/", Expression::Integer(5)),
+		("5 > 5;", Expression::Integer(5), ">", Expression::Integer(5)),
+		("5 < 5;", Expression::Integer(5), "<", Expression::Integer(5)),
+		("5 == 5;", Expression::Integer(5), "==", Expression::Integer(5)),
+		("5 != 5;", Expression::Integer(5), "!=", Expression::Integer(5)),
+		("true == true", Expression::Boolean(true), "==", Expression::Boolean(true)),
+		("true != false", Expression::Boolean(true), "!=", Expression::Boolean(false)),
+		("false == false", Expression::Boolean(false), "==", Expression::Boolean(false)),
+	];
+
+	for (input, left_value, op, right_value) in infix_tests {
+		let stmt = parse_single_statement(input);
+
+		if let Statement::Expression(Expression::Infix { left, operator, right }) = stmt {
+			test_literal_expression(&left, &left_value);
+
+			assert_eq!(op, operator);
+
+			test_literal_expression(&right, &right_value);
+		} else {
+			panic!("{:?} is not Expression(Infix)", stmt);
+		}
+	}
+}
+
+#[test]
+fn test_operator_precedence_parsing() {
+	let tests = vec![
+		(
+			"-a * b",
+			"((-a) * b)",
+		),
+		(
+			"!-a",
+			"(!(-a))",
+		),
+		(
+			"a + b + c",
+			"((a + b) + c)",
+		),
+		(
+			"a + b - c",
+			"((a + b) - c)",
+		),
+		(
+			"a * b * c",
+			"((a * b) * c)",
+		),
+		(
+			"a * b / c",
+			"((a * b) / c)",
+		),
+		(
+			"a + b / c",
+			"(a + (b / c))",
+		),
+		(
+			"a + b * c + d / e - f",
+			"(((a + (b * c)) + (d / e)) - f)",
+		),
+		(
+			"3 + 4; -5 * 5",
+			"(3 + 4)((-5) * 5)",
+		),
+		(
+			"5 > 4 == 3 < 4",
+			"((5 > 4) == (3 < 4))",
+		),
+		(
+			"5 < 4 != 3 > 4",
+			"((5 < 4) != (3 > 4))",
+		),
+		(
+			"3 + 4 * 5 == 3 * 1 + 4 * 5",
+			"((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+		),
+		(
+			"true",
+			"true",
+		),
+		(
+			"false",
+			"false",
+		),
+		(
+			"3 > 5 == false",
+			"((3 > 5) == false)",
+		),
+		(
+			"3 < 5 == true",
+			"((3 < 5) == true)",
+		),
+		(
+			"1 + (2 + 3) + 4",
+			"((1 + (2 + 3)) + 4)",
+		),
+		(
+			"(5 + 5) * 2",
+			"((5 + 5) * 2)",
+		),
+		(
+			"2 / (5 + 5)",
+			"(2 / (5 + 5))",
+		),
+		(
+			"-(5 + 5)",
+			"(-(5 + 5))",
+		),
+		(
+			"!(true == true)",
+			"(!(true == true))",
+		),
+		(
+			"a + add(b * c) + d",
+			"((a + add((b * c))) + d)",
+		),
+		(
+			"add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+			"add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
+		),
+		(
+			"add(a + b + c * d / f + g)",
+			"add((((a + b) + ((c * d) / f)) + g))",
+		),
+	];
+
+	for (input, expected) in tests {
+		let mut parser = Parser::new(Lexer::new(input));
+		let program = parser.parse_program();
+		check_parser_errors(&parser);
+
+		assert_eq!(program.to_string(), expected);
+	}
+}
+
+#[test]
+fn test_if_expression() {
+	let tests = vec![
+		("if (x < y) { x }", false),
+		("if (x < y) { x } else { y }", true),
+	];
+
+	for (input, has_alternative) in tests {
+		let stmt = parse_single_statement(input);
+
+		if let Statement::Expression(Expression::If { condition, consequence, alternative }) = stmt {
+			test_infix_expression(
+				&condition,
+				Expression::Identifier("x".into()),
+				"<".into(),
+				Expression::Identifier("y".into())
+			);
+
+			assert_eq!(consequence.statements.len(), 1, "consequence is not 1 statement. ({:?})", consequence.statements);
+
+			let consequence_stmt = consequence.statements.first().unwrap();
+
+			if let Statement::Expression(ident) = consequence_stmt {
+				test_identifier(ident, "x");
+			}else {
+				panic!("{:?} is not Statement::Expression", consequence_stmt)
+			}
+
+			if has_alternative {
+				if let Some(alternative) = alternative {
+					let alternative_stmt = alternative.statements.first().unwrap();
+
+					if let Statement::Expression(ident) = alternative_stmt {
+						test_identifier(ident, "y");
+					} else {
+						panic!("{:?} is not Statement::Expression", alternative_stmt)
+					}
+				}else {
+					panic!("missing alternative")
+				}
+			} else {
+				assert!(alternative.is_none(), "alternative was not None. ({:?})", alternative);
+			}
+		}else {
+			panic!("{:?} is not Expression(If)", stmt);
+		}
+	}
+}
+
+#[test]
+fn test_function_literal_parsing() {
+	let tests = vec![
+		"fn(x, y) { x + y; }"
+	];
+
+	for input in tests {
+		let stmt = parse_single_statement(input);
+
+		if let Statement::Expression(Expression::Function { parameters, body }) = stmt {
+			assert_eq!(parameters.len(), 2, "function parameters wrong, want 2. ({:?})", parameters);
+
+			test_literal_expression(&parameters[0], &Expression::Identifier("x".into()));
+			test_literal_expression(&parameters[1], &Expression::Identifier("y".into()));
+
+			assert_eq!(body.statements.len(), 1, "body.statements doesn't have 1 statement. ({:?})", body.statements);
+
+			let body_stmt = body.statements.first().unwrap();
+			if let Statement::Expression(exp) = body_stmt {
+				test_infix_expression(&exp, Expression::Identifier("x".into()), "+", Expression::Identifier("y".into()));
+			}else {
+				panic!("{:?} not Statement::Expression(Infix)", body_stmt);
+			}
+
+		} else {
+			panic!("{:?} is not Expression(Function)", stmt);
+		}
+	}
+}
+
+#[test]
+fn test_function_parameter_parsing() {
+	let tests = vec![
+		("fn() {};", vec![]),
+		("fn(x) {};", vec![
+			Expression::Identifier("x".into())
+		]),
+		("fn(x, y, z) {};", vec![
+			Expression::Identifier("x".into()),
+			Expression::Identifier("y".into()),
+			Expression::Identifier("z".into()),
+		]),
+	];
+
+	for (input, expected_params) in tests {
+		let stmt = parse_single_statement(input);
+		if let Statement::Expression(Expression::Function { parameters, .. }) = stmt {
+			assert_eq!(parameters.len(), expected_params.len());
+
+			for (param, expected_param) in parameters.iter().zip(expected_params.iter()) {
+				test_literal_expression(param, expected_param)
+			}
+		}else {
+			panic!("{:?} is not Statement::Expression(Function)", stmt);
+		}
+	}
+}
+
+#[test]
+fn test_call_expression_parsing() {
+	let tests = vec![
+		"add(1, 2 * 3, 4 + 5);"
+	];
+
+	for input in tests {
+		let stmt = parse_single_statement(input);
+
+		if let Statement::Expression(Expression::Call { function, arguments }) = stmt {
+			test_identifier(&function, "add");
+
+			assert_eq!(arguments.len(), 3, "wrong number of arguments");
+
+			test_literal_expression(&arguments[0], &Expression::Integer(1));
+			test_infix_expression(&arguments[1], Expression::Integer(2), "*", Expression::Integer(3));
+			test_infix_expression(&arguments[2], Expression::Integer(4), "+", Expression::Integer(5))
+		} else {
+			panic!("{:?} is not Statement::Expression(Call)", stmt);
 		}
 	}
 }
@@ -65,19 +395,74 @@ fn check_parser_errors(parser: &Parser) {
 	for msg in &parser.errors {
 		writeln!(error_msg, "parser error: {}", msg).unwrap();
 	}
-	assert!(false, "{}", error_msg)
+	panic!("{}", error_msg)
 }
 
-fn test_let_statement(stmt: &Statement, ident_name: &str) {
+fn parse_single_statement(input: &str) -> Statement {
+	let mut parser = Parser::new(Lexer::new(input));
+	let program = parser.parse_program();
+	check_parser_errors(&parser);
+
+	assert_eq!(program.statements.len(), 1, "program.statements does not contain 1 statement");
+
+	program.statements.into_iter().next().unwrap()
+}
+
+fn test_let_statement(name: &Expression, ident_name: &str) {
 	//assert_eq!(stmt.token_literal, "let")
 
-	if let Statement::Let {name, ..} = stmt {
+	// let Statement::Let {name, ..} = stmt {
 		if let Expression::Identifier(n) = name {
 			assert_eq!(n, ident_name);
 		}else {
-			assert!(false, "{:?} not Expression::Identifier", name);
+			panic!("{:?} not Expression::Identifier", name);
 		}
-	} else {
-		assert!(false, "{:?} not Statement::Let", stmt);
+	/*} else {
+		panic!("{:?} not Statement::Let", stmt);
+	}*/
+}
+
+fn test_identifier(exp: &Expression, value: &str) {
+	if let Expression::Identifier(ident) = exp {
+		assert_eq!(ident, &value);
+	}else {
+		panic!("{:?} not Identifier", exp);
+	}
+}
+
+fn test_literal_expression(exp: &Expression, expected: &Expression) {
+	match expected {
+		Expression::Identifier(name) => test_identifier(exp, name),
+		Expression::Integer(value) => test_integer_literal(exp, *value),
+		Expression::Boolean(value) => test_boolean_literal(exp, *value),
+		_ => panic!("type of exp ({:?}) not handled", exp),
+	}
+}
+
+fn test_integer_literal(il: &Expression, value: i64) {
+	if let Expression::Integer(v) = il {
+		assert_eq!(v, &value);
+	}else {
+		panic!("{:?} not Integer", il);
+	}
+}
+
+fn test_boolean_literal(exp: &Expression, value: bool) {
+	if let Expression::Boolean(v) = exp {
+		assert_eq!(v, &value);
+	}else {
+		panic!("{:?} not Boolean", exp);
+	}
+}
+
+fn test_infix_expression(exp: &Expression, left_value: Expression, op: &str, right_value: Expression) {
+	if let Expression::Infix { left, operator, right } = exp {
+		test_literal_expression(&left, &left_value);
+
+		assert_eq!(operator, &op);
+
+		test_literal_expression(&right, &right_value);
+	}else {
+		panic!("{:?} is not Infix", exp);
 	}
 }

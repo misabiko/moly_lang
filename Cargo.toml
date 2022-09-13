@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 ctrlc = "3.2.3"
+byteorder = "1.4.3"

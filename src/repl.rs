@@ -3,7 +3,9 @@ use ctrlc;
 use crate::{
 	lexer::Lexer,
 };
+use crate::compiler::Compiler;
 use crate::parser::Parser;
+use crate::vm::VM;
 
 const PROMPT: &'static str = ">> ";
 
@@ -28,12 +30,28 @@ pub fn start() {
 			continue;
 		}
 
-		println!("{}", program);
+		let mut compiler = Compiler::new();
+		if let Err(err) = compiler.compile(program) {
+			eprintln!("Compilation failed:\n{}", err);
+			continue
+		}
+
+		let mut machine = VM::new(compiler.bytecode());
+		if let Err(err) = machine.run() {
+			eprintln!("Executing bytecode failed:\n{}", err);
+			continue
+		}
+
+		if let Some(obj) = machine.stack_top() {
+			println!("{}", obj)
+		}else {
+			println!()
+		}
 	}
 }
 
 fn print_parser_errors(errors: &Vec<String>) {
 	for msg in errors {
-		println!("\t{}", msg);
+		eprintln!("\t{}", msg);
 	}
 }

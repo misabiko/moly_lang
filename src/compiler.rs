@@ -15,7 +15,7 @@ impl Compiler {
 		}
 	}
 
-	pub fn compile(&mut self, program: Program) -> Result<(), String> {
+	pub fn compile(&mut self, program: Program) -> CompilerResult {
 		for stmt in program.statements {
 			self.compile_statement(stmt)?
 		}
@@ -23,10 +23,12 @@ impl Compiler {
 		Ok(())
 	}
 
-	fn compile_statement(&mut self, stmt: Statement) -> Result<(), String> {
+	fn compile_statement(&mut self, stmt: Statement) -> CompilerResult {
 		match stmt {
 			Statement::Expression(exp) => {
 				self.compile_expression(exp)?;
+
+				self.emit(Opcode::OpPop, vec![]);
 			},
 			_ => return Err(format!("{:?} not handled", stmt))
 		}
@@ -34,19 +36,49 @@ impl Compiler {
 		Ok(())
 	}
 
-	fn compile_expression(&mut self, exp: Expression) -> Result<(), String> {
+	fn compile_expression(&mut self, exp: Expression) -> CompilerResult {
 		match exp {
 			Expression::Integer(value) => {
 				let operands = vec![self.add_constant(Object::Integer(value))];
 				self.emit(Opcode::OpConstant, operands);
 			}
+			Expression::Boolean(value) => if value {
+				self.emit(Opcode::OpTrue, vec![]);
+			}else {
+				self.emit(Opcode::OpFalse, vec![]);
+			}
+			Expression::Prefix { operator, right } => {
+				self.compile_expression(*right)?;
+
+				match operator.as_str() {
+					"!" => self.emit(Opcode::OpBang, vec![]),
+					"-" => self.emit(Opcode::OpMinus, vec![]),
+					_ => return Err(format!("unknown operator {:?}", operator))
+				};
+			}
 			Expression::Infix { left, operator, right } => {
+				if operator.as_str() == "<" {
+					self.compile_expression(*right)?;
+
+					self.compile_expression(*left)?;
+
+					self.emit(Opcode::OpGreaterThan, vec![]);
+
+					return Ok(())
+				}
+
 				self.compile_expression(*left)?;
 
 				self.compile_expression(*right)?;
 
 				match operator.as_str() {
 					"+" => self.emit(Opcode::OpAdd, vec![]),
+					"-" => self.emit(Opcode::OpSub, vec![]),
+					"*" => self.emit(Opcode::OpMul, vec![]),
+					"/" => self.emit(Opcode::OpDiv, vec![]),
+					">" => self.emit(Opcode::OpGreaterThan, vec![]),
+					"==" => self.emit(Opcode::OpEqual, vec![]),
+					"!=" => self.emit(Opcode::OpNotEqual, vec![]),
 					_ => return Err(format!("unknown operator {}", operator))
 				};
 			}
@@ -85,3 +117,5 @@ pub struct Bytecode {
 	pub instructions: Instructions,
 	pub constants: Vec<Object>,
 }
+
+type CompilerResult = Result<(), String>;

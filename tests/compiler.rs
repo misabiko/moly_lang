@@ -21,11 +21,164 @@ fn test_integer_arithmetic() {
 				make(Opcode::OpConstant, &vec![0]),
 				make(Opcode::OpConstant, &vec![1]),
 				make(Opcode::OpAdd, &vec![]),
+				make(Opcode::OpPop, &vec![]),
 			],
-		}
+		},
+		CompilerTestCase {
+			input: "1; 2",
+			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpPop, &vec![]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "1 - 2",
+			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpSub, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "1 * 2",
+			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpMul, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "2 / 1",
+			expected_constants: vec![Object::Integer(2), Object::Integer(1)],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpDiv, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "1 + 2",
+			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpAdd, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "-1",
+			expected_constants: vec![Object::Integer(1)],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpMinus, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
 	];
 
 	run_compiler_tests(tests);
+}
+
+#[test]
+fn test_boolean_expressions() {
+	let tests = vec![
+		CompilerTestCase {
+			input: "true",
+			expected_constants: vec![],
+			expected_instructions: vec![
+				make(Opcode::OpTrue, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "false",
+			expected_constants: vec![],
+			expected_instructions: vec![
+				make(Opcode::OpFalse, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "1 > 2",
+			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpGreaterThan, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "1 < 2",
+			expected_constants: vec![Object::Integer(2), Object::Integer(1)],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpGreaterThan, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "1 == 2",
+			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpEqual, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "1 != 2",
+			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpNotEqual, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "true == false",
+			expected_constants: vec![],
+			expected_instructions: vec![
+				make(Opcode::OpTrue, &vec![]),
+				make(Opcode::OpFalse, &vec![]),
+				make(Opcode::OpEqual, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "true != false",
+			expected_constants: vec![],
+			expected_instructions: vec![
+				make(Opcode::OpTrue, &vec![]),
+				make(Opcode::OpFalse, &vec![]),
+				make(Opcode::OpNotEqual, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "!true",
+			expected_constants: vec![],
+			expected_instructions: vec![
+				make(Opcode::OpTrue, &vec![]),
+				make(Opcode::OpBang, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+	];
+
+	run_compiler_tests(tests)
 }
 
 fn run_compiler_tests(tests: Vec<CompilerTestCase>) {
@@ -64,7 +217,8 @@ fn test_constants(expected: Vec<Object>, actual: Vec<Object>) {
 
 	for (constant, actual) in expected.into_iter().zip(actual.into_iter()) {
 		match constant {
-			Object::Integer(value) => test_integer_object(value, actual)
+			Object::Integer(value) => test_integer_object(value, actual),
+			Object::Boolean(value) => test_boolean_object(value, actual),
 		}
 	}
 }
@@ -74,5 +228,13 @@ fn test_integer_object(expected: i64, actual: Object) {
 		assert_eq!(value, expected)
 	} else {
 		panic!("{:?} is not Integer", actual)
+	}
+}
+
+fn test_boolean_object(expected: bool, actual: Object) {
+	if let Object::Boolean(value) = actual {
+		assert_eq!(value, expected)
+	} else {
+		panic!("{:?} is not Boolean", actual)
 	}
 }

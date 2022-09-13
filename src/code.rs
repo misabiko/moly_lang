@@ -43,19 +43,50 @@ fn fmt_instruction(def: Definition, operands: Vec<Operand>) -> String {
 }
 
 #[repr(u8)]
-#[derive(Eq, PartialEq, Copy, Clone)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Opcode {
 	OpConstant = 0,
+	OpPop,
+
 	OpAdd,
+	OpSub,
+	OpMul,
+	OpDiv,
+
+	OpTrue,
+	OpFalse,
+
+	OpEqual,
+	OpNotEqual,
+	OpGreaterThan,
+
+	OpMinus,
+	OpBang,
 }
 
+//TODO Replace with macro
 impl TryFrom<u8> for Opcode {
 	type Error = ();
 
 	fn try_from(value: u8) -> Result<Self, Self::Error> {
 		match value {
 			0 => Ok(Opcode::OpConstant),
-			1 => Ok(Opcode::OpAdd),
+			1 => Ok(Opcode::OpPop),
+
+			2 => Ok(Opcode::OpAdd),
+			3 => Ok(Opcode::OpSub),
+			4 => Ok(Opcode::OpMul),
+			5 => Ok(Opcode::OpDiv),
+
+			6 => Ok(Opcode::OpTrue),
+			7 => Ok(Opcode::OpFalse),
+
+			8 => Ok(Opcode::OpEqual),
+			9 => Ok(Opcode::OpNotEqual),
+			10 => Ok(Opcode::OpGreaterThan),
+
+			11 => Ok(Opcode::OpMinus),
+			12 => Ok(Opcode::OpBang),
 			_ => Err(())
 		}
 	}
@@ -71,7 +102,22 @@ pub type Operand = usize;
 pub fn lookup(op: u8) -> Result<Definition, String> {
 	match op.try_into() {
 		Ok(Opcode::OpConstant) => Ok(Definition {name: "OpConstant", operand_widths: vec![2]}),
+		Ok(Opcode::OpPop) => Ok(Definition {name: "OpPop", operand_widths: vec![]}),
+
 		Ok(Opcode::OpAdd) => Ok(Definition {name: "OpAdd", operand_widths: vec![]}),
+		Ok(Opcode::OpSub) => Ok(Definition {name: "OpSub", operand_widths: vec![]}),
+		Ok(Opcode::OpMul) => Ok(Definition {name: "OpMul", operand_widths: vec![]}),
+		Ok(Opcode::OpDiv) => Ok(Definition {name: "OpDiv", operand_widths: vec![]}),
+
+		Ok(Opcode::OpTrue) => Ok(Definition {name: "OpTrue", operand_widths: vec![]}),
+		Ok(Opcode::OpFalse) => Ok(Definition {name: "OpFalse", operand_widths: vec![]}),
+
+		Ok(Opcode::OpEqual) => Ok(Definition {name: "OpEqual", operand_widths: vec![]}),
+		Ok(Opcode::OpNotEqual) => Ok(Definition {name: "OpNotEqual", operand_widths: vec![]}),
+		Ok(Opcode::OpGreaterThan) => Ok(Definition {name: "OpGreaterThan", operand_widths: vec![]}),
+
+		Ok(Opcode::OpMinus) => Ok(Definition {name: "OpMinus", operand_widths: vec![]}),
+		Ok(Opcode::OpBang) => Ok(Definition {name: "OpBang", operand_widths: vec![]}),
 		Err(_) => Err(format!("opcode {} undefined", op))
 	}
 }

@@ -42,7 +42,7 @@ pub fn start() {
 			continue
 		}
 
-		if let Some(obj) = machine.stack_top() {
+		if let Some(obj) = machine.last_popped_stack_elem {
 			println!("{}", obj)
 		}else {
 			println!()

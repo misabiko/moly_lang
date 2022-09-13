@@ -62,6 +62,9 @@ pub enum Opcode {
 
 	OpMinus,
 	OpBang,
+
+	OpJumpIfFalse,
+	OpJump,
 }
 
 //TODO Replace with macro
@@ -87,6 +90,9 @@ impl TryFrom<u8> for Opcode {
 
 			11 => Ok(Opcode::OpMinus),
 			12 => Ok(Opcode::OpBang),
+
+			13 => Ok(Opcode::OpJumpIfFalse),
+			14 => Ok(Opcode::OpJump),
 			_ => Err(())
 		}
 	}
@@ -118,6 +124,9 @@ pub fn lookup(op: u8) -> Result<Definition, String> {
 
 		Ok(Opcode::OpMinus) => Ok(Definition {name: "OpMinus", operand_widths: vec![]}),
 		Ok(Opcode::OpBang) => Ok(Definition {name: "OpBang", operand_widths: vec![]}),
+
+		Ok(Opcode::OpJumpIfFalse) => Ok(Definition {name: "OpJumpIfFalse", operand_widths: vec![2]}),
+		Ok(Opcode::OpJump) => Ok(Definition {name: "OpJump", operand_widths: vec![2]}),
 		Err(_) => Err(format!("opcode {} undefined", op))
 	}
 }

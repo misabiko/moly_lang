@@ -70,7 +70,22 @@ impl VM {
 					self.execute_comparison(op)?
 				}
 
-				Err(_) => panic!("{} undefined opcode", op)
+				Ok(Opcode::OpJump) => {
+					let pos = read_u16(&self.instructions[ip+1..]) as usize;
+					ip = pos - 1;
+				}
+				Ok(Opcode::OpJumpIfFalse) => {
+					let pos = read_u16(&self.instructions[ip+1..]) as usize;
+					ip += 2;
+
+					let condition = self.pop().unwrap();
+					if condition == FALSE_OBJ {
+						ip = pos - 1;
+					}
+				}
+
+				_ => panic!("{} undefined opcode", op)
+				//TODO Err(_) => panic!("{} undefined opcode", op)
 			}
 
 			ip += 1;

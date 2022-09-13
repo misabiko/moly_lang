@@ -1,5 +1,5 @@
 use moly_lang::ast::Program;
-use moly_lang::code::{Instructions, make, Opcode};
+use moly_lang::code::{instruction_to_string, Instructions, make, Opcode};
 use moly_lang::object::Object;
 use moly_lang::compiler::{Compiler};
 use moly_lang::lexer::Lexer;
@@ -181,6 +181,58 @@ fn test_boolean_expressions() {
 	run_compiler_tests(tests)
 }
 
+#[test]
+fn test_conditionals() {
+	let tests = vec![
+		CompilerTestCase {
+			input: "
+            if (true) { 10 }; 3333;
+            ",
+			expected_constants: vec![Object::Integer(10), Object::Integer(3333)],
+			expected_instructions: vec![
+				// 0000
+				make(Opcode::OpTrue, &vec![]),
+				// 0001
+				make(Opcode::OpJumpIfFalse, &vec![7]),
+				// 0004
+				make(Opcode::OpConstant, &vec![0]),
+				// 0007
+				make(Opcode::OpPop, &vec![]),
+				// 0008
+				make(Opcode::OpConstant, &vec![1]),
+				// 0011
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "
+            if (true) { 10 } else { 20 }; 3333;
+            ",
+			expected_constants: vec![Object::Integer(10), Object::Integer(20), Object::Integer(3333)],
+			expected_instructions: vec![
+				// 0000
+				make(Opcode::OpTrue, &vec![]),
+				// 0001
+				make(Opcode::OpJumpIfFalse, &vec![10]),
+				// 0004
+				make(Opcode::OpConstant, &vec![0]),
+				// 0007
+				make(Opcode::OpJump, &vec![13]),
+				// 0010
+				make(Opcode::OpConstant, &vec![1]),
+				// 0013
+				make(Opcode::OpPop, &vec![]),
+				// 0014
+				make(Opcode::OpConstant, &vec![2]),
+				// 0017
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+	];
+
+	run_compiler_tests(tests)
+}
+
 fn run_compiler_tests(tests: Vec<CompilerTestCase>) {
 	for CompilerTestCase { input, expected_constants, expected_instructions } in tests {
 		let program = parse(input);
@@ -205,11 +257,12 @@ fn parse(input: &str) -> Program {
 fn test_instructions(expected: Vec<Instructions>, actual: Instructions) {
 	let concatted: Instructions = expected.into_iter().flatten().collect();
 
-	assert_eq!(actual.len(), concatted.len(), "wrong instructions length");
+	assert_eq!(instruction_to_string(&actual), instruction_to_string(&concatted));
+	/*assert_eq!(actual.len(), concatted.len(), "wrong instructions length");
 
 	for (i, (ins, actual)) in concatted.into_iter().zip(actual.into_iter()).enumerate() {
 		assert_eq!(ins, actual, "wrong instruction at {}", i)
-	}
+	}*/
 }
 
 fn test_constants(expected: Vec<Object>, actual: Vec<Object>) {

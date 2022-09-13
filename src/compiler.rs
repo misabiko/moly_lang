@@ -5,6 +5,9 @@ use crate::object::Object;
 pub struct Compiler {
 	instructions: Instructions,
 	constants: Vec<Object>,
+
+	last_instruction: Option<EmittedInstruction>,
+	previous_instruction: Option<EmittedInstruction>,
 }
 
 impl Compiler {
@@ -12,9 +15,12 @@ impl Compiler {
 		Self {
 			instructions: Default::default(),
 			constants: vec![],
+			last_instruction: None,
+			previous_instruction: None,
 		}
 	}
 
+	//TODO Check difference between Program and BlockStatement
 	pub fn compile(&mut self, program: Program) -> CompilerResult {
 		for stmt in program.statements {
 			self.compile_statement(stmt)?
@@ -82,6 +88,38 @@ impl Compiler {
 					_ => return Err(format!("unknown operator {}", operator))
 				};
 			}
+			Expression::If { condition, consequence, alternative } => {
+				self.compile_expression(*condition)?;
+
+				//Emit an OpJumpIfFalse with temp value
+				let jump_if_false_pos = self.emit(Opcode::OpJumpIfFalse, vec![0]);
+
+				self.compile(consequence)?;
+
+				if self.last_instruction_is_pop() {
+					self.remove_last_pop();
+				}
+
+				if let Some(alternative) = alternative {
+					//Emit an OpJump with temp value
+					let jump_pos = self.emit(Opcode::OpJump, vec![0]);
+
+					let after_consequence_pos = self.instructions.len();
+					self.change_operand(jump_if_false_pos, after_consequence_pos);
+
+					self.compile(alternative)?;
+
+					if self.last_instruction_is_pop() {
+						self.remove_last_pop();
+					}
+
+					let after_alternative_pos = self.instructions.len();
+					self.change_operand(jump_pos, after_alternative_pos);
+				} else {
+					let after_consequence_pos = self.instructions.len();
+					self.change_operand(jump_if_false_pos, after_consequence_pos);
+				}
+			}
 			_ => return Err(format!("{:?} not handled", exp))
 		}
 
@@ -102,7 +140,10 @@ impl Compiler {
 	}
 
 	fn emit(&mut self, op: Opcode, operands: Vec<Operand>) -> usize {
-		self.add_instruction(make(op, &operands))
+		let pos = self.add_instruction(make(op, &operands));
+		self.set_last_instruction(op, pos);
+
+		pos
 	}
 
 	fn add_instruction(&mut self, ins: Instructions) -> usize {
@@ -111,11 +152,48 @@ impl Compiler {
 
 		pos_new_instruction
 	}
+
+	fn set_last_instruction(&mut self, op: Opcode, pos: usize) {
+		let previous = std::mem::take(&mut self.last_instruction);
+		let last = EmittedInstruction { opcode: op, position: pos };
+
+		self.previous_instruction = previous;
+		self.last_instruction = Some(last);
+	}
+
+	fn last_instruction_is_pop(&self) -> bool {
+		self.last_instruction.as_ref().map(|ins| ins.opcode) == Some(Opcode::OpPop)
+	}
+
+	fn remove_last_pop(&mut self) {
+		self.instructions.truncate(self.last_instruction.as_ref().unwrap().position);
+		//Will cause issues if previous_instruction is relied on
+		self.last_instruction = std::mem::take(&mut self.previous_instruction);
+	}
+
+	fn replace_instruction(&mut self, pos: usize, new_instruction: Instructions) {
+		//Maybe could be done with self.instructions[pos+1..] = new_instruction[..]?
+		for (i, ins) in new_instruction.into_iter().enumerate() {
+			self.instructions[pos+i] = ins;
+		}
+	}
+
+	fn change_operand(&mut self, op_pos: usize, operand: usize) {
+		let op: Opcode = self.instructions[op_pos].try_into().unwrap();
+		let new_instruction = make(op, &vec![operand]);
+
+		self.replace_instruction(op_pos, new_instruction)
+	}
 }
 
 pub struct Bytecode {
 	pub instructions: Instructions,
 	pub constants: Vec<Object>,
+}
+
+struct EmittedInstruction {
+	opcode: Opcode,
+	position: usize,
 }
 
 type CompilerResult = Result<(), String>;

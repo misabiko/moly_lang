@@ -61,7 +61,22 @@ fn test_boolean_expressions() {
 		//TODO Test error VMTestCase { input: "!5", expected: Object::Boolean(false) },
 		VMTestCase { input: "!!true", expected: Object::Boolean(true) },
 		VMTestCase { input: "!!false", expected: Object::Boolean(false) },
-		//VMTestCase { input: "!!5", expected: Object::Boolean(true) },
+		//TODO Test error VMTestCase { input: "!!5", expected: Object::Boolean(true) },
+	];
+
+	run_vm_tests(tests)
+}
+
+#[test]
+fn test_conditionals() {
+	let tests = vec![
+		VMTestCase { input: "if (true) { 10 }", expected: Object::Integer(10) },
+		VMTestCase { input: "if (true) { 10 } else { 20 }", expected: Object::Integer(10) },
+		VMTestCase { input: "if (false) { 10 } else { 20 } ", expected: Object::Integer(20) },
+		VMTestCase { input: "if (1) { 10 }", expected: Object::Integer(10) },
+		VMTestCase { input: "if (1 < 2) { 10 }", expected: Object::Integer(10) },
+		VMTestCase { input: "if (1 < 2) { 10 } else { 20 }", expected: Object::Integer(10) },
+		VMTestCase { input: "if (1 > 2) { 10 } else { 20 }", expected: Object::Integer(20) },
 	];
 
 	run_vm_tests(tests)

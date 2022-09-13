@@ -70,6 +70,7 @@ impl Lexer {
 				',' => new_token(TokenType::Comma, Some(ch.to_string())),
 				'{' => new_token(TokenType::LBrace, Some(ch.to_string())),
 				'}' => new_token(TokenType::RBrace, Some(ch.to_string())),
+				'"' => new_token(TokenType::String, Some(self.read_string())),
 				_ => if is_letter(self.ch) {
 					let literal = self.read_identifier();
 					//Returning early to skip the read_char() at the end
@@ -103,7 +104,7 @@ impl Lexer {
 		self.input.chars()
 			.skip(position)
 			.take(self.position - position)
-			.collect::<String>()
+			.collect()
 	}
 
 	fn read_number(&mut self) -> String {
@@ -115,6 +116,20 @@ impl Lexer {
 			.skip(position)
 			.take(self.position - position)
 			.collect::<String>()
+	}
+
+	fn read_string(&mut self) -> String {
+		let position = self.position + 1;
+		loop {
+			self.read_char();
+			if let Some('"') | None = self.ch {
+				break;
+			}
+		}
+		self.input.chars()
+			.skip(position)
+			.take(self.position - position)
+			.collect()
 	}
 }
 

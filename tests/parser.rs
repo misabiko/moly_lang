@@ -386,6 +386,19 @@ fn test_call_expression_parsing() {
 	}
 }
 
+#[test]
+fn test_string_literal_expression() {
+	let input = r#""hello world";"#;
+
+	let stmt = parse_single_statement(input);
+
+	if let Statement::Expression(Expression::String(value)) = stmt {
+		assert_eq!(value, "hello world")
+	}else {
+		panic!("{:?} is not Statement::Expression(String)", stmt)
+	}
+}
+
 fn check_parser_errors(parser: &Parser) {
 	if parser.errors.is_empty() {
 		return

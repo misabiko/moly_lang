@@ -130,6 +130,7 @@ impl Parser {
 			TokenType::LParen => self.parse_grouped_expression()?,
 			TokenType::If => self.parse_if_expression()?,
 			TokenType::Function => self.parse_function_literal()?,
+			TokenType::String => self.parse_string_literal(),
 			t => {
 				self.no_prefix_parse_fn_error(t);
 				return None
@@ -355,6 +356,10 @@ impl Parser {
 		}
 
 		Some(args)
+	}
+
+	fn parse_string_literal(&self) -> Expression {
+		Expression::String(self.cur_token.literal.clone().unwrap())
 	}
 
 	fn cur_token_is(&self, t: TokenType) -> bool {

@@ -10,37 +10,41 @@ struct TestStruct {
 
 #[test]
 fn test_next_token() {
-	const INPUT: &str = "let five = 5
-let ten = 10
+	//TODO Remove if parentheses
+	const INPUT: &str = r#"let five = 5;
+let ten = 10;
 
 let add = fn(x, y) {
-  x + y
-}
+  x + y;
+};
 
-let result = add(five, ten)
-
+let result = add(five, ten);
 !-/*5;
-5 < 10 > 5
+5 < 10 > 5;
 
-if 5 < 10 {
-    return true
+if (5 < 10) {
+    return true;
 } else {
-    return false
+    return false;
 }
 
-10 == 10
-10 != 9
-";
+10 == 10;
+10 != 9;
+"foobar"
+"foo bar"
+"#;
 
 	let tests = vec![
 		(TokenType::Let, Some("let")),
 		(TokenType::Ident, Some("five")),
 		(TokenType::Assign, Some("=")),
 		(TokenType::Int, Some("5")),
+		(TokenType::Semicolon, Some(";")),
 		(TokenType::Let, Some("let")),
 		(TokenType::Ident, Some("ten")),
 		(TokenType::Assign, Some("=")),
 		(TokenType::Int, Some("10")),
+		(TokenType::Semicolon, Some(";")),
 		(TokenType::Let, Some("let")),
 		(TokenType::Ident, Some("add")),
 		(TokenType::Assign, Some("=")),
@@ -54,7 +58,9 @@ if 5 < 10 {
 		(TokenType::Ident, Some("x")),
 		(TokenType::Plus, Some("+")),
 		(TokenType::Ident, Some("y")),
+		(TokenType::Semicolon, Some(";")),
 		(TokenType::RBrace, Some("}")),
+		(TokenType::Semicolon, Some(";")),
 		(TokenType::Let, Some("let")),
 		(TokenType::Ident, Some("result")),
 		(TokenType::Assign, Some("=")),
@@ -64,6 +70,7 @@ if 5 < 10 {
 		(TokenType::Comma, Some(",")),
 		(TokenType::Ident, Some("ten")),
 		(TokenType::RParen, Some(")")),
+		(TokenType::Semicolon, Some(";")),
 		(TokenType::Bang, Some("!")),
 		(TokenType::Minus, Some("-")),
 		(TokenType::Slash, Some("/")),
@@ -75,25 +82,34 @@ if 5 < 10 {
 		(TokenType::Int, Some("10")),
 		(TokenType::GT, Some(">")),
 		(TokenType::Int, Some("5")),
+		(TokenType::Semicolon, Some(";")),
 		(TokenType::If, Some("if")),
+		(TokenType::LParen, Some("(")),
 		(TokenType::Int, Some("5")),
 		(TokenType::LT, Some("<")),
 		(TokenType::Int, Some("10")),
+		(TokenType::RParen, Some(")")),
 		(TokenType::LBrace, Some("{")),
 		(TokenType::Return, Some("return")),
 		(TokenType::True, Some("true")),
+		(TokenType::Semicolon, Some(";")),
 		(TokenType::RBrace, Some("}")),
 		(TokenType::Else, Some("else")),
 		(TokenType::LBrace, Some("{")),
 		(TokenType::Return, Some("return")),
 		(TokenType::False, Some("false")),
+		(TokenType::Semicolon, Some(";")),
 		(TokenType::RBrace, Some("}")),
 		(TokenType::Int, Some("10")),
 		(TokenType::Eq, Some("==")),
 		(TokenType::Int, Some("10")),
+		(TokenType::Semicolon, Some(";")),
 		(TokenType::Int, Some("10")),
 		(TokenType::NotEq, Some("!=")),
 		(TokenType::Int, Some("9")),
+		(TokenType::Semicolon, Some(";")),
+		(TokenType::String, Some("foobar")),
+		(TokenType::String, Some("foo bar")),
 		(TokenType::EOF, None),
 	].into_iter()
 		.map(|(t, l)| TestStruct{

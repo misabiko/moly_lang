@@ -54,6 +54,7 @@ pub enum Expression {
 	Identifier(String),
 	Integer(i64),
 	Boolean(bool),
+	String(String),
 	Prefix {
 		operator: String,
 		right: Box<Expression>,
@@ -81,9 +82,10 @@ pub enum Expression {
 impl fmt::Display for Expression {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match self {
-			Expression::Identifier(name) => write!(f, "{}", name),
+			Expression::Identifier(value) => write!(f, "{}", value),
 			Expression::Integer(value) => write!(f, "{}", value),
 			Expression::Boolean(value) => write!(f, "{}", value),
+			Expression::String(value) => write!(f, "{}", value),
 			Expression::Prefix { operator, right } => write!(f, "({}{})", operator, right),
 			Expression::Infix { left, operator, right } => write!(f, "({} {} {})", left, operator, right),
 			Expression::If { condition, consequence, alternative } => {

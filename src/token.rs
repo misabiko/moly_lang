@@ -47,6 +47,8 @@ pub enum TokenType {
 	If,
 	Else,
 	Return,
+
+	String,
 }
 
 impl fmt::Display for TokenType {
@@ -85,6 +87,8 @@ impl fmt::Display for TokenType {
 			TokenType::If => "IF",
 			TokenType::Else => "ELSE",
 			TokenType::Return => "RETURN",
+
+			TokenType::String => "STRING",
 		})
 	}
 }

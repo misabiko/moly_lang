@@ -5,6 +5,7 @@ use std::fmt::Formatter;
 pub enum Object {
 	Integer(i64),
 	Boolean(bool),
+	String(String),
 }
 
 impl fmt::Display for Object {
@@ -12,6 +13,7 @@ impl fmt::Display for Object {
 		match self {
 			Object::Integer(value) => write!(f, "{}", value),
 			Object::Boolean(value) => write!(f, "{}", value),
+			Object::String(value) => write!(f, "{}", value),
 		}
 	}
 }

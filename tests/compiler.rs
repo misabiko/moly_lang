@@ -283,6 +283,35 @@ fn test_global_let_statements() {
 	run_compiler_tests(tests)
 }
 
+#[test]
+fn test_string_expressions() {
+	let tests = vec![
+		CompilerTestCase {
+			input: r#""monkey"#,
+			expected_constants: vec![Object::String("monkey".into())],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpPop, &vec![]),
+			]
+		},
+		CompilerTestCase {
+			input: r#""mon" + "key"#,
+			expected_constants: vec![
+				Object::String("mon".into()),
+				Object::String("key".into()),
+			],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpAdd, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			]
+		},
+	];
+
+	run_compiler_tests(tests)
+}
+
 fn run_compiler_tests(tests: Vec<CompilerTestCase>) {
 	for CompilerTestCase { input, expected_constants, expected_instructions } in tests {
 		let program = parse(input);
@@ -322,6 +351,7 @@ fn test_constants(expected: Vec<Object>, actual: Vec<Object>) {
 		match constant {
 			Object::Integer(value) => test_integer_object(value, actual),
 			Object::Boolean(value) => test_boolean_object(value, actual),
+			Object::String(value) => test_string_object(&value, actual),
 		}
 	}
 }
@@ -339,5 +369,13 @@ fn test_boolean_object(expected: bool, actual: Object) {
 		assert_eq!(value, expected)
 	} else {
 		panic!("{:?} is not Boolean", actual)
+	}
+}
+
+fn test_string_object(expected: &str, actual: Object) {
+	if let Object::String(value) = actual {
+		assert_eq!(value, expected)
+	} else {
+		panic!("{:?} is not String", actual)
 	}
 }

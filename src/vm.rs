@@ -134,8 +134,10 @@ impl VM {
 		let left = self.pop();
 
 		match (&left, &right) {
-			(Some(Object::Integer(left)), Some(Object::Integer(right))) =>
-				self.execute_binary_integer_operation(op, *left, *right)?,
+			(Some(Object::Integer(left)), Some(Object::Integer(right)))
+				=> self.execute_binary_integer_operation(op, *left, *right)?,
+			(Some(Object::String(left)), Some(Object::String(right)))
+			=> self.execute_binary_string_operation(op, left, right)?,
 			_ => return Err(format!("unsupported types for binary operation: {:?} and {:?}", left, right))
 		}
 
@@ -152,6 +154,14 @@ impl VM {
 		};
 
 		self.push(Object::Integer(result))
+	}
+
+	fn execute_binary_string_operation(&mut self, op: Opcode, left: &str, right: &str) -> VMResult {
+		if !matches!(op, Opcode::OpAdd) {
+			return Err(format!("unknown string operator: {:?}", op))
+		}
+
+		self.push(Object::String(format!("{}{}", left, right)))
 	}
 
 	fn execute_comparison(&mut self, op: Opcode) -> VMResult {

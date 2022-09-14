@@ -74,13 +74,17 @@ impl Compiler {
 	fn compile_expression(&mut self, exp: Expression) -> CompilerResult {
 		match exp {
 			Expression::Integer(value) => {
-				let operands = vec![self.add_constant(Object::Integer(value))];
-				self.emit(Opcode::OpConstant, operands);
+				let operand = self.add_constant(Object::Integer(value));
+				self.emit(Opcode::OpConstant, vec![operand]);
 			}
 			Expression::Boolean(value) => if value {
 				self.emit(Opcode::OpTrue, vec![]);
 			}else {
 				self.emit(Opcode::OpFalse, vec![]);
+			}
+			Expression::String(value) => {
+				let operand = self.add_constant(Object::String(value));
+				self.emit(Opcode::OpConstant, vec![operand]);
 			}
 			Expression::Prefix { operator, right } => {
 				self.compile_expression(*right)?;

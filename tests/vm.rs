@@ -93,6 +93,17 @@ fn test_global_let_statements() {
 	run_vm_tests(tests)
 }
 
+#[test]
+fn test_string_expressions() {
+	let tests = vec![
+		VMTestCase { input: r#""monkey""#, expected: Object::String("monkey".into()) },
+		VMTestCase { input: r#""mon" + "key""#, expected: Object::String("monkey".into()) },
+		VMTestCase { input: r#""mon" + "key" + "banana""#, expected: Object::String("monkeybanana".into()) },
+	];
+
+	run_vm_tests(tests)
+}
+
 fn run_vm_tests(tests: Vec<VMTestCase>) {
 	for VMTestCase { input, expected } in tests {
 		let program = parse(input);
@@ -117,6 +128,7 @@ fn test_expected_object(expected: Object, actual: &Object) {
 	match expected {
 		Object::Integer(value) => test_integer_object(value, actual),
 		Object::Boolean(value) => test_boolean_object(value, actual),
+		Object::String(value) => test_string_object(&value, actual),
 	}
 }
 
@@ -133,6 +145,14 @@ fn test_boolean_object(expected: bool, actual: &Object) {
 		assert_eq!(expected, *value);
 	} else {
 		panic!("{:?} is not Boolean", actual);
+	}
+}
+
+fn test_string_object(expected: &str, actual: &Object) {
+	if let Object::String(value) = actual {
+		assert_eq!(expected, *value);
+	} else {
+		panic!("{:?} is not String", actual);
 	}
 }
 

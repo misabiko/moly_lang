@@ -76,6 +76,11 @@ pub enum Expression {
 	Call {
 		function: Box<Expression>,
 		arguments: Vec<Expression>,
+	},
+	Array(Vec<Expression>),
+	Index {
+		left: Box<Expression>,
+		index: Box<Expression>,
 	}
 }
 
@@ -97,16 +102,17 @@ impl fmt::Display for Expression {
 
 				write!(f, "if {} {}{})", condition, consequence, alt_str)
 			},
-			Expression::Function { parameters, body } => {
-				let params_str = parameters.iter().map(|p| p.to_string()).collect::<Vec<String>>().join(", ");
-
-				write!(f, "fn({}) {}", params_str, body)
-			},
-			Expression::Call { function, arguments } => {
-				let args_str = arguments.iter().map(|p| p.to_string()).collect::<Vec<String>>().join(", ");
-
-				write!(f, "{}({})", function, args_str)
-			}
+			Expression::Function { parameters, body } => write!(f, "fn({}) {}", join_expression_vec(parameters), body),
+			Expression::Call { function, arguments } => write!(f, "{}({})", function, join_expression_vec(arguments)),
+			Expression::Array(elements) => write!(f, "[{}]", join_expression_vec(elements)),
+			Expression::Index { left, index } => write!(f, "({}[{}])", left, index),
 		}
 	}
+}
+
+fn join_expression_vec(expressions: &[Expression]) -> String {
+	expressions.iter()
+		.map(|p| p.to_string())
+		.collect::<Vec<String>>()
+		.join(", ")
 }

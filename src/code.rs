@@ -29,6 +29,8 @@ pub enum Opcode {
 
 	OpGetGlobal,
 	OpSetGlobal,
+
+	OpArray,
 }
 
 //TODO Replace with macro
@@ -60,6 +62,8 @@ impl TryFrom<u8> for Opcode {
 
 			15 => Ok(Opcode::OpGetGlobal),
 			16 => Ok(Opcode::OpSetGlobal),
+
+			17 => Ok(Opcode::OpArray),
 			_ => Err(())
 		}
 	}
@@ -97,6 +101,9 @@ pub fn lookup(op: u8) -> Result<Definition, String> {
 
 		Ok(Opcode::OpGetGlobal) => Ok(Definition {name: "OpGetGlobal", operand_widths: vec![2]}),
 		Ok(Opcode::OpSetGlobal) => Ok(Definition {name: "OpSetGlobal", operand_widths: vec![2]}),
+
+		//TODO Test error message for too many elements in an array
+		Ok(Opcode::OpArray) => Ok(Definition {name: "OpArray", operand_widths: vec![2]}),
 		Err(_) => Err(format!("opcode {} undefined", op))
 	}
 }

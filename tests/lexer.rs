@@ -32,8 +32,10 @@ if (5 < 10) {
 10 != 9;
 "foobar"
 "foo bar"
+[1, 2];
 "#;
 
+	//TODO Use default token value
 	let tests = vec![
 		(TokenType::Let, Some("let")),
 		(TokenType::Ident, Some("five")),
@@ -110,6 +112,12 @@ if (5 < 10) {
 		(TokenType::Semicolon, Some(";")),
 		(TokenType::String, Some("foobar")),
 		(TokenType::String, Some("foo bar")),
+		(TokenType::LBracket, Some("[")),
+		(TokenType::Int, Some("1")),
+		(TokenType::Comma, Some(",")),
+		(TokenType::Int, Some("2")),
+		(TokenType::RBracket, Some("]")),
+		(TokenType::Semicolon, Some(";")),
 		(TokenType::EOF, None),
 	].into_iter()
 		.map(|(t, l)| TestStruct{

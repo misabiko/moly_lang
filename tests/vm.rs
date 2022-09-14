@@ -104,6 +104,25 @@ fn test_string_expressions() {
 	run_vm_tests(tests)
 }
 
+#[test]
+fn test_array_literals() {
+	let tests = vec![
+		VMTestCase { input: "[]", expected: Object::Array(vec![]) },
+		VMTestCase { input: "[1, 2, 3", expected: Object::Array(vec![
+			Object::Integer(1),
+			Object::Integer(2),
+			Object::Integer(3),
+		]) },
+		VMTestCase { input: "[1 + 2, 3 * 4, 5 + 6]", expected: Object::Array(vec![
+			Object::Integer(3),
+			Object::Integer(12),
+			Object::Integer(11),
+		]) },
+	];
+
+	run_vm_tests(tests)
+}
+
 fn run_vm_tests(tests: Vec<VMTestCase>) {
 	for VMTestCase { input, expected } in tests {
 		let program = parse(input);
@@ -120,39 +139,56 @@ fn run_vm_tests(tests: Vec<VMTestCase>) {
 
 		let stack_elem = vm.last_popped_stack_elem.expect("missing stack top");
 
-		test_expected_object(expected, &stack_elem);
+		test_expected_object(expected, stack_elem);
 	}
 }
 
-fn test_expected_object(expected: Object, actual: &Object) {
+fn test_expected_object(expected: Object, actual: Object) {
 	match expected {
 		Object::Integer(value) => test_integer_object(value, actual),
 		Object::Boolean(value) => test_boolean_object(value, actual),
-		Object::String(value) => test_string_object(&value, actual),
+		Object::String(value) => test_string_object(value, actual),
+		Object::Array(value) => test_array_object(value, actual),
 	}
 }
 
-fn test_integer_object(expected: i64, actual: &Object) {
+fn test_integer_object(expected: i64, actual: Object) {
 	if let Object::Integer(value) = actual {
-		assert_eq!(expected, *value);
+		assert_eq!(expected, value);
 	} else {
 		panic!("{:?} is not Integer", actual);
 	}
 }
 
-fn test_boolean_object(expected: bool, actual: &Object) {
+fn test_boolean_object(expected: bool, actual: Object) {
 	if let Object::Boolean(value) = actual {
-		assert_eq!(expected, *value);
+		assert_eq!(expected, value);
 	} else {
 		panic!("{:?} is not Boolean", actual);
 	}
 }
 
-fn test_string_object(expected: &str, actual: &Object) {
+fn test_string_object(expected: String, actual: Object) {
 	if let Object::String(value) = actual {
-		assert_eq!(expected, *value);
+		assert_eq!(expected, value);
 	} else {
 		panic!("{:?} is not String", actual);
+	}
+}
+
+fn test_array_object(expected: Vec<Object>, actual: Object) {
+	if let Object::Array(elements) = actual {
+		assert_eq!(expected.len(), elements.len(), "wrong num of elements");
+
+		for (expected_el, el) in expected.into_iter().zip(elements.into_iter()) {
+			if let Object::Integer(expected_el) = expected_el {
+				test_integer_object(expected_el, el);
+			}else {
+				panic!("{:?} isn't Integer", expected_el);
+			}
+		}
+	} else {
+		panic!("{:?} is not Array", actual);
 	}
 }
 

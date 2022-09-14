@@ -245,6 +245,14 @@ fn test_operator_precedence_parsing() {
 			"add(a + b + c * d / f + g)",
 			"add((((a + b) + ((c * d) / f)) + g))",
 		),
+		(
+			"a * [1, 2, 3, 4][b * c] * d",
+			"((a * ([1, 2, 3, 4][(b * c)])) * d)",
+		),
+		(
+			"add(a * b[2], b[1], 2 * [1, 2][1])",
+			"add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
+		),
 	];
 
 	for (input, expected) in tests {
@@ -396,6 +404,38 @@ fn test_string_literal_expression() {
 		assert_eq!(value, "hello world")
 	}else {
 		panic!("{:?} is not Statement::Expression(String)", stmt)
+	}
+}
+
+#[test]
+fn test_parsing_array_literals() {
+	const INPUT: &str = "[1, 2 * 2, 3 + 3]";
+
+	let stmt = parse_single_statement(INPUT);
+
+	if let Statement::Expression(Expression::Array(value)) = stmt {
+		assert_eq!(value.len(), 3, "wrong array length");
+
+		test_integer_literal(&value[0], 1);
+		test_infix_expression(&value[1], Expression::Integer(2), "*", Expression::Integer(2));
+		test_infix_expression(&value[2], Expression::Integer(3), "+", Expression::Integer(3));
+	}else {
+		panic!("{:?} is not Statement::Expression(Array)", stmt);
+	}
+}
+
+#[test]
+fn test_parsing_index_expressions() {
+	const INPUT: &str = "myArray[1 + 1]";
+
+	let stmt = parse_single_statement(INPUT);
+
+	if let Statement::Expression(Expression::Index { left, index }) = stmt {
+		test_identifier(&left, "myArray");
+
+		test_infix_expression(&index, Expression::Integer(1), "+", Expression::Integer(1));
+	}else {
+		panic!("{:?} is not Statement::Expression(Index)", stmt)
 	}
 }
 

@@ -38,6 +38,8 @@ pub enum TokenType {
 	RParen,
 	LBrace,
 	RBrace,
+	LBracket,
+	RBracket,
 
 	// Keywords
 	Function,
@@ -79,6 +81,8 @@ impl fmt::Display for TokenType {
 			TokenType::RParen => ")",
 			TokenType::LBrace => "{",
 			TokenType::RBrace => "}",
+			TokenType::LBracket => "[",
+			TokenType::RBracket => "]",
 
 			TokenType::Function => "FUNCTION",
 			TokenType::Let => "LET",

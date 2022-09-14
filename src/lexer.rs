@@ -70,6 +70,8 @@ impl Lexer {
 				',' => new_token(TokenType::Comma, Some(ch.to_string())),
 				'{' => new_token(TokenType::LBrace, Some(ch.to_string())),
 				'}' => new_token(TokenType::RBrace, Some(ch.to_string())),
+				'[' => new_token(TokenType::LBracket, Some(ch.to_string())),
+				']' => new_token(TokenType::RBracket, Some(ch.to_string())),
 				'"' => new_token(TokenType::String, Some(self.read_string())),
 				_ => if is_letter(self.ch) {
 					let literal = self.read_identifier();

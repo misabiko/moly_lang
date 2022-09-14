@@ -119,6 +119,17 @@ impl VM {
 					self.push(self.globals[global_index].clone())?;
 				}
 
+				Ok(Opcode::OpArray) => {
+					let num_elements = read_u16(&self.instructions[ip+1..]) as usize;
+					ip += 2;
+
+					let sp = self.stack.len();
+					let array = self.build_array(sp - num_elements, sp);
+					self.stack.truncate(sp - num_elements);
+
+					self.push(array)?;
+				}
+
 				_ => panic!("{} undefined opcode", op)
 				//TODO Err(_) => panic!("{} undefined opcode", op)
 			}
@@ -206,6 +217,20 @@ impl VM {
 		}else {
 			Err(format!("unsupported type for negation: {:?}", operand))
 		}
+	}
+
+	fn build_array(&self, start_index: usize, end_index: usize) -> Object {
+		//TODO Try something like Object::Array(self.stack[start_index..end_index])
+		/*let mut elements = Vec::with_capacity(end_index - start_index);
+
+		for i in start_index..end_index {
+			elements.push(self.stack[i].clone());
+		}*/
+
+		Object::Array(
+			self.stack[start_index..end_index]
+				.iter().cloned().collect()
+		)
 	}
 
 	fn push(&mut self, obj: Object) -> VMResult {

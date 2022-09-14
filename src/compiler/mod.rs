@@ -162,6 +162,14 @@ impl Compiler {
 					let after_consequence_pos = self.instructions.len();
 					self.change_operand(jump_if_false_pos, after_consequence_pos);
 				}
+			},
+			Expression::Array(elements) => {
+				let length = elements.len();
+				for el in elements {
+					self.compile_expression(el)?;
+				}
+
+				self.emit(Opcode::OpArray, vec![length]);
 			}
 			_ => return Err(format!("{:?} not handled", exp))
 		}

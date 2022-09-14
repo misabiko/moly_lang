@@ -3,13 +3,15 @@ use crate::compiler::Bytecode;
 use crate::object::Object;
 
 const STACK_SIZE: usize = 2048;
+pub const GLOBALS_SIZE: usize = 65536;
 
 const TRUE_OBJ: Object = Object::Boolean(true);
 const FALSE_OBJ: Object = Object::Boolean(false);
 
 pub struct VM {
-	constants: Vec<Object>,
 	instructions: Instructions,
+	constants: Vec<Object>,
+	pub globals: Vec<Object>,
 
 	//TODO Try fixed size pre allocated array
 	stack: Vec<Object>,
@@ -19,9 +21,22 @@ pub struct VM {
 
 impl VM {
 	pub fn new(bytecode: Bytecode) -> Self {
-		VM {
+		Self {
 			instructions: bytecode.instructions,
 			constants: bytecode.constants,
+			globals: Vec::with_capacity(GLOBALS_SIZE),
+
+			stack: Vec::with_capacity(STACK_SIZE),
+			//sp: 0,
+			last_popped_stack_elem: None,
+		}
+	}
+
+	pub fn new_with_global_store(bytecode: Bytecode, globals: Vec<Object>) -> Self {
+		Self {
+			instructions: bytecode.instructions,
+			constants: bytecode.constants,
+			globals,
 
 			stack: Vec::with_capacity(STACK_SIZE),
 			//sp: 0,
@@ -82,6 +97,26 @@ impl VM {
 					if condition == FALSE_OBJ {
 						ip = pos - 1;
 					}
+				}
+
+				Ok(Opcode::OpSetGlobal) => {
+					let global_index = read_u16(&self.instructions[ip+1..]) as usize;
+					ip += 2;
+
+					let len = self.globals.len();
+					let value = self.pop().unwrap();
+
+					match global_index {
+						i if i == len => self.globals.push(value),
+						i if i < len => self.globals[global_index] = value,
+						_ => panic!("Global index higher than length (...which might a thing)")
+					}
+				}
+				Ok(Opcode::OpGetGlobal) => {
+					let global_index = read_u16(&self.instructions[ip+1..]) as usize;
+					ip += 2;
+
+					self.push(self.globals[global_index].clone())?;
 				}
 
 				_ => panic!("{} undefined opcode", op)

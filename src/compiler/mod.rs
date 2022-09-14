@@ -1,10 +1,14 @@
 use crate::ast::{Expression, Program, Statement};
 use crate::code::{Instructions, make, Opcode, Operand};
+use crate::compiler::symbol_table::SymbolTable;
 use crate::object::Object;
+
+pub mod symbol_table;
 
 pub struct Compiler {
 	instructions: Instructions,
-	constants: Vec<Object>,
+	pub constants: Vec<Object>,
+	pub symbol_table: SymbolTable,
 
 	last_instruction: Option<EmittedInstruction>,
 	previous_instruction: Option<EmittedInstruction>,
@@ -15,6 +19,17 @@ impl Compiler {
 		Self {
 			instructions: Default::default(),
 			constants: vec![],
+			symbol_table: SymbolTable::new(),
+			last_instruction: None,
+			previous_instruction: None,
+		}
+	}
+
+	pub fn new_with_state(symbol_table: SymbolTable, constants: Vec<Object>) -> Self {
+		Self {
+			instructions: Default::default(),
+			constants,
+			symbol_table,
 			last_instruction: None,
 			previous_instruction: None,
 		}
@@ -36,6 +51,20 @@ impl Compiler {
 
 				self.emit(Opcode::OpPop, vec![]);
 			},
+			Statement::Let { name, value } => {
+				self.compile_expression(value)?;
+
+				//TODO Either dissolve Expression in Let statement, or add nested struct
+				let name = if let Expression::Identifier(name) = name {
+					name
+				} else {
+					panic!("{:?} is not Identifier", name)
+				};
+
+				let symbol = self.symbol_table.define(name.as_str());
+				let index = symbol.index;
+				self.emit(Opcode::OpSetGlobal, vec![index]);
+			}
 			_ => return Err(format!("{:?} not handled", stmt))
 		}
 
@@ -87,6 +116,16 @@ impl Compiler {
 					"!=" => self.emit(Opcode::OpNotEqual, vec![]),
 					_ => return Err(format!("unknown operator {}", operator))
 				};
+			}
+			Expression::Identifier(name) => {
+				let symbol = if let Some(s) = self.symbol_table.resolve(&name) {
+					s
+				}else {
+					return Err(format!("undefined variable {}", name))
+				};
+
+				let index = symbol.index;
+				self.emit(Opcode::OpGetGlobal, vec![index]);
 			}
 			Expression::If { condition, consequence, alternative } => {
 				self.compile_expression(*condition)?;

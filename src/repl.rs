@@ -4,14 +4,19 @@ use crate::{
 	lexer::Lexer,
 };
 use crate::compiler::Compiler;
+use crate::compiler::symbol_table::SymbolTable;
 use crate::parser::Parser;
-use crate::vm::VM;
+use crate::vm::{GLOBALS_SIZE, VM};
 
 const PROMPT: &'static str = ">> ";
 
 pub fn start() {
 	ctrlc::set_handler(|| std::process::exit(0))
 		.expect("Error setting Ctrl-C handler");
+
+	let mut constants = Vec::new();
+	let mut globals = Vec::with_capacity(GLOBALS_SIZE);
+	let mut symbol_table = SymbolTable::new();
 
 	loop {
 		print!("{} ", PROMPT);
@@ -30,17 +35,23 @@ pub fn start() {
 			continue;
 		}
 
-		let mut compiler = Compiler::new();
+		//Might be able to not clone, with some std::mem::take
+		let mut compiler = Compiler::new_with_state(symbol_table.clone(), constants.clone());
 		if let Err(err) = compiler.compile(program) {
 			eprintln!("Compilation failed:\n{}", err);
 			continue
 		}
 
-		let mut machine = VM::new(compiler.bytecode());
+		symbol_table = compiler.symbol_table.clone();
+		constants = compiler.constants.clone();
+
+		let mut machine = VM::new_with_global_store(compiler.bytecode(), globals.clone());
 		if let Err(err) = machine.run() {
 			eprintln!("Executing bytecode failed:\n{}", err);
 			continue
 		}
+
+		globals = machine.globals.clone();
 
 		if let Some(obj) = machine.last_popped_stack_elem {
 			println!("{}", obj)

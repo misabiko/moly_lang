@@ -3,45 +3,6 @@ use byteorder::{BigEndian, ByteOrder};
 
 pub type Instructions = Vec<u8>;
 
-pub fn instruction_to_string(ins: &Instructions) -> String {
-	let mut out = String::new();
-
-	let mut i = 0;
-	while i < ins.len() {
-		let def = match lookup(ins[i]) {
-			Ok(def) => def,
-			Err(err) => {
-				writeln!(&mut out, "ERROR: {}", err)
-					.expect("Failed to write to buffer");
-				continue
-			}
-		};
-
-		let (operands, read) = read_operands(&def, &ins[i+1..]);
-
-		writeln!(&mut out, "{:04} {}", i, fmt_instruction(def, operands))
-			.expect("Failed to write to buffer");
-
-		i += 1 + read;
-	}
-
-	out
-}
-
-fn fmt_instruction(def: Definition, operands: Vec<Operand>) -> String {
-	let operand_count = def.operand_widths.len();
-
-	if operands.len() != operand_count {
-		return format!("ERROR: operand len {} does not match defined {}\n", operands.len(), operand_count)
-	}
-
-	match operand_count {
-		0 => def.name.into(),
-		1 => format!("{} {}", def.name, operands[0]),
-		_ => format!("ERROR: unhandled operand_count for {}\n", def.name),
-	}
-}
-
 #[repr(u8)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Opcode {
@@ -65,6 +26,9 @@ pub enum Opcode {
 
 	OpJumpIfFalse,
 	OpJump,
+
+	OpGetGlobal,
+	OpSetGlobal,
 }
 
 //TODO Replace with macro
@@ -93,6 +57,9 @@ impl TryFrom<u8> for Opcode {
 
 			13 => Ok(Opcode::OpJumpIfFalse),
 			14 => Ok(Opcode::OpJump),
+
+			15 => Ok(Opcode::OpGetGlobal),
+			16 => Ok(Opcode::OpSetGlobal),
 			_ => Err(())
 		}
 	}
@@ -127,6 +94,9 @@ pub fn lookup(op: u8) -> Result<Definition, String> {
 
 		Ok(Opcode::OpJumpIfFalse) => Ok(Definition {name: "OpJumpIfFalse", operand_widths: vec![2]}),
 		Ok(Opcode::OpJump) => Ok(Definition {name: "OpJump", operand_widths: vec![2]}),
+
+		Ok(Opcode::OpGetGlobal) => Ok(Definition {name: "OpGetGlobal", operand_widths: vec![2]}),
+		Ok(Opcode::OpSetGlobal) => Ok(Definition {name: "OpSetGlobal", operand_widths: vec![2]}),
 		Err(_) => Err(format!("opcode {} undefined", op))
 	}
 }
@@ -179,4 +149,43 @@ pub fn read_operands(def: &Definition, ins: &[u8]) -> (Vec<Operand>, usize) {
 
 pub fn read_u16(ins: &[u8]) -> u16 {
 	BigEndian::read_u16(ins)
+}
+
+pub fn instruction_to_string(ins: &Instructions) -> String {
+	let mut out = String::new();
+
+	let mut i = 0;
+	while i < ins.len() {
+		let def = match lookup(ins[i]) {
+			Ok(def) => def,
+			Err(err) => {
+				writeln!(&mut out, "ERROR: {}", err)
+					.expect("Failed to write to buffer");
+				continue
+			}
+		};
+
+		let (operands, read) = read_operands(&def, &ins[i+1..]);
+
+		writeln!(&mut out, "{:04} {}", i, fmt_instruction(def, operands))
+			.expect("Failed to write to buffer");
+
+		i += 1 + read;
+	}
+
+	out
+}
+
+fn fmt_instruction(def: Definition, operands: Vec<Operand>) -> String {
+	let operand_count = def.operand_widths.len();
+
+	if operands.len() != operand_count {
+		return format!("ERROR: operand len {} does not match defined {}\n", operands.len(), operand_count)
+	}
+
+	match operand_count {
+		0 => def.name.into(),
+		1 => format!("{} {}", def.name, operands[0]),
+		_ => format!("ERROR: unhandled operand_count for {}\n", def.name),
+	}
 }

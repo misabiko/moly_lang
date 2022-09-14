@@ -233,6 +233,56 @@ fn test_conditionals() {
 	run_compiler_tests(tests)
 }
 
+#[test]
+fn test_global_let_statements() {
+	let tests = vec![
+		CompilerTestCase {
+			input: "
+			let one = 1;
+			let two = 2;
+			",
+			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpSetGlobal, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpSetGlobal, &vec![1]),
+			],
+		},
+		CompilerTestCase {
+			input: "
+			let one = 1;
+			one;
+			",
+			expected_constants: vec![Object::Integer(1)],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpSetGlobal, &vec![0]),
+				make(Opcode::OpGetGlobal, &vec![0]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "
+			let one = 1;
+			let two = one;
+			two;
+			",
+			expected_constants: vec![Object::Integer(1)],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpSetGlobal, &vec![0]),
+				make(Opcode::OpGetGlobal, &vec![0]),
+				make(Opcode::OpSetGlobal, &vec![1]),
+				make(Opcode::OpGetGlobal, &vec![1]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+	];
+
+	run_compiler_tests(tests)
+}
+
 fn run_compiler_tests(tests: Vec<CompilerTestCase>) {
 	for CompilerTestCase { input, expected_constants, expected_instructions } in tests {
 		let program = parse(input);

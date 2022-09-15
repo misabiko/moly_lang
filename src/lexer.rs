@@ -46,6 +46,7 @@ impl Lexer {
 
 		let token = match self.ch {
 			Some(ch) => match ch {
+				//TODO Order with TokenType
 				'=' => if self.peek_char() == Some('=') {
 					self.read_char();
 					new_token(TokenType::Eq, Some("==".to_owned()))
@@ -65,6 +66,7 @@ impl Lexer {
 				'<' => new_token(TokenType::LT, Some(ch.to_string())),
 				'>' => new_token(TokenType::GT, Some(ch.to_string())),
 				';' => new_token(TokenType::Semicolon, Some(ch.to_string())),
+				':' => new_token(TokenType::Colon, Some(ch.to_string())),
 				'(' => new_token(TokenType::LParen, Some(ch.to_string())),
 				')' => new_token(TokenType::RParen, Some(ch.to_string())),
 				',' => new_token(TokenType::Comma, Some(ch.to_string())),
@@ -135,6 +137,7 @@ impl Lexer {
 	}
 }
 
+//TODO Dissolve new_token?
 fn new_token(token_type: TokenType, literal: Option<String>) -> Token {
 	Token {
 		token_type,

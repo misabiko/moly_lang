@@ -19,12 +19,18 @@ pub struct BlockStatement {
 	pub statements: Vec<Statement>
 }
 
-impl fmt::Display for Program {
+impl fmt::Display for BlockStatement {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		for stmt in &self.statements {
 			write!(f, "{}", stmt)?;
 		}
 		Ok(())
+	}
+}
+
+impl PartialEq for BlockStatement {
+	fn eq(&self, other: &Self) -> bool {
+		self.to_string() == other.to_string()
 	}
 }
 
@@ -81,7 +87,8 @@ pub enum Expression {
 	Index {
 		left: Box<Expression>,
 		index: Box<Expression>,
-	}
+	},
+	Hash(Vec<(Expression, Expression)>),
 }
 
 impl fmt::Display for Expression {
@@ -106,6 +113,14 @@ impl fmt::Display for Expression {
 			Expression::Call { function, arguments } => write!(f, "{}({})", function, join_expression_vec(arguments)),
 			Expression::Array(elements) => write!(f, "[{}]", join_expression_vec(elements)),
 			Expression::Index { left, index } => write!(f, "({}[{}])", left, index),
+			Expression::Hash(pairs) => {
+				let pairs = pairs.iter()
+					.map(|(k, v)| format!("{}:{}", k, v))
+					.collect::<Vec<String>>()
+					.join(", ");
+
+				write!(f, "{{{}}}", pairs)
+			},
 		}
 	}
 }
@@ -116,3 +131,39 @@ fn join_expression_vec(expressions: &[Expression]) -> String {
 		.collect::<Vec<String>>()
 		.join(", ")
 }
+
+/*impl PartialEq for Expression {
+	fn eq(&self, other: &Self) -> bool {
+		self.to_string() == other.to_string()
+	}
+}*/
+
+/*#[derive(Debug, Eq, PartialEq, Hash)]
+pub enum HashingExpression {
+	Integer(i64),
+	Boolean(bool),
+	String(String),
+}
+
+impl TryFrom<Expression> for HashingExpression {
+	type Error = String;
+
+	fn try_from(value: Expression) -> Result<Self, Self::Error> {
+		match value {
+			Expression::String(value) => Ok(HashingExpression::String(value)),
+			Expression::Integer(value) => Ok(HashingExpression::Integer(value)),
+			Expression::Boolean(value) => Ok(HashingExpression::Boolean(value)),
+			_ => Err(format!("{:?} is not hashable", value))
+		}
+	}
+}
+
+impl fmt::Display for HashingExpression {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+		match self {
+			HashingExpression::Integer(value) => write!(f, "{}", value),
+			HashingExpression::Boolean(value) => write!(f, "{}", value),
+			HashingExpression::String(value) => write!(f, "{}", value),
+		}
+	}
+}*/

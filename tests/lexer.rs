@@ -33,6 +33,7 @@ if (5 < 10) {
 "foobar"
 "foo bar"
 [1, 2];
+{"foo": "bar"}
 "#;
 
 	//TODO Use default token value
@@ -118,6 +119,11 @@ if (5 < 10) {
 		(TokenType::Int, Some("2")),
 		(TokenType::RBracket, Some("]")),
 		(TokenType::Semicolon, Some(";")),
+		(TokenType::LBrace, Some("{")),
+		(TokenType::String, Some("foo")),
+		(TokenType::Colon, Some(":")),
+		(TokenType::String, Some("bar")),
+		(TokenType::RBrace, Some("}")),
 		(TokenType::EOF, None),
 	].into_iter()
 		.map(|(t, l)| TestStruct{

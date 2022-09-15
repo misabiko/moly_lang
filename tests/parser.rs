@@ -1,10 +1,11 @@
+use std::collections::HashMap;
 use std::fmt::Write;
 use moly_lang::{
 	lexer::Lexer,
 	ast::Statement,
 	parser::Parser,
 };
-use moly_lang::ast::Expression;
+use moly_lang::ast::{Expression};
 
 #[test]
 fn test_let_statements() {
@@ -436,6 +437,80 @@ fn test_parsing_index_expressions() {
 		test_infix_expression(&index, Expression::Integer(1), "+", Expression::Integer(1));
 	}else {
 		panic!("{:?} is not Statement::Expression(Index)", stmt)
+	}
+}
+
+#[test]
+fn test_parsing_hash_literals_string_keys() {
+	const INPUT: &str = r#"{"one": 1, "two": 2, "three": 3}"#;
+
+	let stmt = parse_single_statement(INPUT);
+
+	if let Statement::Expression(Expression::Hash(pairs)) = stmt {
+		assert_eq!(pairs.len(), 3);
+
+		let expected = HashMap::from([
+			("one", Expression::Integer(1)),
+			("two", Expression::Integer(2)),
+			("three", Expression::Integer(3)),
+		]);
+
+		for (key, value) in pairs {
+			if let Expression::String(string) = key {
+				test_literal_expression(&value, &expected[string.as_str()])
+			}else {
+				panic!("hash key {:?} is not HashingExpression::String", key)
+			}
+		}
+	} else {
+		panic!("{:?} is not Statement::Expression(Hash)", stmt)
+	}
+}
+
+//TODO Add tests for hash integers and bools
+
+#[test]
+fn test_parsing_empty_hash_literal() {
+	let stmt = parse_single_statement("{}");
+
+	if let Statement::Expression(Expression::Hash(pairs)) = stmt {
+		assert!(pairs.is_empty())
+	} else {
+		panic!("{:?} is not Statement::Expression(Hash)", stmt)
+	}
+}
+
+#[test]
+fn test_parsing_hash_literals_with_expressions() {
+	let stmt = parse_single_statement(r#"{"one": 0 + 1, "two": 10 - 8, "three": 15 / 5}"#);
+
+	if let Statement::Expression(Expression::Hash(pairs)) = stmt {
+		assert_eq!(pairs.len(), 3);
+
+		let mut expected: HashMap<&'static str, Box<dyn Fn(Expression) -> ()>> = HashMap::new();
+		expected.insert("one", Box::new(|e: Expression|
+			test_infix_expression(&e, Expression::Integer(0), "+", Expression::Integer(1))
+		));
+		expected.insert("two", Box::new(|e: Expression|
+			test_infix_expression(&e, Expression::Integer(10), "-", Expression::Integer(8))
+		));
+		expected.insert("three", Box::new(|e: Expression|
+			test_infix_expression(&e, Expression::Integer(15), "/", Expression::Integer(5))
+		));
+
+		for (key, value) in pairs {
+			if let Expression::String(string) = key {
+				if let Some(test_func) = expected.get(string.as_str()) {
+					test_func(value)
+				}else {
+					panic!("no test function for key {:?} found", string)
+				}
+			}else {
+				panic!("hash key {:?} is not HashingExpression::String", key)
+			}
+		}
+	} else {
+		panic!("{:?} is not Statement::Expression(Hash)", stmt)
 	}
 }
 

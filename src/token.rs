@@ -33,6 +33,7 @@ pub enum TokenType {
 	// Delimiters
 	Comma,
 	Semicolon,
+	Colon,
 
 	LParen,
 	RParen,
@@ -76,6 +77,7 @@ impl fmt::Display for TokenType {
 
 			TokenType::Comma => ",",
 			TokenType::Semicolon => ";",
+			TokenType::Colon => ":",
 
 			TokenType::LParen => "(",
 			TokenType::RParen => ")",

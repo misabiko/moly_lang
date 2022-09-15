@@ -1,6 +1,7 @@
+use std::collections::HashMap;
 use crate::code::{Instructions, Opcode, read_u16};
 use crate::compiler::Bytecode;
-use crate::object::Object;
+use crate::object::{HashingObject, Object};
 
 const STACK_SIZE: usize = 2048;
 pub const GLOBALS_SIZE: usize = 65536;
@@ -129,6 +130,22 @@ impl VM {
 
 					self.push(array)?;
 				}
+				Ok(Opcode::OpHash) => {
+					let num_elements = read_u16(&self.instructions[ip+1..]) as usize;
+					ip += 2;
+
+					let sp = self.stack.len();
+					let hash = self.build_hash(sp - num_elements, sp)?;
+					self.stack.truncate(sp - num_elements);
+
+					self.push(hash)?;
+				}
+				Ok(Opcode::OpIndex) => {
+					let index = self.pop().ok_or("index not on stack")?;
+					let left = self.pop().ok_or("left expression not on stack")?;
+
+					self.execute_index_expression(left, index)?;
+				}
 
 				_ => panic!("{} undefined opcode", op)
 				//TODO Err(_) => panic!("{} undefined opcode", op)
@@ -220,17 +237,53 @@ impl VM {
 	}
 
 	fn build_array(&self, start_index: usize, end_index: usize) -> Object {
-		//TODO Try something like Object::Array(self.stack[start_index..end_index])
-		/*let mut elements = Vec::with_capacity(end_index - start_index);
-
-		for i in start_index..end_index {
-			elements.push(self.stack[i].clone());
-		}*/
-
 		Object::Array(
 			self.stack[start_index..end_index]
 				.iter().cloned().collect()
 		)
+	}
+
+	fn build_hash(&self, start_index: usize, end_index: usize) -> Result<Object, String> {
+		let mut pairs = HashMap::new();
+
+		for i in (start_index..end_index).step_by(2) {
+			let key = &self.stack[i];
+			let value = &self.stack[i+1];
+
+			let hash_key = HashingObject::try_from(key.clone())?;
+
+			pairs.insert(hash_key.clone(), (hash_key, value.clone()));
+		}
+
+		Ok(Object::Hash(pairs))
+	}
+
+	fn execute_index_expression(&mut self, left: Object, index: Object) -> VMResult {
+		match (left, index) {
+			(Object::Array(elements), Object::Integer(index))
+				=> self.execute_array_index(elements, index),
+			(Object::Hash(pairs), index)
+				=> self.execute_hash_index(pairs, index),
+			(left, index) => Err(format!("index operator not supported: {:?}[{:?}]", left, index))
+		}
+	}
+
+	fn execute_array_index(&mut self, array: Vec<Object>, index: i64) -> VMResult {
+		let index = if index >= 0 && index as usize <= array.len() {
+			index as usize
+		}else {
+			return Err(format!("index {} out of bound [0..{}]", index, array.len() - 1))
+		};
+
+		self.push(array.get(index).cloned().unwrap())
+	}
+
+	fn execute_hash_index(&mut self, hash: HashMap<HashingObject, (HashingObject, Object)>, index: Object) -> VMResult {
+		let hash_key = HashingObject::try_from(index)?;
+
+		let pair = hash.get(&hash_key).ok_or_else(|| format!("value not found for {:?}", hash_key))?;
+
+		self.push(pair.1.clone())
 	}
 
 	fn push(&mut self, obj: Object) -> VMResult {

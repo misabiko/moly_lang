@@ -171,6 +171,23 @@ impl Compiler {
 
 				self.emit(Opcode::OpArray, vec![length]);
 			}
+			Expression::Hash(mut pairs) => {
+				let length = pairs.len();
+				pairs.sort_by_key(|(k, _)| k.to_string());
+
+				for (k, v) in pairs {
+					self.compile_expression(k)?;
+					self.compile_expression(v)?;
+				}
+
+				self.emit(Opcode::OpHash, vec![length * 2]);
+			}
+			Expression::Index { left, index } => {
+				self.compile_expression(*left)?;
+				self.compile_expression(*index)?;
+
+				self.emit(Opcode::OpIndex, vec![]);
+			}
 			_ => return Err(format!("{:?} not handled", exp))
 		}
 
@@ -237,6 +254,7 @@ impl Compiler {
 	}
 }
 
+#[derive(Debug)]
 pub struct Bytecode {
 	pub instructions: Instructions,
 	pub constants: Vec<Object>,

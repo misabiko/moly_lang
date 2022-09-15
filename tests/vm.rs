@@ -1,7 +1,8 @@
+use std::collections::HashMap;
 use moly_lang::ast::Program;
 use moly_lang::compiler::Compiler;
 use moly_lang::lexer::Lexer;
-use moly_lang::object::Object;
+use moly_lang::object::{HashingObject, Object};
 use moly_lang::parser::Parser;
 use moly_lang::vm::VM;
 
@@ -123,6 +124,49 @@ fn test_array_literals() {
 	run_vm_tests(tests)
 }
 
+//TODO What happens if {1 + 2: 0, 4 - 1: 0, 3: 0}
+#[test]
+fn test_hash_literals() {
+	let tests = vec![
+		VMTestCase { input: "{}", expected: Object::Hash(HashMap::new())},
+		VMTestCase {
+			input: "{1: 2, 2: 3}",
+			expected: Object::Hash(HashMap::from([
+				(HashingObject::Integer(1), (HashingObject::Integer(1), Object::Integer(2))),
+				(HashingObject::Integer(2), (HashingObject::Integer(2), Object::Integer(3))),
+			]))
+		},
+		VMTestCase {
+			input: "{1 + 1: 2 * 2, 3 + 3: 4 * 4}",
+			expected: Object::Hash(HashMap::from([
+				(HashingObject::Integer(2), (HashingObject::Integer(2), Object::Integer(4))),
+				(HashingObject::Integer(6), (HashingObject::Integer(6), Object::Integer(16))),
+			]))
+		},
+	];
+
+	run_vm_tests(tests)
+}
+
+#[test]
+fn test_index_expressions() {
+	let tests = vec![
+		VMTestCase { input: "[1, 2, 3][1]", expected: Object::Integer(2) },
+		VMTestCase { input: "[1, 2, 3][0 + 2]", expected: Object::Integer(3) },
+		VMTestCase { input: "[[1, 1, 1]][0][0]", expected: Object::Integer(1) },
+		//TODO Test run time error
+		//VMTestCase { input: "[][0]", expected: Object::Integer(Null) },
+		//VMTestCase { input: "[1, 2, 3][99]", expected: Object::Integer(Null) },
+		//VMTestCase { input: "[1][-1]", expected: Object::Integer(Null) },
+		VMTestCase { input: "{1: 1, 2: 2}[1]", expected: Object::Integer(1) },
+		VMTestCase { input: "{1: 1, 2: 2}[2]", expected: Object::Integer(2) },
+		//VMTestCase { input: "{1: 1}[0]", expected: Object::Integer(Null) },
+		//VMTestCase { input: "{}[0]", expected: Object::Integer(Null) },
+	];
+
+	run_vm_tests(tests)
+}
+
 fn run_vm_tests(tests: Vec<VMTestCase>) {
 	for VMTestCase { input, expected } in tests {
 		let program = parse(input);
@@ -132,7 +176,9 @@ fn run_vm_tests(tests: Vec<VMTestCase>) {
 			panic!("compiler error: {}", err)
 		}
 
-		let mut vm = VM::new(compiler.bytecode());
+		let bytecode = compiler.bytecode();
+
+		let mut vm = VM::new(bytecode);
 		if let Err(err) = vm.run() {
 			panic!("vm error: {}", err)
 		}
@@ -149,6 +195,7 @@ fn test_expected_object(expected: Object, actual: Object) {
 		Object::Boolean(value) => test_boolean_object(value, actual),
 		Object::String(value) => test_string_object(value, actual),
 		Object::Array(value) => test_array_object(value, actual),
+		Object::Hash(value) => test_hash_object(value, actual),
 	}
 }
 
@@ -189,6 +236,25 @@ fn test_array_object(expected: Vec<Object>, actual: Object) {
 		}
 	} else {
 		panic!("{:?} is not Array", actual);
+	}
+}
+
+fn test_hash_object(expected: HashMap<HashingObject, (HashingObject, Object)>, actual: Object) {
+	if let Object::Hash(mut pairs) = actual {
+		assert_eq!(expected.len(), pairs.len(), "wrong num of pairs");
+
+		for (expected_k, expected_v) in expected {
+			if let Some((_, actual_v)) = pairs.remove(&expected_k) {
+
+				if let (_, Object::Integer(expected_v)) = expected_v {
+					test_integer_object(expected_v, actual_v)
+				}
+			}else {
+				panic!("no pair for given key {:?} in pair {:?}", expected_k, pairs)
+			}
+		}
+	} else {
+		panic!("{:?} is not Hash", actual);
 	}
 }
 

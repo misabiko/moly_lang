@@ -1,6 +1,7 @@
+use std::collections::HashMap;
 use moly_lang::ast::Program;
 use moly_lang::code::{instruction_to_string, Instructions, make, Opcode};
-use moly_lang::object::Object;
+use moly_lang::object::{HashingObject, Object};
 use moly_lang::compiler::{Compiler};
 use moly_lang::lexer::Lexer;
 use moly_lang::parser::Parser;
@@ -368,6 +369,93 @@ fn test_array_literals() {
 	run_compiler_tests(tests)
 }
 
+#[test]
+fn test_hash_literals() {
+	let tests = vec![
+		CompilerTestCase {
+			input: "{}",
+			expected_constants: vec![],
+			expected_instructions: vec![
+				make(Opcode::OpHash, &vec![0]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "{1: 2, 3: 4, 5: 6}",
+			expected_constants: vec![1, 2, 3, 4, 5, 6].into_iter()
+				.map(|i| Object::Integer(i)).collect(),
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpConstant, &vec![2]),
+				make(Opcode::OpConstant, &vec![3]),
+				make(Opcode::OpConstant, &vec![4]),
+				make(Opcode::OpConstant, &vec![5]),
+				make(Opcode::OpHash, &vec![6]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "{1: 2 + 3, 4: 5 * 6}",
+			expected_constants: vec![1, 2, 3, 4, 5, 6].into_iter()
+				.map(|i| Object::Integer(i)).collect(),
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpConstant, &vec![2]),
+				make(Opcode::OpAdd, &vec![]),
+				make(Opcode::OpConstant, &vec![3]),
+				make(Opcode::OpConstant, &vec![4]),
+				make(Opcode::OpConstant, &vec![5]),
+				make(Opcode::OpMul, &vec![]),
+				make(Opcode::OpHash, &vec![4]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+	];
+
+	run_compiler_tests(tests)
+}
+
+#[test]
+fn test_index_expressions() {
+	let tests = vec![
+		CompilerTestCase {
+			input: "[1, 2, 3][1 + 1]",
+			expected_constants: vec![1, 2, 3, 1, 1].into_iter()
+				.map(|i| Object::Integer(i)).collect(),
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpConstant, &vec![2]),
+				make(Opcode::OpArray, &vec![3]),
+				make(Opcode::OpConstant, &vec![3]),
+				make(Opcode::OpConstant, &vec![4]),
+				make(Opcode::OpAdd, &vec![]),
+				make(Opcode::OpIndex, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			]
+		},
+		CompilerTestCase {
+			input: "{1: 2}[2 - 1]",
+			expected_constants: vec![1, 2, 2, 1].into_iter()
+				.map(|i| Object::Integer(i)).collect(),
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpHash, &vec![2]),
+				make(Opcode::OpConstant, &vec![2]),
+				make(Opcode::OpConstant, &vec![3]),
+				make(Opcode::OpSub, &vec![]),
+				make(Opcode::OpIndex, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			]
+		},
+	];
+
+	run_compiler_tests(tests)
+}
+
 fn run_compiler_tests(tests: Vec<CompilerTestCase>) {
 	for CompilerTestCase { input, expected_constants, expected_instructions } in tests {
 		let program = parse(input);
@@ -409,6 +497,7 @@ fn test_constants(expected: Vec<Object>, actual: Vec<Object>) {
 			Object::Boolean(value) => test_boolean_object(value, actual),
 			Object::String(value) => test_string_object(value, actual),
 			Object::Array(value) => test_array_object(value, actual),
+			Object::Hash(value) => test_hash_object(value, actual),
 		}
 	}
 }
@@ -450,5 +539,24 @@ fn test_array_object(expected: Vec<Object>, actual: Object) {
 		}
 	} else {
 		panic!("{:?} is not Array", actual);
+	}
+}
+
+fn test_hash_object(expected: HashMap<HashingObject, (HashingObject, Object)>, actual: Object) {
+	if let Object::Hash(mut pairs) = actual {
+		assert_eq!(expected.len(), pairs.len(), "wrong num of pairs");
+
+		for (expected_k, expected_v) in expected {
+			if let Some((_, actual_v)) = pairs.remove(&expected_k) {
+
+				if let (_, Object::Integer(expected_v)) = expected_v {
+					test_integer_object(expected_v, actual_v)
+				}
+			}else {
+				panic!("no pair for given key {:?} in pair {:?}", expected_k, pairs)
+			}
+		}
+	} else {
+		panic!("{:?} is not Hash", actual);
 	}
 }

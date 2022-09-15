@@ -132,6 +132,7 @@ impl Parser {
 			TokenType::Function => self.parse_function_literal(),
 			TokenType::String => Some(self.parse_string_literal()),
 			TokenType::LBracket => self.parse_array_literal(),
+			TokenType::LBrace => self.parse_hash_literal(),
 			t => {
 				self.no_prefix_parse_fn_error(t);
 				return None
@@ -380,6 +381,41 @@ impl Parser {
 			left: Box::new(left),
 			index: Box::new(index),
 		})
+	}
+
+	fn parse_hash_literal(&mut self) -> Option<Expression> {
+		let mut pairs = vec![];
+
+		//We could skip a peek_token_is with a manual loop, but probably not worth it
+		while !self.peek_token_is(TokenType::RBrace) {
+			self.next_token();
+
+			let key = self.parse_expression(Precedence::Lowest)?;
+			/*let key = if let Ok(key) = HashingExpression::try_from(self.parse_expression(Precedence::Lowest)?) {
+				key
+			}else {
+				return None;
+			};*/
+
+			if !self.expect_peek(TokenType::Colon) {
+				return None
+			}
+
+			self.next_token();
+			let value = self.parse_expression(Precedence::Lowest)?;
+
+			pairs.push((key, value));
+
+			if !self.peek_token_is(TokenType::RBrace) && !self.expect_peek(TokenType::Comma) {
+				return None
+			}
+		}
+
+		if !self.expect_peek(TokenType::RBrace) {
+			return None
+		}
+
+		Some(Expression::Hash(pairs))
 	}
 
 	fn cur_token_is(&self, t: TokenType) -> bool {

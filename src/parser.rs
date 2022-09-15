@@ -347,7 +347,7 @@ impl Parser {
 	fn parse_expression_list(&mut self, end: TokenType) -> Option<Vec<Expression>> {
 		let mut list = vec![];
 
-		if self.peek_token_is(TokenType::RParen) {
+		if self.peek_token_is(end) {
 			self.next_token();
 			return Some(list)
 		}

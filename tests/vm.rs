@@ -108,7 +108,7 @@ fn test_string_expressions() {
 fn test_array_literals() {
 	let tests = vec![
 		VMTestCase { input: "[]", expected: Object::Array(vec![]) },
-		VMTestCase { input: "[1, 2, 3", expected: Object::Array(vec![
+		VMTestCase { input: "[1, 2, 3]", expected: Object::Array(vec![
 			Object::Integer(1),
 			Object::Integer(2),
 			Object::Integer(3),

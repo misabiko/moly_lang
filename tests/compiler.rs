@@ -352,7 +352,7 @@ fn test_array_literals() {
 			expected_instructions: vec![
 				make(Opcode::OpConstant, &vec![0]),
 				make(Opcode::OpConstant, &vec![1]),
-				make(Opcode::OpArray, &vec![]),
+				make(Opcode::OpAdd, &vec![]),
 				make(Opcode::OpConstant, &vec![2]),
 				make(Opcode::OpConstant, &vec![3]),
 				make(Opcode::OpSub, &vec![]),

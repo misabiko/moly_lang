@@ -1,7 +1,8 @@
 use std::collections::HashMap;
+use std::rc::Rc;
 use moly_lang::ast::Program;
 use moly_lang::code::{concat_instructions, instruction_to_string, Instructions, make, Opcode};
-use moly_lang::object::{HashingObject, Object};
+use moly_lang::object::{Function, HashingObject, Object};
 use moly_lang::compiler::{Compiler, EmittedInstruction};
 use moly_lang::lexer::Lexer;
 use moly_lang::parser::Parser;
@@ -466,12 +467,15 @@ fn test_functions() {
 			expected_constants: vec![
 				Object::Integer(5),
 				Object::Integer(10),
-				Object::Function(concat_instructions(vec![
-					make(Opcode::OpConstant, &vec![0]),
-					make(Opcode::OpConstant, &vec![1]),
-					make(Opcode::OpAdd, &vec![]),
-					make(Opcode::OpReturnValue, &vec![]),
-				])),
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
+						make(Opcode::OpConstant, &vec![0]),
+						make(Opcode::OpConstant, &vec![1]),
+						make(Opcode::OpAdd, &vec![]),
+						make(Opcode::OpReturnValue, &vec![]),
+					]),
+					num_locals: 0,
+				}),
 			],
 			expected_instructions: vec![
 				make(Opcode::OpConstant, &vec![2]),
@@ -483,12 +487,15 @@ fn test_functions() {
 			expected_constants: vec![
 				Object::Integer(5),
 				Object::Integer(10),
-				Object::Function(concat_instructions(vec![
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
 					make(Opcode::OpConstant, &vec![0]),
 					make(Opcode::OpConstant, &vec![1]),
 					make(Opcode::OpAdd, &vec![]),
 					make(Opcode::OpReturnValue, &vec![]),
-				])),
+				]),
+					num_locals: 0,
+				}),
 			],
 			expected_instructions: vec![
 				make(Opcode::OpConstant, &vec![2]),
@@ -500,12 +507,15 @@ fn test_functions() {
 			expected_constants: vec![
 				Object::Integer(1),
 				Object::Integer(2),
-				Object::Function(concat_instructions(vec![
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
 					make(Opcode::OpConstant, &vec![0]),
 					make(Opcode::OpPop, &vec![]),
 					make(Opcode::OpConstant, &vec![1]),
 					make(Opcode::OpReturnValue, &vec![]),
-				])),
+				]),
+					num_locals: 0,
+				}),
 			],
 			expected_instructions: vec![
 				make(Opcode::OpConstant, &vec![2]),
@@ -523,9 +533,12 @@ fn test_functions_without_return_value() {
 		CompilerTestCase {
 			input: "fn() { }",
 			expected_constants: vec![
-				Object::Function(concat_instructions(vec![
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
 					make(Opcode::OpReturn, &vec![]),
-				]))
+				]),
+					num_locals: 0,
+				})
 			],
 			expected_instructions: vec![
 				make(Opcode::OpConstant, &vec![0]),
@@ -541,6 +554,7 @@ fn test_functions_without_return_value() {
 fn test_compiler_scopes() {
 	let mut compiler = Compiler::new();
 	assert_eq!(compiler.scope_index, 0, "scope_index wrong");
+	let global_symbol_table = compiler.symbol_table.clone();
 
 	compiler.emit(Opcode::OpMul, vec![]);
 
@@ -554,8 +568,13 @@ fn test_compiler_scopes() {
 	let last = &compiler.scopes.get(compiler.scope_index).unwrap().last_instruction;
 	assert!(matches!(last, Some(EmittedInstruction { opcode: Opcode::OpSub, .. })), "last_instruction wrong");
 
+	assert!(Rc::ptr_eq(compiler.symbol_table.borrow().outer.as_ref().unwrap(), &global_symbol_table), "compiler did not enclose symbol_table");
+
 	compiler.leave_scope();
 	assert_eq!(compiler.scope_index, 0, "scope_index wrong");
+
+	assert!(Rc::ptr_eq(&compiler.symbol_table, &global_symbol_table), "compiler did not restore global symbol table");
+	assert_eq!(compiler.symbol_table.borrow().outer, None, "compiler modified global symbol table incorrectly");
 
 	compiler.emit(Opcode::OpAdd, vec![]);
 
@@ -575,10 +594,13 @@ fn test_function_calls() {
 			input: "fn() { 24 }();",
 			expected_constants: vec![
 				Object::Integer(24),
-				Object::Function(concat_instructions(vec![
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
 					make(Opcode::OpConstant, &vec![0]), // The literal "24"
 					make(Opcode::OpReturnValue, &vec![]),
-				]))
+				]),
+					num_locals: 0,
+				})
 			],
 			expected_instructions: vec![
 				make(Opcode::OpConstant, &vec![1]), // The compiled function
@@ -593,10 +615,13 @@ fn test_function_calls() {
             ",
 			expected_constants: vec![
 				Object::Integer(24),
-				Object::Function(concat_instructions(vec![
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
 					make(Opcode::OpConstant, &vec![0]), // The literal "24"
 					make(Opcode::OpReturnValue, &vec![]),
-				]))
+				]),
+					num_locals: 0,
+				})
 			],
 			expected_instructions: vec![
 				make(Opcode::OpConstant, &vec![1]), // The compiled function
@@ -604,6 +629,90 @@ fn test_function_calls() {
 				make(Opcode::OpSetGlobal, &vec![0]),
 				make(Opcode::OpGetGlobal, &vec![0]),
 				make(Opcode::OpCall, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+	];
+
+	run_compiler_tests(tests)
+}
+
+#[test]
+fn test_let_statement_scopes() {
+	let tests = vec![
+		CompilerTestCase {
+			input: "
+			let num = 55;
+			fn() { num }
+			",
+			expected_constants: vec![
+				Object::Integer(55),
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
+					make(Opcode::OpGetGlobal, &vec![0]),
+					make(Opcode::OpReturnValue, &vec![]),
+				]),
+					num_locals: 0,
+				})
+			],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpSetGlobal, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "
+            fn() {
+                let num = 55;
+                num
+            }
+            ",
+			expected_constants: vec![
+				Object::Integer(55),
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
+					make(Opcode::OpConstant, &vec![0]),
+					make(Opcode::OpSetLocal, &vec![0]),
+					make(Opcode::OpGetLocal, &vec![0]),
+					make(Opcode::OpReturnValue, &vec![]),
+				]),
+					num_locals: 1,
+				})
+			],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "
+            fn() {
+                let a = 55;
+                let b = 77;
+                a + b
+            }
+            ",
+			expected_constants: vec![
+				Object::Integer(55),
+				Object::Integer(77),
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
+					make(Opcode::OpConstant, &vec![0]),
+					make(Opcode::OpSetLocal, &vec![0]),
+					make(Opcode::OpConstant, &vec![1]),
+					make(Opcode::OpSetLocal, &vec![1]),
+					make(Opcode::OpGetLocal, &vec![0]),
+					make(Opcode::OpGetLocal, &vec![1]),
+					make(Opcode::OpAdd, &vec![]),
+					make(Opcode::OpReturnValue, &vec![]),
+				]),
+					num_locals: 2,
+				})
+			],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![2]),
 				make(Opcode::OpPop, &vec![]),
 			],
 		},
@@ -718,9 +827,9 @@ fn test_hash_object(expected: HashMap<HashingObject, (HashingObject, Object)>, a
 	}
 }
 
-fn test_function_object(expected: Instructions, actual: Object) {
-	if let Object::Function(instructions) = actual {
-		test_instructions(vec![expected], instructions);
+fn test_function_object(expected: Function, actual: Object) {
+	if let Object::Function(function) = actual {
+		test_instructions(vec![expected.instructions], function.instructions);
 	} else {
 		panic!("{:?} is not Function", actual);
 	}

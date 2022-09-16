@@ -1,7 +1,8 @@
 use std::collections::HashMap;
-use crate::code::{Instructions, Opcode, read_u16};
+use std::convert::identity;
+use crate::code::{Instructions, Opcode, read_u16, read_u8};
 use crate::compiler::Bytecode;
-use crate::object::{HashingObject, Object};
+use crate::object::{Function, HashingObject, Object};
 use crate::vm::frame::Frame;
 
 pub mod frame;
@@ -18,7 +19,7 @@ pub struct VM {
 	pub globals: Vec<Object>,
 
 	//TODO Try fixed size pre allocated array
-	stack: Vec<Object>,
+	stack: Vec<Option<Object>>,
 	pub last_popped_stack_elem: Option<Object>,
 
 	//TODO Try fixed size pre allocated array
@@ -28,14 +29,16 @@ pub struct VM {
 impl VM {
 	pub fn new(bytecode: Bytecode) -> Self {
 		let mut frames = Vec::with_capacity(MAX_FRAMES);
-		frames.push(Frame::new(bytecode.instructions));
+		frames.push(Frame::new(Function {
+			instructions: bytecode.instructions,
+			num_locals: 0
+		}, 0));
 
 		Self {
 			constants: bytecode.constants,
 			globals: Vec::with_capacity(GLOBALS_SIZE),
 
 			stack: Vec::with_capacity(STACK_SIZE),
-			//sp: 0,
 			last_popped_stack_elem: None,
 
 			frames,
@@ -44,14 +47,16 @@ impl VM {
 
 	pub fn new_with_global_store(bytecode: Bytecode, globals: Vec<Object>) -> Self {
 		let mut frames = Vec::with_capacity(MAX_FRAMES);
-		frames.push(Frame::new(bytecode.instructions));
+		frames.push(Frame::new(Function {
+			instructions: bytecode.instructions,
+			num_locals: 0
+		}, 0));
 
 		Self {
 			constants: bytecode.constants,
 			globals,
 
 			stack: Vec::with_capacity(STACK_SIZE),
-			//sp: 0,
 			last_popped_stack_elem: None,
 
 			frames,
@@ -59,7 +64,7 @@ impl VM {
 	}
 
 	pub fn stack_top(&self) -> Option<&Object> {
-		self.stack.last()
+		self.stack.last().and_then(|e| e.as_ref())
 	}
 
 	pub fn run(&mut self) -> VMResult {
@@ -137,6 +142,20 @@ impl VM {
 
 					self.push(self.globals[global_index].clone())?;
 				}
+				Ok(Opcode::OpSetLocal) => {
+					let local_index = read_u8(&ins[ip..]) as usize;
+					self.current_frame().ip += 1;
+
+					let base_pointer = self.current_frame().base_pointer;
+					self.stack[base_pointer + local_index] = self.pop();
+				}
+				Ok(Opcode::OpGetLocal) => {
+					let local_index = read_u8(&ins[ip..]) as usize;
+					self.current_frame().ip += 1;
+
+					let base_pointer = self.current_frame().base_pointer;
+					self.push(self.stack[base_pointer + local_index].clone().unwrap())?;
+				}
 
 				Ok(Opcode::OpArray) => {
 					let num_elements = read_u16(&ins[ip..]) as usize;
@@ -166,10 +185,12 @@ impl VM {
 				}
 
 				Ok(Opcode::OpCall) => {
-					let func = self.stack.last();
-					if let Some(Object::Function(instructions)) = func {
+					let func = self.stack_top().cloned();
+					if let Some(Object::Function(func)) = func {
 						//TODO Should we take if we pop off the stack?
-						self.push_frame(Frame::new(instructions.clone()))
+						let num_locals = func.num_locals;
+						self.push_frame(Frame::new(func, self.stack.len()));
+						self.stack.resize(self.stack.len() + num_locals, None);
 					} else {
 						return Err(format!("calling non-function {:?}", func))
 					}
@@ -177,14 +198,14 @@ impl VM {
 				Ok(Opcode::OpReturnValue) => {
 					let return_value = self.pop().unwrap();
 
-					self.pop_frame();
-					self.pop();
+					let frame = self.pop_frame().unwrap();
+					self.stack.truncate(frame.base_pointer - 1);
 
 					self.push(return_value)?;
 				}
 				Ok(Opcode::OpReturn) => {
-					self.pop_frame();
-					self.pop();
+					let frame = self.pop_frame().unwrap();
+					self.stack.truncate(frame.base_pointer - 1);
 				}
 
 				_ => panic!("{} undefined opcode", ins[ip - 1])
@@ -277,7 +298,7 @@ impl VM {
 	fn build_array(&self, start_index: usize, end_index: usize) -> Object {
 		Object::Array(
 			self.stack[start_index..end_index]
-				.iter().cloned().collect()
+				.iter().map(|o| o.clone().unwrap()).collect()
 		)
 	}
 
@@ -285,8 +306,8 @@ impl VM {
 		let mut pairs = HashMap::new();
 
 		for i in (start_index..end_index).step_by(2) {
-			let key = &self.stack[i];
-			let value = &self.stack[i+1];
+			let key = self.stack[i].as_ref().unwrap();
+			let value = self.stack[i+1].as_ref().unwrap();
 
 			let hash_key = HashingObject::try_from(key.clone())?;
 
@@ -329,14 +350,14 @@ impl VM {
 			return Err("stack overflow".into())
 		}
 
-		self.stack.push(obj);
+		self.stack.push(Some(obj));
 		//self.sp += 1;
 
 		Ok(())
 	}
 
 	fn pop(&mut self) -> Option<Object> {
-		self.last_popped_stack_elem = self.stack.pop();
+		self.last_popped_stack_elem = self.stack.pop().and_then(identity);
 
 		self.last_popped_stack_elem.clone()
 	}

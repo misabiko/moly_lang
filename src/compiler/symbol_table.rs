@@ -1,8 +1,12 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 pub type SymbolScope = &'static str;
 
+//TODO Make enum
 pub const GLOBAL_SCOPE: SymbolScope = "GLOBAL";
+pub const LOCAL_SCOPE: SymbolScope = "LOCAL";
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Symbol {
@@ -11,15 +15,17 @@ pub struct Symbol {
 	pub index: usize,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct SymbolTable {
+	pub outer: Option<Rc<RefCell<SymbolTable>>>,
 	pub store: HashMap<String, Symbol>,
 	pub num_definitions: usize,
 }
 
 impl SymbolTable {
-	pub fn new() -> Self {
+	pub fn new(outer: Option<Rc<RefCell<SymbolTable>>>) -> Self {
 		Self {
+			outer,
 			store: Default::default(),
 			num_definitions: 0,
 		}
@@ -29,7 +35,11 @@ impl SymbolTable {
 		let symbol = Symbol {
 			name: name.into(),
 			index: self.num_definitions,
-			scope: GLOBAL_SCOPE
+			scope: if self.outer.is_some() {
+				LOCAL_SCOPE
+			}else {
+				GLOBAL_SCOPE
+			}
 		};
 
 		self.store.insert(name.into(), symbol);
@@ -38,7 +48,13 @@ impl SymbolTable {
 		self.store.get(name).unwrap()
 	}
 
-	pub fn resolve(&mut self, name: &str) -> Option<&Symbol> {
-		self.store.get(name)
+	pub fn resolve(&self, name: &str) -> Option<Symbol> {
+		self.store.get(name).cloned()
+			.or_else(||
+				self.outer.as_ref()
+					.and_then(|s|
+						s.borrow_mut().resolve(name)
+					)
+			)
 	}
 }

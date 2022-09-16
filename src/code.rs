@@ -30,6 +30,8 @@ pub enum Opcode {
 
 	OpGetGlobal,
 	OpSetGlobal,
+	OpGetLocal,
+	OpSetLocal,
 
 	OpArray,
 	OpHash,
@@ -69,14 +71,16 @@ impl TryFrom<u8> for Opcode {
 
 			15 => Ok(Opcode::OpGetGlobal),
 			16 => Ok(Opcode::OpSetGlobal),
+			17 => Ok(Opcode::OpGetLocal),
+			18 => Ok(Opcode::OpSetLocal),
 
-			17 => Ok(Opcode::OpArray),
-			18 => Ok(Opcode::OpHash),
-			19 => Ok(Opcode::OpIndex),
+			19 => Ok(Opcode::OpArray),
+			20 => Ok(Opcode::OpHash),
+			21 => Ok(Opcode::OpIndex),
 
-			20 => Ok(Opcode::OpCall),
-			21 => Ok(Opcode::OpReturnValue),
-			22 => Ok(Opcode::OpReturn),
+			22 => Ok(Opcode::OpCall),
+			23 => Ok(Opcode::OpReturnValue),
+			24 => Ok(Opcode::OpReturn),
 			_ => Err(())
 		}
 	}
@@ -114,6 +118,8 @@ pub fn lookup(op: u8) -> Result<Definition, String> {
 
 		Ok(Opcode::OpGetGlobal) => Ok(Definition {name: "OpGetGlobal", operand_widths: vec![2]}),
 		Ok(Opcode::OpSetGlobal) => Ok(Definition {name: "OpSetGlobal", operand_widths: vec![2]}),
+		Ok(Opcode::OpGetLocal) => Ok(Definition {name: "OpGetLocal", operand_widths: vec![1]}),
+		Ok(Opcode::OpSetLocal) => Ok(Definition {name: "OpSetLocal", operand_widths: vec![1]}),
 
 		//TODO Test error message for too many elements in an array
 		//Operand width: Number of elements
@@ -149,6 +155,7 @@ pub fn make(op: Opcode, operands: &Vec<Operand>) -> Instructions {
 		let width = def.operand_widths[i] as usize;
 
 		match width {
+			1 => instruction[offset] = *operand as u8,
 			2 => BigEndian::write_u16(&mut instruction[offset..], *operand as u16),
 			_ => {}
 		};
@@ -165,6 +172,7 @@ pub fn read_operands(def: &Definition, ins: &[u8]) -> (Vec<Operand>, usize) {
 
 	for (i, width) in def.operand_widths.iter().enumerate() {
 		match width {
+			1 => operands[i] = read_u8(&ins[offset..]) as Operand,
 			2 => operands[i] = read_u16(&ins[offset..]) as Operand,
 			_ => {}
 		}
@@ -173,6 +181,10 @@ pub fn read_operands(def: &Definition, ins: &[u8]) -> (Vec<Operand>, usize) {
 	}
 
 	(operands, offset)
+}
+
+pub fn read_u8(ins: &[u8]) -> u8 {
+	ins[0]
 }
 
 pub fn read_u16(ins: &[u8]) -> u16 {

@@ -10,7 +10,7 @@ pub enum Object {
 	String(String),
 	Array(Vec<Object>),
 	Hash(HashMap<HashingObject, (HashingObject, Object)>),
-	Function(Instructions),
+	Function(Function),
 }
 
 impl fmt::Display for Object {
@@ -28,7 +28,7 @@ impl fmt::Display for Object {
 
 				write!(f, "{{{}}}", pairs)
 			},
-			Object::Function(instructions) => write!(f, "Function[{:?}]", instructions)
+			Object::Function(Function { instructions, .. }) => write!(f, "Function[{:?}]", instructions)
 		}
 	}
 }
@@ -68,4 +68,10 @@ impl TryFrom<Object> for HashingObject {
 			_ => Err(format!("unusable as hash key: {:?}", value)),
 		}
 	}
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Function {
+	pub instructions: Instructions,
+	pub num_locals: usize,
 }

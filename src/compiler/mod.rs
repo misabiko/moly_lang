@@ -1,13 +1,16 @@
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
 use crate::ast::{Expression, Program, Statement};
 use crate::code::{Instructions, make, Opcode, Operand};
-use crate::compiler::symbol_table::SymbolTable;
-use crate::object::Object;
+use crate::compiler::symbol_table::{GLOBAL_SCOPE, SymbolTable};
+use crate::object::{Function, Object};
 
 pub mod symbol_table;
 
 pub struct Compiler {
 	pub constants: Vec<Object>,
-	pub symbol_table: SymbolTable,
+	pub symbol_table: Rc<RefCell<SymbolTable>>,
 	pub scopes: Vec<CompilationScope>,
 	pub scope_index: usize,
 }
@@ -22,7 +25,7 @@ impl Compiler {
 	pub fn new() -> Self {
 		Self {
 			constants: vec![],
-			symbol_table: SymbolTable::new(),
+			symbol_table: Rc::new(RefCell::new(SymbolTable::new(None))),
 			scopes: vec![
 				CompilationScope {
 					instructions: vec![],
@@ -34,7 +37,7 @@ impl Compiler {
 		}
 	}
 
-	pub fn new_with_state(symbol_table: SymbolTable, constants: Vec<Object>) -> Self {
+	pub fn new_with_state(symbol_table: Rc<RefCell<SymbolTable>>, constants: Vec<Object>) -> Self {
 		Self {
 			constants,
 			symbol_table,
@@ -75,9 +78,16 @@ impl Compiler {
 					panic!("{:?} is not Identifier", name)
 				};
 
-				let symbol = self.symbol_table.define(name.as_str());
-				let index = symbol.index;
-				self.emit(Opcode::OpSetGlobal, vec![index]);
+				let (index, scope) = {
+					let mut table = self.symbol_table.borrow_mut();
+					let symbol = table.define(name.as_str());
+					(symbol.index, symbol.scope)
+				};
+				if scope == GLOBAL_SCOPE {
+					self.emit(Opcode::OpSetGlobal, vec![index]);
+				}else {
+					self.emit(Opcode::OpSetLocal, vec![index]);
+				}
 			}
 			Statement::Return(Some(exp)) => {
 				self.compile_expression(exp)?;
@@ -141,14 +151,18 @@ impl Compiler {
 				};
 			}
 			Expression::Identifier(name) => {
-				let symbol = if let Some(s) = self.symbol_table.resolve(&name) {
+				let symbol = if let Some(s) = self.symbol_table.borrow().resolve(&name) {
 					s
 				}else {
 					return Err(format!("undefined variable {}", name))
 				};
 
 				let index = symbol.index;
-				self.emit(Opcode::OpGetGlobal, vec![index]);
+				if symbol.scope == GLOBAL_SCOPE {
+					self.emit(Opcode::OpGetGlobal, vec![index]);
+				}else {
+					self.emit(Opcode::OpGetLocal, vec![index]);
+				}
 			}
 			Expression::If { condition, consequence, alternative } => {
 				self.compile_expression(*condition)?;
@@ -216,9 +230,13 @@ impl Compiler {
 					self.emit(Opcode::OpReturn, vec![]);
 				}
 
+				let num_locals = self.symbol_table.borrow().num_definitions;
 				let instructions = self.leave_scope().unwrap();
 
-				let function = self.add_constant(Object::Function(instructions));
+				let function = self.add_constant(Object::Function(Function {
+					instructions,
+					num_locals,
+				}));
 				self.emit(Opcode::OpConstant, vec![function]);
 			}
 			Expression::Call { function, .. } => {
@@ -316,11 +334,24 @@ impl Compiler {
 			previous_instruction: None,
 		});
 		self.scope_index += 1;
+
+		let table = std::mem::replace(&mut self.symbol_table, Rc::new(RefCell::new(
+			SymbolTable {
+				outer: None,
+				store: HashMap::new(),
+				num_definitions: 0
+			}
+		)));
+		self.symbol_table = Rc::new(RefCell::new(SymbolTable::new(Some(table))));
 	}
 
 	pub fn leave_scope(&mut self) -> Option<Instructions> {
+		let ins = self.scopes.pop().map(|s| s.instructions);
 		self.scope_index -= 1;
-		self.scopes.pop().map(|s| s.instructions)
+
+		let outer: Option<Rc<RefCell<SymbolTable>>> = std::mem::take(&mut self.symbol_table.borrow_mut().outer);
+		self.symbol_table = outer.unwrap();
+		ins
 	}
 }
 

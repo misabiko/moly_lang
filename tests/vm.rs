@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use moly_lang::ast::Program;
 use moly_lang::compiler::Compiler;
 use moly_lang::lexer::Lexer;
-use moly_lang::object::{HashingObject, Object};
+use moly_lang::object::{Function, HashingObject, Object};
 use moly_lang::parser::Parser;
 use moly_lang::vm::VM;
 
@@ -239,7 +239,10 @@ fn test_functions_without_return_value() {
 			noReturn();
 			noReturnTwo();
 			",
-			expected: Some(Object::Function(vec![15, 0, 0, 20, 21])),
+			expected: Some(Object::Function(Function {
+				instructions: vec![15, 0, 0, 20, 21],
+				num_locals: 0,
+			})),
 		},
 	];
 
@@ -256,6 +259,69 @@ fn test_first_class_functions() {
 			returnsOneReturner()();
 			",
 			expected: Some(Object::Integer(1)),
+		},
+		VMTestCase {
+			input: "
+			let returnsOneReturner = fn() {
+				let returnsOne = fn() { 1; };
+				returnsOne;
+			};
+			returnsOneReturner()();
+			",
+			expected: Some(Object::Integer(1)),
+		},
+	];
+
+	run_vm_tests(tests)
+}
+
+#[test]
+fn test_calling_functions_with_bindings() {
+	let tests = vec![
+		VMTestCase {
+			input: "
+			let one = fn() { let one = 1; one };
+			one();
+			",
+			expected: Some(Object::Integer(1)),
+		},
+		VMTestCase {
+			input: "
+			let oneAndTwo = fn() { let one = 1; let two = 2; one + two; };
+			oneAndTwo();
+			",
+			expected: Some(Object::Integer(3)),
+		},
+		VMTestCase {
+			input: "
+			let oneAndTwo = fn() { let one = 1; let two = 2; one + two; };
+			let threeAndFour = fn() { let three = 3; let four = 4; three + four; };
+			oneAndTwo() + threeAndFour();
+			",
+			expected: Some(Object::Integer(10)),
+		},
+		VMTestCase {
+			input: "
+			let firstFoobar = fn() { let foobar = 50; foobar; };
+			let secondFoobar = fn() { let foobar = 100; foobar; };
+			firstFoobar() + secondFoobar();
+			",
+			expected: Some(Object::Integer(150)),
+		},
+		VMTestCase {
+			input: "
+			let globalSeed = 50;
+			let minusOne = fn() {
+				let num = 1;
+				globalSeed - num;
+			}
+			let minusTwo = fn() {
+				let num = 2;
+				globalSeed - num;
+			}
+			minusOne() + minusTwo();
+			",
+			expected: Some(Object::Integer(97)),
 		},
 	];
 

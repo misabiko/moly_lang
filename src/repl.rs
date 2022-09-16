@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::io::Write;
+use std::rc::Rc;
 use ctrlc;
 use crate::{
 	lexer::Lexer,
@@ -16,7 +18,7 @@ pub fn start() {
 
 	let mut constants = Vec::new();
 	let mut globals = Vec::with_capacity(GLOBALS_SIZE);
-	let mut symbol_table = SymbolTable::new();
+	let mut symbol_table = Rc::new(RefCell::new(SymbolTable::new(None)));
 
 	loop {
 		print!("{} ", PROMPT);

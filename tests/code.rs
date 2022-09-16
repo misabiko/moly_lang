@@ -1,10 +1,11 @@
-use moly_lang::code::{concat_instructions, instruction_to_string, Instructions, lookup, make, Opcode, read_operands};
+use moly_lang::code::{concat_instructions, instruction_to_string, lookup, make, Opcode, read_operands};
 
 #[test]
 fn test_make() {
 	let tests: Vec<(Opcode, Vec<usize>, Vec<u8>)> = vec![
 		(Opcode::OpConstant, vec![65534], vec![Opcode::OpConstant as u8, 255, 254]),
 		(Opcode::OpAdd, vec![], vec![Opcode::OpAdd as u8]),
+		(Opcode::OpGetLocal, vec![255], vec![Opcode::OpGetLocal as u8, 255]),
 	];
 
 	for (op, operands, expected) in tests {
@@ -22,13 +23,15 @@ fn test_make() {
 fn test_instruction_string() {
 	let instructions = vec![
 		make(Opcode::OpAdd, &vec![]),
+		make(Opcode::OpGetLocal, &vec![1]),
 		make(Opcode::OpConstant, &vec![2]),
 		make(Opcode::OpConstant, &vec![65535]),
 	];
 
 	let expected = "0000 OpAdd
-0001 OpConstant 2
-0004 OpConstant 65535
+0001 OpGetLocal 1
+0003 OpConstant 2
+0006 OpConstant 65535
 ";
 
 	let concatted = concat_instructions(instructions);
@@ -39,7 +42,8 @@ fn test_instruction_string() {
 #[test]
 fn test_read_operands() {
 	let tests = vec![
-		(Opcode::OpConstant, vec![65535], 2)
+		(Opcode::OpConstant, vec![65535], 2),
+		(Opcode::OpGetLocal, vec![255], 1),
 	];
 
 	for (op, operands, bytes_read) in tests {

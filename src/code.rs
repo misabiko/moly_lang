@@ -4,6 +4,7 @@ use byteorder::{BigEndian, ByteOrder};
 pub type Instructions = Vec<u8>;
 
 //TODO Remove Op prefix
+//TODO Document calling convention
 #[repr(u8)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Opcode {
@@ -128,7 +129,7 @@ pub fn lookup(op: u8) -> Result<Definition, String> {
 		Ok(Opcode::OpHash) => Ok(Definition {name: "OpHash", operand_widths: vec![2]}),
 		Ok(Opcode::OpIndex) => Ok(Definition {name: "OpIndex", operand_widths: vec![]}),
 
-		Ok(Opcode::OpCall) => Ok(Definition {name: "OpCall", operand_widths: vec![]}),
+		Ok(Opcode::OpCall) => Ok(Definition {name: "OpCall", operand_widths: vec![1]}),
 		Ok(Opcode::OpReturnValue) => Ok(Definition {name: "OpReturnValue", operand_widths: vec![]}),
 		Ok(Opcode::OpReturn) => Ok(Definition {name: "OpReturn", operand_widths: vec![]}),
 		Err(_) => Err(format!("opcode {} undefined", op))

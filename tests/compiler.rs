@@ -604,7 +604,7 @@ fn test_function_calls() {
 			],
 			expected_instructions: vec![
 				make(Opcode::OpConstant, &vec![1]), // The compiled function
-				make(Opcode::OpCall, &vec![]),
+				make(Opcode::OpCall, &vec![0]),
 				make(Opcode::OpPop, &vec![]),
 			],
 		},
@@ -628,7 +628,7 @@ fn test_function_calls() {
 				//TODO Optimize unused variables?
 				make(Opcode::OpSetGlobal, &vec![0]),
 				make(Opcode::OpGetGlobal, &vec![0]),
-				make(Opcode::OpCall, &vec![]),
+				make(Opcode::OpCall, &vec![0]),
 				make(Opcode::OpPop, &vec![]),
 			],
 		},

@@ -185,6 +185,8 @@ impl VM {
 				}
 
 				Ok(Opcode::OpCall) => {
+					self.current_frame().ip += 1;
+
 					let func = self.stack_top().cloned();
 					if let Some(Object::Function(func)) = func {
 						//TODO Should we take if we pop off the stack?

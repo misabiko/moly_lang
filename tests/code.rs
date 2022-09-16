@@ -1,4 +1,4 @@
-use moly_lang::code::{instruction_to_string, Instructions, lookup, make, Opcode, read_operands};
+use moly_lang::code::{concat_instructions, instruction_to_string, Instructions, lookup, make, Opcode, read_operands};
 
 #[test]
 fn test_make() {
@@ -31,13 +31,9 @@ fn test_instruction_string() {
 0004 OpConstant 65535
 ";
 
-	let concatted: Instructions = instructions.into_iter().flatten().collect();
+	let concatted = concat_instructions(instructions);
 
 	assert_eq!(instruction_to_string(&concatted), expected, "instructions wrongly formatted");
-}
-
-pub fn concat_instructions(instructions: Vec<Instructions>) -> Instructions {
-	instructions.into_iter().flatten().collect()
 }
 
 #[test]

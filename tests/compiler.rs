@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use moly_lang::ast::Program;
-use moly_lang::code::{instruction_to_string, Instructions, make, Opcode};
+use moly_lang::code::{concat_instructions, instruction_to_string, Instructions, make, Opcode};
 use moly_lang::object::{HashingObject, Object};
-use moly_lang::compiler::{Compiler};
+use moly_lang::compiler::{Compiler, EmittedInstruction};
 use moly_lang::lexer::Lexer;
 use moly_lang::parser::Parser;
 
@@ -194,14 +194,16 @@ fn test_conditionals() {
 				// 0000
 				make(Opcode::OpTrue, &vec![]),
 				// 0001
-				make(Opcode::OpJumpIfFalse, &vec![7]),
+				make(Opcode::OpJumpIfFalse, &vec![10]),
 				// 0004
 				make(Opcode::OpConstant, &vec![0]),
 				// 0007
+				make(Opcode::OpJump, &vec![10]),
+				// 0010
 				make(Opcode::OpPop, &vec![]),
-				// 0008
-				make(Opcode::OpConstant, &vec![1]),
 				// 0011
+				make(Opcode::OpConstant, &vec![1]),
+				// 0013
 				make(Opcode::OpPop, &vec![]),
 			],
 		},
@@ -456,6 +458,160 @@ fn test_index_expressions() {
 	run_compiler_tests(tests)
 }
 
+#[test]
+fn test_functions() {
+	let tests = vec![
+		CompilerTestCase {
+			input: "fn() { return 5 + 10 }",
+			expected_constants: vec![
+				Object::Integer(5),
+				Object::Integer(10),
+				Object::Function(concat_instructions(vec![
+					make(Opcode::OpConstant, &vec![0]),
+					make(Opcode::OpConstant, &vec![1]),
+					make(Opcode::OpAdd, &vec![]),
+					make(Opcode::OpReturnValue, &vec![]),
+				])),
+			],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![2]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "fn() { 5 + 10 }",
+			expected_constants: vec![
+				Object::Integer(5),
+				Object::Integer(10),
+				Object::Function(concat_instructions(vec![
+					make(Opcode::OpConstant, &vec![0]),
+					make(Opcode::OpConstant, &vec![1]),
+					make(Opcode::OpAdd, &vec![]),
+					make(Opcode::OpReturnValue, &vec![]),
+				])),
+			],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![2]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "fn() { 1; 2 }",
+			expected_constants: vec![
+				Object::Integer(1),
+				Object::Integer(2),
+				Object::Function(concat_instructions(vec![
+					make(Opcode::OpConstant, &vec![0]),
+					make(Opcode::OpPop, &vec![]),
+					make(Opcode::OpConstant, &vec![1]),
+					make(Opcode::OpReturnValue, &vec![]),
+				])),
+			],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![2]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+	];
+
+	run_compiler_tests(tests)
+}
+
+#[test]
+fn test_functions_without_return_value() {
+	let tests = vec![
+		CompilerTestCase {
+			input: "fn() { }",
+			expected_constants: vec![
+				Object::Function(concat_instructions(vec![
+					make(Opcode::OpReturn, &vec![]),
+				]))
+			],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpPop, &vec![]),
+			]
+		}
+	];
+
+	run_compiler_tests(tests)
+}
+
+#[test]
+fn test_compiler_scopes() {
+	let mut compiler = Compiler::new();
+	assert_eq!(compiler.scope_index, 0, "scope_index wrong");
+
+	compiler.emit(Opcode::OpMul, vec![]);
+
+	compiler.enter_scope();
+	assert_eq!(compiler.scope_index, 1, "scope_index wrong");
+
+	compiler.emit(Opcode::OpSub, vec![]);
+
+	assert_eq!(compiler.scopes[compiler.scope_index].instructions.len(), 1, "instructions length wrong");
+
+	let last = &compiler.scopes.get(compiler.scope_index).unwrap().last_instruction;
+	assert!(matches!(last, Some(EmittedInstruction { opcode: Opcode::OpSub, .. })), "last_instruction wrong");
+
+	compiler.leave_scope();
+	assert_eq!(compiler.scope_index, 0, "scope_index wrong");
+
+	compiler.emit(Opcode::OpAdd, vec![]);
+
+	assert_eq!(compiler.scopes[compiler.scope_index].instructions.len(), 2, "instructions length wrong");
+
+	let last = &compiler.scopes.get(compiler.scope_index).unwrap().last_instruction;
+	assert!(matches!(last, Some(EmittedInstruction { opcode: Opcode::OpAdd, .. })), "last_instruction wrong");
+
+	let previous = &compiler.scopes.get(compiler.scope_index).unwrap().previous_instruction;
+	assert!(matches!(previous, Some(EmittedInstruction { opcode: Opcode::OpMul, .. })), "previous_instruction wrong");
+}
+
+#[test]
+fn test_function_calls() {
+	let tests = vec![
+		CompilerTestCase {
+			input: "fn() { 24 }();",
+			expected_constants: vec![
+				Object::Integer(24),
+				Object::Function(concat_instructions(vec![
+					make(Opcode::OpConstant, &vec![0]), // The literal "24"
+					make(Opcode::OpReturnValue, &vec![]),
+				]))
+			],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![1]), // The compiled function
+				make(Opcode::OpCall, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "
+            let noArg = fn() { 24 };
+            noArg();
+            ",
+			expected_constants: vec![
+				Object::Integer(24),
+				Object::Function(concat_instructions(vec![
+					make(Opcode::OpConstant, &vec![0]), // The literal "24"
+					make(Opcode::OpReturnValue, &vec![]),
+				]))
+			],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![1]), // The compiled function
+				//TODO Optimize unused variables?
+				make(Opcode::OpSetGlobal, &vec![0]),
+				make(Opcode::OpGetGlobal, &vec![0]),
+				make(Opcode::OpCall, &vec![]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+	];
+
+	run_compiler_tests(tests)
+}
+
 fn run_compiler_tests(tests: Vec<CompilerTestCase>) {
 	for CompilerTestCase { input, expected_constants, expected_instructions } in tests {
 		let program = parse(input);
@@ -478,7 +634,7 @@ fn parse(input: &str) -> Program {
 }
 
 fn test_instructions(expected: Vec<Instructions>, actual: Instructions) {
-	let concatted: Instructions = expected.into_iter().flatten().collect();
+	let concatted = concat_instructions(expected);
 
 	assert_eq!(instruction_to_string(&actual), instruction_to_string(&concatted));
 	/*assert_eq!(actual.len(), concatted.len(), "wrong instructions length");
@@ -493,11 +649,12 @@ fn test_constants(expected: Vec<Object>, actual: Vec<Object>) {
 
 	for (constant, actual) in expected.into_iter().zip(actual.into_iter()) {
 		match constant {
-			Object::Integer(value) => test_integer_object(value, actual),
-			Object::Boolean(value) => test_boolean_object(value, actual),
-			Object::String(value) => test_string_object(value, actual),
-			Object::Array(value) => test_array_object(value, actual),
-			Object::Hash(value) => test_hash_object(value, actual),
+			Object::Integer(v) => test_integer_object(v, actual),
+			Object::Boolean(v) => test_boolean_object(v, actual),
+			Object::String(v) => test_string_object(v, actual),
+			Object::Array(v) => test_array_object(v, actual),
+			Object::Hash(v) => test_hash_object(v, actual),
+			Object::Function(v) => test_function_object(v, actual),
 		}
 	}
 }
@@ -558,5 +715,13 @@ fn test_hash_object(expected: HashMap<HashingObject, (HashingObject, Object)>, a
 		}
 	} else {
 		panic!("{:?} is not Hash", actual);
+	}
+}
+
+fn test_function_object(expected: Instructions, actual: Object) {
+	if let Object::Function(instructions) = actual {
+		test_instructions(vec![expected], instructions);
+	} else {
+		panic!("{:?} is not Function", actual);
 	}
 }

@@ -6,32 +6,46 @@ use crate::object::Object;
 pub mod symbol_table;
 
 pub struct Compiler {
-	instructions: Instructions,
 	pub constants: Vec<Object>,
 	pub symbol_table: SymbolTable,
+	pub scopes: Vec<CompilationScope>,
+	pub scope_index: usize,
+}
 
-	last_instruction: Option<EmittedInstruction>,
-	previous_instruction: Option<EmittedInstruction>,
+pub struct CompilationScope {
+	pub instructions: Instructions,
+	pub last_instruction: Option<EmittedInstruction>,
+	pub previous_instruction: Option<EmittedInstruction>,
 }
 
 impl Compiler {
 	pub fn new() -> Self {
 		Self {
-			instructions: Default::default(),
 			constants: vec![],
 			symbol_table: SymbolTable::new(),
-			last_instruction: None,
-			previous_instruction: None,
+			scopes: vec![
+				CompilationScope {
+					instructions: vec![],
+					last_instruction: None,
+					previous_instruction: None,
+				}
+			],
+			scope_index: 0,
 		}
 	}
 
 	pub fn new_with_state(symbol_table: SymbolTable, constants: Vec<Object>) -> Self {
 		Self {
-			instructions: Default::default(),
 			constants,
 			symbol_table,
-			last_instruction: None,
-			previous_instruction: None,
+			scopes: vec![
+				CompilationScope {
+					instructions: vec![],
+					last_instruction: None,
+					previous_instruction: None,
+				}
+			],
+			scope_index: 0,
 		}
 	}
 
@@ -64,6 +78,11 @@ impl Compiler {
 				let symbol = self.symbol_table.define(name.as_str());
 				let index = symbol.index;
 				self.emit(Opcode::OpSetGlobal, vec![index]);
+			}
+			Statement::Return(Some(exp)) => {
+				self.compile_expression(exp)?;
+
+				self.emit(Opcode::OpReturnValue, vec![]);
 			}
 			_ => return Err(format!("{:?} not handled", stmt))
 		}
@@ -139,29 +158,26 @@ impl Compiler {
 
 				self.compile(consequence)?;
 
-				if self.last_instruction_is_pop() {
+				if self.last_instruction_is(Opcode::OpPop) {
 					self.remove_last_pop();
 				}
 
+				//Emit an OpJump with temp value
+				let jump_pos = self.emit(Opcode::OpJump, vec![0]);
+
+				let after_consequence_pos = self.current_instructions().len();
+				self.change_operand(jump_if_false_pos, after_consequence_pos);
+
 				if let Some(alternative) = alternative {
-					//Emit an OpJump with temp value
-					let jump_pos = self.emit(Opcode::OpJump, vec![0]);
-
-					let after_consequence_pos = self.instructions.len();
-					self.change_operand(jump_if_false_pos, after_consequence_pos);
-
 					self.compile(alternative)?;
 
-					if self.last_instruction_is_pop() {
+					if self.last_instruction_is(Opcode::OpPop) {
 						self.remove_last_pop();
 					}
-
-					let after_alternative_pos = self.instructions.len();
-					self.change_operand(jump_pos, after_alternative_pos);
-				} else {
-					let after_consequence_pos = self.instructions.len();
-					self.change_operand(jump_if_false_pos, after_consequence_pos);
 				}
+
+				let after_alternative_pos = self.current_instructions().len();
+				self.change_operand(jump_pos, after_alternative_pos);
 			},
 			Expression::Array(elements) => {
 				let length = elements.len();
@@ -188,15 +204,37 @@ impl Compiler {
 
 				self.emit(Opcode::OpIndex, vec![]);
 			}
-			_ => return Err(format!("{:?} not handled", exp))
+			Expression::Function { body, .. } => {
+				self.enter_scope();
+
+				self.compile(body)?;
+
+				if self.last_instruction_is(Opcode::OpPop) {
+					self.replace_last_pop_with_return();
+				}
+				if !self.last_instruction_is(Opcode::OpReturnValue) {
+					self.emit(Opcode::OpReturn, vec![]);
+				}
+
+				let instructions = self.leave_scope().unwrap();
+
+				let function = self.add_constant(Object::Function(instructions));
+				self.emit(Opcode::OpConstant, vec![function]);
+			}
+			Expression::Call { function, .. } => {
+				self.compile_expression(*function)?;
+
+				self.emit(Opcode::OpCall, vec![]);
+			}
+			_ => return Err(format!("{:?} not handled", exp))	//TODO Remove rest
 		}
 
 		Ok(())
 	}
 
-	pub fn bytecode(self) -> Bytecode {
+	pub fn bytecode(mut self) -> Bytecode {
 		Bytecode {
-			instructions: self.instructions,
+			instructions: std::mem::take(self.current_instructions()),
 			constants: self.constants,
 		}
 	}
@@ -207,50 +245,82 @@ impl Compiler {
 		self.constants.len() - 1
 	}
 
-	fn emit(&mut self, op: Opcode, operands: Vec<Operand>) -> usize {
+	pub fn emit(&mut self, op: Opcode, operands: Vec<Operand>) -> usize {
 		let pos = self.add_instruction(make(op, &operands));
 		self.set_last_instruction(op, pos);
 
 		pos
 	}
 
+	fn current_instructions(&mut self) -> &mut Instructions {
+		&mut self.scopes[self.scope_index].instructions
+	}
+
 	fn add_instruction(&mut self, ins: Instructions) -> usize {
-		let pos_new_instruction = self.instructions.len();
-		self.instructions.extend(ins);
+		let pos_new_instruction = self.current_instructions().len();
+		self.current_instructions().extend(ins);
 
 		pos_new_instruction
 	}
 
 	fn set_last_instruction(&mut self, op: Opcode, pos: usize) {
-		let previous = std::mem::take(&mut self.last_instruction);
+		let previous = std::mem::take(&mut self.scopes[self.scope_index].last_instruction);
 		let last = EmittedInstruction { opcode: op, position: pos };
 
-		self.previous_instruction = previous;
-		self.last_instruction = Some(last);
+		self.scopes[self.scope_index].previous_instruction = previous;
+		self.scopes[self.scope_index].last_instruction = Some(last);
 	}
 
-	fn last_instruction_is_pop(&self) -> bool {
-		self.last_instruction.as_ref().map(|ins| ins.opcode) == Some(Opcode::OpPop)
+	fn last_instruction_is(&self, op: Opcode) -> bool {
+		self.scopes[self.scope_index].last_instruction.as_ref().map(|ins| ins.opcode) == Some(op)
 	}
 
 	fn remove_last_pop(&mut self) {
-		self.instructions.truncate(self.last_instruction.as_ref().unwrap().position);
+		let scope = self.scopes.get_mut(self.scope_index).unwrap();
+		let last = scope.last_instruction.as_ref().unwrap();
+		let previous = &mut scope.previous_instruction;
+
+		let old = &scope.instructions;
+		let new = old[..last.position].into();
+
+		scope.instructions = new;
 		//Will cause issues if previous_instruction is relied on
-		self.last_instruction = std::mem::take(&mut self.previous_instruction);
+		scope.last_instruction = std::mem::take(previous);
+	}
+
+	fn replace_last_pop_with_return(&mut self) {
+		let last_pos = self.scopes[self.scope_index].last_instruction.as_ref().unwrap().position;
+		self.replace_instruction(last_pos, make(Opcode::OpReturnValue, &vec![]));
+
+		self.scopes[self.scope_index].last_instruction.as_mut().unwrap().opcode = Opcode::OpReturnValue;
 	}
 
 	fn replace_instruction(&mut self, pos: usize, new_instruction: Instructions) {
 		//Maybe could be done with self.instructions[pos+1..] = new_instruction[..]?
 		for (i, ins) in new_instruction.into_iter().enumerate() {
-			self.instructions[pos+i] = ins;
+			self.current_instructions()[pos+i] = ins;
 		}
 	}
 
 	fn change_operand(&mut self, op_pos: usize, operand: usize) {
-		let op: Opcode = self.instructions[op_pos].try_into().unwrap();
+		let op: Opcode = self.current_instructions()[op_pos].try_into().unwrap();
 		let new_instruction = make(op, &vec![operand]);
 
 		self.replace_instruction(op_pos, new_instruction)
+	}
+
+	pub fn enter_scope(&mut self) {
+		self.scopes.push(CompilationScope {
+			instructions: vec![],
+			last_instruction: None,
+			previous_instruction: None,
+		});
+		self.scope_index += 1;
+	}
+
+	pub fn leave_scope(&mut self) -> Option<Instructions> {
+		self.scope_index -= 1;
+		self.scopes.pop().map(|s| s.instructions)
 	}
 }
 
@@ -260,9 +330,9 @@ pub struct Bytecode {
 	pub constants: Vec<Object>,
 }
 
-struct EmittedInstruction {
-	opcode: Opcode,
-	position: usize,
+pub struct EmittedInstruction {
+	pub opcode: Opcode,
+	pub position: usize,
 }
 
 type CompilerResult = Result<(), String>;

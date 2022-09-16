@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Formatter;
+use crate::code::Instructions;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Object {
@@ -9,6 +10,7 @@ pub enum Object {
 	String(String),
 	Array(Vec<Object>),
 	Hash(HashMap<HashingObject, (HashingObject, Object)>),
+	Function(Instructions),
 }
 
 impl fmt::Display for Object {
@@ -26,6 +28,7 @@ impl fmt::Display for Object {
 
 				write!(f, "{{{}}}", pairs)
 			},
+			Object::Function(instructions) => write!(f, "Function[{:?}]", instructions)
 		}
 	}
 }

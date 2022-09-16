@@ -2,46 +2,59 @@ use std::collections::HashMap;
 use crate::code::{Instructions, Opcode, read_u16};
 use crate::compiler::Bytecode;
 use crate::object::{HashingObject, Object};
+use crate::vm::frame::Frame;
+
+pub mod frame;
 
 const STACK_SIZE: usize = 2048;
 pub const GLOBALS_SIZE: usize = 65536;
+const MAX_FRAMES: usize = 1024;
 
 const TRUE_OBJ: Object = Object::Boolean(true);
 const FALSE_OBJ: Object = Object::Boolean(false);
 
 pub struct VM {
-	instructions: Instructions,
 	constants: Vec<Object>,
 	pub globals: Vec<Object>,
 
 	//TODO Try fixed size pre allocated array
 	stack: Vec<Object>,
-	//sp: usize,
 	pub last_popped_stack_elem: Option<Object>,
+
+	//TODO Try fixed size pre allocated array
+	pub frames: Vec<Frame>,
 }
 
 impl VM {
 	pub fn new(bytecode: Bytecode) -> Self {
+		let mut frames = Vec::with_capacity(MAX_FRAMES);
+		frames.push(Frame::new(bytecode.instructions));
+
 		Self {
-			instructions: bytecode.instructions,
 			constants: bytecode.constants,
 			globals: Vec::with_capacity(GLOBALS_SIZE),
 
 			stack: Vec::with_capacity(STACK_SIZE),
 			//sp: 0,
 			last_popped_stack_elem: None,
+
+			frames,
 		}
 	}
 
 	pub fn new_with_global_store(bytecode: Bytecode, globals: Vec<Object>) -> Self {
+		let mut frames = Vec::with_capacity(MAX_FRAMES);
+		frames.push(Frame::new(bytecode.instructions));
+
 		Self {
-			instructions: bytecode.instructions,
 			constants: bytecode.constants,
 			globals,
 
 			stack: Vec::with_capacity(STACK_SIZE),
 			//sp: 0,
 			last_popped_stack_elem: None,
+
+			frames,
 		}
 	}
 
@@ -50,14 +63,19 @@ impl VM {
 	}
 
 	pub fn run(&mut self) -> VMResult {
-		let mut ip = 0;
-		while ip < self.instructions.len() {
-			let op = self.instructions[ip];
+		let mut ip;
+		let mut ins: &Instructions;
 
-			match op.try_into() {
+		while self.current_frame().ip < self.current_frame().instructions().len() {
+			self.current_frame().ip += 1;
+
+			ip = self.current_frame().ip;
+			ins = self.current_frame().instructions();
+
+			match ins[ip - 1].try_into() {
 				Ok(Opcode::OpConstant) => {
-					let const_index = read_u16(&self.instructions[ip+1..]) as usize;
-					ip += 2;
+					let const_index = read_u16(&ins[ip..]) as usize;
+					self.current_frame().ip += 2;
 
 					self.push(self.constants[const_index].clone())?;
 				}
@@ -87,22 +105,22 @@ impl VM {
 				}
 
 				Ok(Opcode::OpJump) => {
-					let pos = read_u16(&self.instructions[ip+1..]) as usize;
-					ip = pos - 1;
+					let pos = read_u16(&ins[ip..]) as usize;
+					self.current_frame().ip = pos;
 				}
 				Ok(Opcode::OpJumpIfFalse) => {
-					let pos = read_u16(&self.instructions[ip+1..]) as usize;
-					ip += 2;
+					let pos = read_u16(&ins[ip..]) as usize;
+					self.current_frame().ip += 2;
 
 					let condition = self.pop().unwrap();
 					if condition == FALSE_OBJ {
-						ip = pos - 1;
+						self.current_frame().ip = pos;
 					}
 				}
 
 				Ok(Opcode::OpSetGlobal) => {
-					let global_index = read_u16(&self.instructions[ip+1..]) as usize;
-					ip += 2;
+					let global_index = read_u16(&ins[ip..]) as usize;
+					self.current_frame().ip += 2;
 
 					let len = self.globals.len();
 					let value = self.pop().unwrap();
@@ -114,15 +132,15 @@ impl VM {
 					}
 				}
 				Ok(Opcode::OpGetGlobal) => {
-					let global_index = read_u16(&self.instructions[ip+1..]) as usize;
-					ip += 2;
+					let global_index = read_u16(&ins[ip..]) as usize;
+					self.current_frame().ip += 2;
 
 					self.push(self.globals[global_index].clone())?;
 				}
 
 				Ok(Opcode::OpArray) => {
-					let num_elements = read_u16(&self.instructions[ip+1..]) as usize;
-					ip += 2;
+					let num_elements = read_u16(&ins[ip..]) as usize;
+					self.current_frame().ip += 2;
 
 					let sp = self.stack.len();
 					let array = self.build_array(sp - num_elements, sp);
@@ -131,8 +149,8 @@ impl VM {
 					self.push(array)?;
 				}
 				Ok(Opcode::OpHash) => {
-					let num_elements = read_u16(&self.instructions[ip+1..]) as usize;
-					ip += 2;
+					let num_elements = read_u16(&ins[ip..]) as usize;
+					self.current_frame().ip += 2;
 
 					let sp = self.stack.len();
 					let hash = self.build_hash(sp - num_elements, sp)?;
@@ -147,11 +165,31 @@ impl VM {
 					self.execute_index_expression(left, index)?;
 				}
 
-				_ => panic!("{} undefined opcode", op)
+				Ok(Opcode::OpCall) => {
+					let func = self.stack.last();
+					if let Some(Object::Function(instructions)) = func {
+						//TODO Should we take if we pop off the stack?
+						self.push_frame(Frame::new(instructions.clone()))
+					} else {
+						return Err(format!("calling non-function {:?}", func))
+					}
+				}
+				Ok(Opcode::OpReturnValue) => {
+					let return_value = self.pop().unwrap();
+
+					self.pop_frame();
+					self.pop();
+
+					self.push(return_value)?;
+				}
+				Ok(Opcode::OpReturn) => {
+					self.pop_frame();
+					self.pop();
+				}
+
+				_ => panic!("{} undefined opcode", ins[ip - 1])
 				//TODO Err(_) => panic!("{} undefined opcode", op)
 			}
-
-			ip += 1;
 		}
 
 		Ok(())
@@ -301,6 +339,21 @@ impl VM {
 		self.last_popped_stack_elem = self.stack.pop();
 
 		self.last_popped_stack_elem.clone()
+	}
+
+	//TODO Dissolve if still not using index iterator
+	fn current_frame(&mut self) -> &mut Frame {
+		//Should always have at least one frame
+			//TODO Try having VM.main_frame field
+		self.frames.last_mut().unwrap()
+	}
+
+	fn push_frame(&mut self, frame: Frame) {
+		self.frames.push(frame)
+	}
+
+	fn pop_frame(&mut self) -> Option<Frame> {
+		self.frames.pop()
 	}
 }
 

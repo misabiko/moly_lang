@@ -3,6 +3,7 @@ use byteorder::{BigEndian, ByteOrder};
 
 pub type Instructions = Vec<u8>;
 
+//TODO Remove Op prefix
 #[repr(u8)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Opcode {
@@ -33,6 +34,10 @@ pub enum Opcode {
 	OpArray,
 	OpHash,
 	OpIndex,
+
+	OpCall,
+	OpReturnValue,
+	OpReturn,
 }
 
 //TODO Replace with macro
@@ -68,6 +73,10 @@ impl TryFrom<u8> for Opcode {
 			17 => Ok(Opcode::OpArray),
 			18 => Ok(Opcode::OpHash),
 			19 => Ok(Opcode::OpIndex),
+
+			20 => Ok(Opcode::OpCall),
+			21 => Ok(Opcode::OpReturnValue),
+			22 => Ok(Opcode::OpReturn),
 			_ => Err(())
 		}
 	}
@@ -112,6 +121,10 @@ pub fn lookup(op: u8) -> Result<Definition, String> {
 		//Operand width: Number of keys + Number of values
 		Ok(Opcode::OpHash) => Ok(Definition {name: "OpHash", operand_widths: vec![2]}),
 		Ok(Opcode::OpIndex) => Ok(Definition {name: "OpIndex", operand_widths: vec![]}),
+
+		Ok(Opcode::OpCall) => Ok(Definition {name: "OpCall", operand_widths: vec![]}),
+		Ok(Opcode::OpReturnValue) => Ok(Definition {name: "OpReturnValue", operand_widths: vec![]}),
+		Ok(Opcode::OpReturn) => Ok(Definition {name: "OpReturn", operand_widths: vec![]}),
 		Err(_) => Err(format!("opcode {} undefined", op))
 	}
 }
@@ -203,4 +216,10 @@ fn fmt_instruction(def: Definition, operands: Vec<Operand>) -> String {
 		1 => format!("{} {}", def.name, operands[0]),
 		_ => format!("ERROR: unhandled operand_count for {}\n", def.name),
 	}
+}
+
+pub
+
+fn concat_instructions(instructions: Vec<Instructions>) -> Instructions {
+	instructions.into_iter().flatten().collect()
 }

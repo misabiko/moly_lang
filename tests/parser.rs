@@ -326,8 +326,8 @@ fn test_function_literal_parsing() {
 		if let Statement::Expression(Expression::Function { parameters, body }) = stmt {
 			assert_eq!(parameters.len(), 2, "function parameters wrong, want 2. ({:?})", parameters);
 
-			test_literal_expression(&parameters[0], &Expression::Identifier("x".into()));
-			test_literal_expression(&parameters[1], &Expression::Identifier("y".into()));
+			assert_eq!(&parameters[0], "x");
+			assert_eq!(&parameters[1], "y");
 
 			assert_eq!(body.statements.len(), 1, "body.statements doesn't have 1 statement. ({:?})", body.statements);
 
@@ -349,12 +349,12 @@ fn test_function_parameter_parsing() {
 	let tests = vec![
 		("fn() {};", vec![]),
 		("fn(x) {};", vec![
-			Expression::Identifier("x".into())
+			"x"
 		]),
 		("fn(x, y, z) {};", vec![
-			Expression::Identifier("x".into()),
-			Expression::Identifier("y".into()),
-			Expression::Identifier("z".into()),
+			"x",
+			"y",
+			"z",
 		]),
 	];
 
@@ -364,7 +364,7 @@ fn test_function_parameter_parsing() {
 			assert_eq!(parameters.len(), expected_params.len());
 
 			for (param, expected_param) in parameters.iter().zip(expected_params.iter()) {
-				test_literal_expression(param, expected_param)
+				assert_eq!(param, expected_param)
 			}
 		}else {
 			panic!("{:?} is not Statement::Expression(Function)", stmt);

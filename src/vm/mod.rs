@@ -31,7 +31,8 @@ impl VM {
 		let mut frames = Vec::with_capacity(MAX_FRAMES);
 		frames.push(Frame::new(Function {
 			instructions: bytecode.instructions,
-			num_locals: 0
+			num_locals: 0,
+			num_parameters: 0,
 		}, 0));
 
 		Self {
@@ -49,7 +50,8 @@ impl VM {
 		let mut frames = Vec::with_capacity(MAX_FRAMES);
 		frames.push(Frame::new(Function {
 			instructions: bytecode.instructions,
-			num_locals: 0
+			num_locals: 0,
+			num_parameters: 0,
 		}, 0));
 
 		Self {
@@ -185,17 +187,10 @@ impl VM {
 				}
 
 				Ok(Opcode::OpCall) => {
+					let num_args = read_u8(&ins[ip..]);
 					self.current_frame().ip += 1;
 
-					let func = self.stack_top().cloned();
-					if let Some(Object::Function(func)) = func {
-						//TODO Should we take if we pop off the stack?
-						let num_locals = func.num_locals;
-						self.push_frame(Frame::new(func, self.stack.len()));
-						self.stack.resize(self.stack.len() + num_locals, None);
-					} else {
-						return Err(format!("calling non-function {:?}", func))
-					}
+					self.call_function(num_args)?;
 				}
 				Ok(Opcode::OpReturnValue) => {
 					let return_value = self.pop().unwrap();
@@ -345,6 +340,26 @@ impl VM {
 		let pair = hash.get(&hash_key).ok_or_else(|| format!("value not found for {:?}", hash_key))?;
 
 		self.push(pair.1.clone())
+	}
+
+	fn call_function(&mut self, num_args: u8) -> VMResult {
+		let num_args = num_args as usize;
+		let func = self.stack[self.stack.len() - 1 - num_args].clone();
+
+		if let Some(Object::Function(func)) = func {
+			if func.num_parameters != num_args {
+				//TODO Standardize assert_eq errors
+				return Err(format!("wrong number of arguments: want={}, got={}", func.num_parameters, num_args))
+			}
+			let num_locals = func.num_locals;
+			self.push_frame(Frame::new(func, self.stack.len() - num_args));
+
+			self.stack.resize(self.stack.len() - num_args + num_locals, None);
+		} else {
+			return Err(format!("calling non-function {:?}", func))
+		}
+
+		Ok(())
 	}
 
 	fn push(&mut self, obj: Object) -> VMResult {

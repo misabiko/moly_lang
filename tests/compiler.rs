@@ -475,6 +475,7 @@ fn test_functions() {
 						make(Opcode::OpReturnValue, &vec![]),
 					]),
 					num_locals: 0,
+					num_parameters: 0,
 				}),
 			],
 			expected_instructions: vec![
@@ -495,6 +496,7 @@ fn test_functions() {
 					make(Opcode::OpReturnValue, &vec![]),
 				]),
 					num_locals: 0,
+					num_parameters: 0,
 				}),
 			],
 			expected_instructions: vec![
@@ -515,6 +517,7 @@ fn test_functions() {
 					make(Opcode::OpReturnValue, &vec![]),
 				]),
 					num_locals: 0,
+					num_parameters: 0,
 				}),
 			],
 			expected_instructions: vec![
@@ -538,6 +541,7 @@ fn test_functions_without_return_value() {
 					make(Opcode::OpReturn, &vec![]),
 				]),
 					num_locals: 0,
+					num_parameters: 0,
 				})
 			],
 			expected_instructions: vec![
@@ -600,6 +604,7 @@ fn test_function_calls() {
 					make(Opcode::OpReturnValue, &vec![]),
 				]),
 					num_locals: 0,
+					num_parameters: 0,
 				})
 			],
 			expected_instructions: vec![
@@ -621,6 +626,7 @@ fn test_function_calls() {
 					make(Opcode::OpReturnValue, &vec![]),
 				]),
 					num_locals: 0,
+					num_parameters: 0,
 				})
 			],
 			expected_instructions: vec![
@@ -629,6 +635,64 @@ fn test_function_calls() {
 				make(Opcode::OpSetGlobal, &vec![0]),
 				make(Opcode::OpGetGlobal, &vec![0]),
 				make(Opcode::OpCall, &vec![0]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "
+            let oneArg = fn(a) { a };
+            oneArg(24);
+            ",
+			expected_constants: vec![
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
+						make(Opcode::OpGetLocal, &vec![0]),
+						make(Opcode::OpReturnValue, &vec![]),
+					]),
+					num_locals: 0,
+					num_parameters: 1,
+				}),
+				Object::Integer(24),
+			],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpSetGlobal, &vec![0]),
+				make(Opcode::OpGetGlobal, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpCall, &vec![1]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "
+            let manyArg = fn(a, b, c) { a; b; c };
+            manyArg(24, 25, 26);
+            ",
+			expected_constants: vec![
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
+						make(Opcode::OpGetLocal, &vec![0]),
+						make(Opcode::OpPop, &vec![]),
+						make(Opcode::OpGetLocal, &vec![1]),
+						make(Opcode::OpPop, &vec![]),
+						make(Opcode::OpGetLocal, &vec![2]),
+						make(Opcode::OpReturnValue, &vec![]),
+					]),
+					num_locals: 0,
+					num_parameters: 3,
+				}),
+				Object::Integer(24),
+				Object::Integer(25),
+				Object::Integer(26),
+			],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpSetGlobal, &vec![0]),
+				make(Opcode::OpGetGlobal, &vec![0]),
+				make(Opcode::OpConstant, &vec![1]),
+				make(Opcode::OpConstant, &vec![2]),
+				make(Opcode::OpConstant, &vec![3]),
+				make(Opcode::OpCall, &vec![3]),
 				make(Opcode::OpPop, &vec![]),
 			],
 		},
@@ -653,6 +717,7 @@ fn test_let_statement_scopes() {
 					make(Opcode::OpReturnValue, &vec![]),
 				]),
 					num_locals: 0,
+					num_parameters: 0,
 				})
 			],
 			expected_instructions: vec![
@@ -679,6 +744,7 @@ fn test_let_statement_scopes() {
 					make(Opcode::OpReturnValue, &vec![]),
 				]),
 					num_locals: 1,
+					num_parameters: 0,
 				})
 			],
 			expected_instructions: vec![
@@ -709,6 +775,7 @@ fn test_let_statement_scopes() {
 					make(Opcode::OpReturnValue, &vec![]),
 				]),
 					num_locals: 2,
+					num_parameters: 0,
 				})
 			],
 			expected_instructions: vec![

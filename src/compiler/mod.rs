@@ -218,8 +218,13 @@ impl Compiler {
 
 				self.emit(Opcode::OpIndex, vec![]);
 			}
-			Expression::Function { body, .. } => {
+			Expression::Function { parameters, body } => {
 				self.enter_scope();
+
+				let num_parameters = parameters.len();
+				for param in parameters.into_iter() {
+					self.symbol_table.borrow_mut().define(&param);
+				}
 
 				self.compile(body)?;
 
@@ -236,13 +241,19 @@ impl Compiler {
 				let function = self.add_constant(Object::Function(Function {
 					instructions,
 					num_locals,
+					num_parameters,
 				}));
 				self.emit(Opcode::OpConstant, vec![function]);
 			}
-			Expression::Call { function, .. } => {
+			Expression::Call { function, arguments } => {
 				self.compile_expression(*function)?;
 
-				self.emit(Opcode::OpCall, vec![]);
+				let length = arguments.len();
+				for arg in arguments.into_iter() {
+					self.compile_expression(arg)?;
+				}
+
+				self.emit(Opcode::OpCall, vec![length]);
 			}
 			_ => return Err(format!("{:?} not handled", exp))	//TODO Remove rest
 		}

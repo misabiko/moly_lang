@@ -76,7 +76,7 @@ pub enum Expression {
 		alternative: Option<BlockStatement>,
 	},
 	Function {
-		parameters: Vec<Expression>,	//Identifiers
+		parameters: Vec<String>,	//TODO Replace with Identifier struct if Expression::Identifier changes
 		body: BlockStatement,
 	},
 	Call {
@@ -109,7 +109,7 @@ impl fmt::Display for Expression {
 
 				write!(f, "if {} {}{})", condition, consequence, alt_str)
 			},
-			Expression::Function { parameters, body } => write!(f, "fn({}) {}", join_expression_vec(parameters), body),
+			Expression::Function { parameters, body } => write!(f, "fn({}) {}", parameters.join(", "), body),
 			Expression::Call { function, arguments } => write!(f, "{}({})", function, join_expression_vec(arguments)),
 			Expression::Array(elements) => write!(f, "[{}]", join_expression_vec(elements)),
 			Expression::Index { left, index } => write!(f, "({}[{}])", left, index),

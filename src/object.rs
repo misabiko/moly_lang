@@ -73,5 +73,7 @@ impl TryFrom<Object> for HashingObject {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Function {
 	pub instructions: Instructions,
+	//TODO Resize to maximum
 	pub num_locals: usize,
+	pub num_parameters: usize,
 }

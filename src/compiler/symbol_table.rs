@@ -7,6 +7,8 @@ pub type SymbolScope = &'static str;
 //TODO Make enum
 pub const GLOBAL_SCOPE: SymbolScope = "GLOBAL";
 pub const LOCAL_SCOPE: SymbolScope = "LOCAL";
+//Could add function argument scope if the need special treatment
+// see "Resolving References to Arguments" in monkey compiler book
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Symbol {

@@ -303,8 +303,8 @@ impl Parser {
 		})
 	}
 
-	/// returns only Vec<Expression::Identifier>
-	fn parse_function_parameters(&mut self) -> Option<Vec<Expression>> {
+	//TODO returns only Vec<Expression::Identifier>
+	fn parse_function_parameters(&mut self) -> Option<Vec<String>> {
 		let mut identifiers = vec![];
 
 		if self.peek_token_is(TokenType::RParen) {
@@ -314,13 +314,13 @@ impl Parser {
 
 		self.next_token();
 
-		identifiers.push(Expression::Identifier(self.cur_token.literal.clone().unwrap()));
+		identifiers.push(self.cur_token.literal.clone().unwrap());
 
 		while self.peek_token_is(TokenType::Comma) {
 			self.next_token();
 			self.next_token();
 
-			identifiers.push(Expression::Identifier(self.cur_token.literal.clone().unwrap()));
+			identifiers.push(self.cur_token.literal.clone().unwrap());
 		}
 
 		if !self.expect_peek(TokenType::RParen) {

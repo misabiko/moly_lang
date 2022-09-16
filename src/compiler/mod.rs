@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use crate::ast::{Expression, Program, Statement};
 use crate::code::{Instructions, make, Opcode, Operand};
-use crate::compiler::symbol_table::{GLOBAL_SCOPE, SymbolTable};
+use crate::compiler::symbol_table::{GLOBAL_SCOPE, LOCAL_SCOPE, BUILTIN_SCOPE, Symbol, SymbolTable};
 use crate::object::{Function, Object};
+use crate::object::builtins::BUILTINS;
 
 pub mod symbol_table;
 
@@ -23,9 +24,14 @@ pub struct CompilationScope {
 
 impl Compiler {
 	pub fn new() -> Self {
+		let mut table = SymbolTable::new(None);
+		for (i, v) in BUILTINS.iter().enumerate() {
+			table.define_builtin(i, v.name);
+		}
+
 		Self {
 			constants: vec![],
-			symbol_table: Rc::new(RefCell::new(SymbolTable::new(None))),
+			symbol_table: Rc::new(RefCell::new(table)),
 			scopes: vec![
 				CompilationScope {
 					instructions: vec![],
@@ -157,12 +163,7 @@ impl Compiler {
 					return Err(format!("undefined variable {}", name))
 				};
 
-				let index = symbol.index;
-				if symbol.scope == GLOBAL_SCOPE {
-					self.emit(Opcode::OpGetGlobal, vec![index]);
-				}else {
-					self.emit(Opcode::OpGetLocal, vec![index]);
-				}
+				self.load_symbol(symbol);
 			}
 			Expression::If { condition, consequence, alternative } => {
 				self.compile_expression(*condition)?;
@@ -363,6 +364,15 @@ impl Compiler {
 		let outer: Option<Rc<RefCell<SymbolTable>>> = std::mem::take(&mut self.symbol_table.borrow_mut().outer);
 		self.symbol_table = outer.unwrap();
 		ins
+	}
+
+	fn load_symbol(&mut self, symbol: Symbol) {
+		match symbol.scope {
+			GLOBAL_SCOPE => self.emit(Opcode::OpGetGlobal, vec![symbol.index]),
+			LOCAL_SCOPE => self.emit(Opcode::OpGetLocal, vec![symbol.index]),
+			BUILTIN_SCOPE => self.emit(Opcode::OpGetBuiltin, vec![symbol.index]),
+			s => panic!("unsupported scope {:?}", s)
+		};
 	}
 }
 

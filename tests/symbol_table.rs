@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use moly_lang::compiler::symbol_table::{GLOBAL_SCOPE, LOCAL_SCOPE, Symbol, SymbolTable};
+use moly_lang::compiler::symbol_table::{GLOBAL_SCOPE, LOCAL_SCOPE, BUILTIN_SCOPE, Symbol, SymbolTable};
 
 #[test]
 fn test_define() {
@@ -142,6 +142,37 @@ fn test_resolve_nested_local() {
 		for sym in expected_symbols {
 			if let Some(result) = table.borrow().resolve(&sym.name) {
 				assert_eq!(result, sym, "expected {:?} to resolve to {:?}", sym.name, result)
+			}else {
+				panic!("name {} is not resolvable", sym.name)
+			}
+		}
+	}
+}
+
+#[test]
+fn test_define_resolve_builtins() {
+	let global = Rc::new(RefCell::new(SymbolTable::new(None)));
+	let first_local = Rc::new(RefCell::new(SymbolTable::new(Some(global.clone()))));
+	let second_local = Rc::new(RefCell::new(SymbolTable::new(Some(first_local.clone()))));
+
+	let expected = vec![
+		Symbol { name: "a".into(), scope: BUILTIN_SCOPE, index: 0 },
+		Symbol { name: "b".into(), scope: BUILTIN_SCOPE, index: 1 },
+		Symbol { name: "e".into(), scope: BUILTIN_SCOPE, index: 2 },
+		Symbol { name: "f".into(), scope: BUILTIN_SCOPE, index: 3 },
+	];
+
+	{
+		let mut borrow = global.borrow_mut();
+		for (i, value) in expected.iter().enumerate() {
+			borrow.define_builtin(i, &value.name);
+		}
+	}
+
+	for table in [global, first_local, second_local] {
+		for sym in &expected {
+			if let Some(result) = table.borrow().resolve(&sym.name) {
+				assert_eq!(&result, sym, "expected {:?} to resolve to {:?}", sym.name, result)
 			}else {
 				panic!("name {} is not resolvable", sym.name)
 			}

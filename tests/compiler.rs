@@ -788,6 +788,51 @@ fn test_let_statement_scopes() {
 	run_compiler_tests(tests)
 }
 
+#[test]
+fn test_builtins() {
+	let tests = vec![
+		CompilerTestCase {
+			input: "
+            len([]);
+            push([], 1);
+            ",
+			expected_constants: vec![Object::Integer(1)],
+			expected_instructions: vec![
+				make(Opcode::OpGetBuiltin, &vec![0]),
+				make(Opcode::OpArray, &vec![0]),
+				make(Opcode::OpCall, &vec![1]),
+				make(Opcode::OpPop, &vec![]),
+				make(Opcode::OpGetBuiltin, &vec![5]),
+				make(Opcode::OpArray, &vec![0]),
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpCall, &vec![2]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+		CompilerTestCase {
+			input: "fn() { len([]) }",
+			expected_constants: vec![
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
+						make(Opcode::OpGetBuiltin, &vec![0]),
+						make(Opcode::OpArray, &vec![0]),
+						make(Opcode::OpCall, &vec![1]),
+						make(Opcode::OpReturnValue, &vec![]),
+					]),
+					num_locals: 0,
+					num_parameters: 0,
+				})
+			],
+			expected_instructions: vec![
+				make(Opcode::OpConstant, &vec![0]),
+				make(Opcode::OpPop, &vec![]),
+			],
+		},
+	];
+
+	run_compiler_tests(tests)
+}
+
 fn run_compiler_tests(tests: Vec<CompilerTestCase>) {
 	for CompilerTestCase { input, expected_constants, expected_instructions } in tests {
 		let program = parse(input);
@@ -831,6 +876,7 @@ fn test_constants(expected: Vec<Object>, actual: Vec<Object>) {
 			Object::Array(v) => test_array_object(v, actual),
 			Object::Hash(v) => test_hash_object(v, actual),
 			Object::Function(v) => test_function_object(v, actual),
+			Object::Error(_) | Object::Builtin(_) => {}	//TODO Check that we never test this
 		}
 	}
 }

@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::convert::identity;
 use crate::code::{Instructions, Opcode, read_u16, read_u8};
 use crate::compiler::Bytecode;
-use crate::object::{Function, HashingObject, Object};
+use crate::object::{Builtin, Function, HashingObject, Object};
+use crate::object::builtins::BUILTINS;
 use crate::vm::frame::Frame;
 
 pub mod frame;
@@ -158,6 +159,14 @@ impl VM {
 					let base_pointer = self.current_frame().base_pointer;
 					self.push(self.stack[base_pointer + local_index].clone().unwrap())?;
 				}
+				Ok(Opcode::OpGetBuiltin) => {
+					let builtin_index = read_u8(&ins[ip..]) as usize;
+					self.current_frame().ip += 1;
+
+					let definition = &BUILTINS[builtin_index];
+
+					self.push(Object::Builtin(definition.builtin))?;
+				}
 
 				Ok(Opcode::OpArray) => {
 					let num_elements = read_u16(&ins[ip..]) as usize;
@@ -190,7 +199,7 @@ impl VM {
 					let num_args = read_u8(&ins[ip..]);
 					self.current_frame().ip += 1;
 
-					self.call_function(num_args)?;
+					self.execute_call(num_args)?;
 				}
 				Ok(Opcode::OpReturnValue) => {
 					let return_value = self.pop().unwrap();
@@ -342,24 +351,43 @@ impl VM {
 		self.push(pair.1.clone())
 	}
 
-	fn call_function(&mut self, num_args: u8) -> VMResult {
-		let num_args = num_args as usize;
-		let func = self.stack[self.stack.len() - 1 - num_args].clone();
-
-		if let Some(Object::Function(func)) = func {
-			if func.num_parameters != num_args {
-				//TODO Standardize assert_eq errors
-				return Err(format!("wrong number of arguments: want={}, got={}", func.num_parameters, num_args))
-			}
-			let num_locals = func.num_locals;
-			self.push_frame(Frame::new(func, self.stack.len() - num_args));
-
-			self.stack.resize(self.stack.len() - num_args + num_locals, None);
-		} else {
-			return Err(format!("calling non-function {:?}", func))
+	fn execute_call(&mut self, num_args: u8) -> VMResult {
+		let num_args_usize = num_args as usize;
+		let callee = self.stack[self.stack.len() - 1 - num_args_usize].clone().unwrap();
+		match callee {
+			Object::Function(function) => self.call_function(function, num_args),
+			Object::Builtin(builtin) => self.call_builtin(builtin, num_args),
+			callee => Err(format!("calling non-function and non-builtin {:?}", callee))
 		}
+	}
+
+	fn call_function(&mut self, function: Function, num_args: u8) -> VMResult {
+		let num_args = num_args as usize;
+
+		if function.num_parameters != num_args {
+			//TODO Standardize assert_eq errors
+			return Err(format!("wrong number of arguments: want={}, got={}", function.num_parameters, num_args))
+		}
+		let num_locals = function.num_locals;
+		self.push_frame(Frame::new(function, self.stack.len() - num_args));
+
+		self.stack.resize(self.stack.len() - num_args + num_locals, None);
 
 		Ok(())
+	}
+
+	fn call_builtin(&mut self, builtin: Builtin, num_args: u8) -> VMResult {
+		let num_args = num_args as usize;
+		let args = &self.stack[self.stack.len() - num_args..];
+
+		let result = builtin(args.iter().cloned().map(|a| a.unwrap()).collect());
+		self.stack.truncate(self.stack.len() - num_args - 1);
+
+		if let Some(result) = result {
+			self.push(result)
+		}else {
+			Ok(())
+		}
 	}
 
 	fn push(&mut self, obj: Object) -> VMResult {

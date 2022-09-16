@@ -33,6 +33,7 @@ pub enum Opcode {
 	OpSetGlobal,
 	OpGetLocal,
 	OpSetLocal,
+	OpGetBuiltin,
 
 	OpArray,
 	OpHash,
@@ -74,14 +75,15 @@ impl TryFrom<u8> for Opcode {
 			16 => Ok(Opcode::OpSetGlobal),
 			17 => Ok(Opcode::OpGetLocal),
 			18 => Ok(Opcode::OpSetLocal),
+			19 => Ok(Opcode::OpGetBuiltin),
 
-			19 => Ok(Opcode::OpArray),
-			20 => Ok(Opcode::OpHash),
-			21 => Ok(Opcode::OpIndex),
+			20 => Ok(Opcode::OpArray),
+			21 => Ok(Opcode::OpHash),
+			22 => Ok(Opcode::OpIndex),
 
-			22 => Ok(Opcode::OpCall),
-			23 => Ok(Opcode::OpReturnValue),
-			24 => Ok(Opcode::OpReturn),
+			23 => Ok(Opcode::OpCall),
+			24 => Ok(Opcode::OpReturnValue),
+			25 => Ok(Opcode::OpReturn),
 			_ => Err(())
 		}
 	}
@@ -121,6 +123,7 @@ pub fn lookup(op: u8) -> Result<Definition, String> {
 		Ok(Opcode::OpSetGlobal) => Ok(Definition {name: "OpSetGlobal", operand_widths: vec![2]}),
 		Ok(Opcode::OpGetLocal) => Ok(Definition {name: "OpGetLocal", operand_widths: vec![1]}),
 		Ok(Opcode::OpSetLocal) => Ok(Definition {name: "OpSetLocal", operand_widths: vec![1]}),
+		Ok(Opcode::OpGetBuiltin) => Ok(Definition {name: "OpGetBuiltin", operand_widths: vec![1]}),
 
 		//TODO Test error message for too many elements in an array
 		//Operand width: Number of elements

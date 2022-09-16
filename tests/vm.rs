@@ -421,8 +421,56 @@ fn test_calling_functions_with_wrong_arguments() {
 	run_vm_tests(tests)
 }
 
+//TODO Test without returns
+#[test]
+fn test_builtin_functions() {
+	let tests = vec![
+		VMTestCase {input: r#"len("")"#, expected: Ok(Object::Integer(0))},
+		VMTestCase {input: r#"len("four")"#, expected: Ok(Object::Integer(4))},
+		VMTestCase {input: r#"len("hello world")"#, expected: Ok(Object::Integer(11))},
+		VMTestCase {
+			input: "len(1)",
+			expected: Ok(Object::Error("argument to `len` not supported, got Integer(1)".into()))
+		},
+		VMTestCase {
+			input: r#"len("one", "two")"#,
+			expected: Ok(Object::Error("wrong number of arguments. got=2, want=1".into()))
+		},
+		VMTestCase {input: "len([1, 2, 3])", expected: Ok(Object::Integer(3))},
+		VMTestCase {input: "len([])", expected: Ok(Object::Integer(0))},
+		//VMTestCase {input: r#"puts("hello", "world!")"#, expected: Ok(Object::Integer(Null))},
+		VMTestCase {input: "first([1, 2, 3])", expected: Ok(Object::Integer(1))},
+		//VMTestCase {input: r#"first([])"#, expected: Ok(Object::Integer(Null))},
+		VMTestCase {
+			input: "first(1)",
+			expected: Ok(Object::Error("argument to `first` must be Array, got Integer(1)".into()))
+		},
+		VMTestCase {input: "last([1, 2, 3])", expected: Ok(Object::Integer(3))},
+		//VMTestCase {input: r#"last([])"#, Null},
+		VMTestCase {
+			input: "last(1)",
+			expected: Ok(Object::Error("argument to `last` must be Array, got Integer(1)".into()))
+		},
+		VMTestCase {input: "rest([1, 2, 3])", expected: Ok(Object::Array(vec![
+			Object::Integer(2),
+			Object::Integer(3),
+		]))},
+		//VMTestCase {input: r#"rest([])"#, Null},
+		VMTestCase {input: "push([], 1)", expected: Ok(Object::Array(vec![
+			Object::Integer(1)
+		]))},
+		VMTestCase {
+			input: "push(1, 1)",
+			expected: Ok(Object::Error("argument to `push` must be Array, got Integer(1)".into()))
+		},
+	];
+
+	run_vm_tests(tests)
+}
+
 fn run_vm_tests(tests: Vec<VMTestCase>) {
 	for VMTestCase { input, expected } in tests {
+		//println!("{}", input);
 		let program = parse(input);
 
 		let mut compiler = Compiler::new();
@@ -438,12 +486,10 @@ fn run_vm_tests(tests: Vec<VMTestCase>) {
 		let stack_elem = vm.last_popped_stack_elem;
 		match (expected, vm_result) {
 			(Err(Some(expected_err)), Err(vm_err)) => assert_eq!(expected_err, vm_err),
-			(Err(None), Err(vm_err)) => panic!("vm error: {}", vm_err),
+			(Err(None) | Ok(_), Err(vm_err)) => panic!("vm error: {}", vm_err),
 			(Err(Some(expected_err)), Ok(_)) => panic!("expected vm error: {}", expected_err),
 			(Err(None), _) => assert!(stack_elem.is_none(), "{:?} should be None", stack_elem),
-			(Ok(expected), _) => {
-				test_expected_object(expected, stack_elem);
-			}
+			(Ok(expected), _) => test_expected_object(expected, stack_elem),
 		}
 	}
 }
@@ -456,7 +502,8 @@ fn test_expected_object(expected: Object, actual: Option<Object>) {
 		(Object::String(value), Some(actual)) => test_string_object(value, actual),
 		(Object::Array(value), Some(actual)) => test_array_object(value, actual),
 		(Object::Hash(value), Some(actual)) => test_hash_object(value, actual),
-		(Object::Function(_), _) => {},	//TODO Check that never call this
+		(Object::Error(value), Some(actual)) => test_error_object(value, actual),
+		(Object::Builtin(_) | Object::Function(_), _) => {},	//TODO Check that never call this
 	}
 }
 
@@ -516,6 +563,14 @@ fn test_hash_object(expected: HashMap<HashingObject, (HashingObject, Object)>, a
 		}
 	} else {
 		panic!("{:?} is not Hash", actual);
+	}
+}
+
+fn test_error_object(expected: String, actual: Object) {
+	if let Object::Error(value) = actual {
+		assert_eq!(expected, value, "wrong error message");
+	} else {
+		panic!("{:?} is not Error", actual);
 	}
 }
 

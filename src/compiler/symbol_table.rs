@@ -7,6 +7,7 @@ pub type SymbolScope = &'static str;
 //TODO Make enum
 pub const GLOBAL_SCOPE: SymbolScope = "GLOBAL";
 pub const LOCAL_SCOPE: SymbolScope = "LOCAL";
+pub const BUILTIN_SCOPE: SymbolScope = "BUILTIN";
 //Could add function argument scope if the need special treatment
 // see "Resolving References to Arguments" in monkey compiler book
 
@@ -47,6 +48,17 @@ impl SymbolTable {
 		self.store.insert(name.into(), symbol);
 		self.num_definitions += 1;
 
+		self.store.get(name).unwrap()
+	}
+
+	pub fn define_builtin(&mut self, index: usize, name: &str) -> &Symbol {
+		let symbol = Symbol {
+			name: name.into(),
+			index,
+			scope: BUILTIN_SCOPE,
+		};
+
+		self.store.insert(name.into(), symbol);
 		self.store.get(name).unwrap()
 	}
 

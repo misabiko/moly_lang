@@ -3,6 +3,8 @@ use std::fmt;
 use std::fmt::Formatter;
 use crate::code::Instructions;
 
+pub mod builtins;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Object {
 	Integer(i64),
@@ -11,6 +13,8 @@ pub enum Object {
 	Array(Vec<Object>),
 	Hash(HashMap<HashingObject, (HashingObject, Object)>),
 	Function(Function),
+	Builtin(Builtin),
+	Error(String),
 }
 
 impl fmt::Display for Object {
@@ -28,7 +32,9 @@ impl fmt::Display for Object {
 
 				write!(f, "{{{}}}", pairs)
 			},
-			Object::Function(Function { instructions, .. }) => write!(f, "Function[{:?}]", instructions)
+			Object::Function(Function { instructions, .. }) => write!(f, "Function[{:?}]", instructions),
+			Object::Builtin(_) => write!(f, "builtin function"),
+			Object::Error(err) => write!(f, "ERROR: {}", err),
 		}
 	}
 }
@@ -77,3 +83,5 @@ pub struct Function {
 	pub num_locals: usize,
 	pub num_parameters: usize,
 }
+
+pub type Builtin = fn(Vec<Object>) -> Option<Object>;

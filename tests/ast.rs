@@ -5,7 +5,7 @@ fn test_string() {
 	let program = Program {
 		statements: vec![
 			Statement::Let {
-				name: Expression::Identifier("myVar".into()),
+				name: "myVar".into(),
 				value: Expression::Identifier("anotherVar".into())
 			}
 		]

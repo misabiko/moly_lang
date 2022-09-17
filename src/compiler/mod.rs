@@ -75,13 +75,6 @@ impl Compiler {
 				self.emit(Opcode::Pop, vec![]);
 			}
 			Statement::Let { name, value } => {
-				//TODO Either dissolve Expression in Let statement, or add nested struct
-				let name = if let Expression::Identifier(name) = name {
-					name
-				} else {
-					panic!("{:?} is not Identifier", name)
-				};
-
 				let (index, scope) = {
 					let mut table = self.symbol_table.borrow_mut();
 					let symbol = table.define(name.as_str());

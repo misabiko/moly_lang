@@ -9,6 +9,7 @@ use moly_lang::ast::{Expression};
 
 #[test]
 fn test_let_statements() {
+	//TODO vec![] → []
 	let tests = vec![
 		("let x = 5;", "x", Expression::Integer(5)),
 		("let y = true;", "y", Expression::Boolean(true)),
@@ -18,7 +19,7 @@ fn test_let_statements() {
 	for (input, expected_identifier, expected_value) in tests {
 		match parse_single_statement(input) {
 			Statement::Let { name, value } => {
-				assert_eq!(name, Expression::Identifier(expected_identifier.into()), "wrong let statement identifier");
+				assert_eq!(&name, expected_identifier, "wrong let statement identifier");
 
 				assert_eq!(value, expected_value, "wrong let statement value");
 			}

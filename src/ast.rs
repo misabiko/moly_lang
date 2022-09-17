@@ -25,7 +25,7 @@ impl PartialEq for BlockStatement {
 #[derive(Debug, PartialEq)]
 pub enum Statement {
 	Let {
-		name: Expression,
+		name: String,
 		value: Expression,
 	},
 	Return(Option<Expression>),

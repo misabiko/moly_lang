@@ -94,7 +94,7 @@ impl Parser {
 		}
 
 		Some(Statement::Let {
-			name: Expression::Identifier(stmt_name),
+			name: stmt_name,
 			value,
 		})
 	}

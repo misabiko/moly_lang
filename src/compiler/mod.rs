@@ -59,7 +59,6 @@ impl Compiler {
 		}
 	}
 
-	//TODO Check difference between Program and BlockStatement
 	pub fn compile(&mut self, program: Program) -> CompilerResult {
 		for stmt in program.statements {
 			self.compile_statement(stmt)?

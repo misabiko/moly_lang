@@ -430,8 +430,6 @@ impl VM {
 
 	//TODO Dissolve if still not using index iterator
 	fn current_frame(&mut self) -> &mut Frame {
-		//Should always have at least one frame
-		//TODO Try having VM.main_frame field
 		self.frames.last_mut().unwrap()
 	}
 

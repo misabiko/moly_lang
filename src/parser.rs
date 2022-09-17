@@ -304,7 +304,7 @@ impl Parser {
 		Some(Expression::Function {
 			parameters,
 			body,
-			name: None,//TODO
+			name: None,
 		})
 	}
 

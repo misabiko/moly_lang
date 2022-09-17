@@ -9,7 +9,6 @@ use moly_lang::ast::{Expression};
 
 #[test]
 fn test_let_statements() {
-	//TODO Remove semicolon
 	let tests = vec![
 		("let x = 5;", "x", Expression::Integer(5)),
 		("let y = true;", "y", Expression::Boolean(true)),
@@ -30,7 +29,6 @@ fn test_let_statements() {
 
 #[test]
 fn test_return_statements() {
-	//TODO Remove semicolon
 	let tests = vec![
 		("return 5;", Expression::Integer(5)),
 		("return true;", Expression::Boolean(true)),

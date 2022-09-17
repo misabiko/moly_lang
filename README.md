@@ -12,3 +12,6 @@ Goals
 
 Decisions
 - When possible, instead of having the compiler optimize redundant code, give messages on how to optimize the code
+
+Later features
+- Removing semicolons, for now it's much easier to parse and make sense of

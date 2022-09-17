@@ -91,42 +91,42 @@ impl VM {
 			ins = self.current_frame().instructions();
 
 			match ins[ip - 1].try_into() {
-				Ok(Opcode::OpConstant) => {
+				Ok(Opcode::Constant) => {
 					let const_index = read_u16(&ins[ip..]) as usize;
 					self.current_frame().ip += 2;
 
 					self.push(self.constants[const_index].clone())?;
 				}
-				Ok(Opcode::OpPop) => { self.pop(); },
+				Ok(Opcode::Pop) => { self.pop(); },
 
 				Ok(
-					op @ Opcode::OpAdd |
-				    op @ Opcode::OpSub |
-					op @ Opcode::OpMul |
-					op @ Opcode::OpDiv
+					op @ Opcode::Add |
+				    op @ Opcode::Sub |
+					op @ Opcode::Mul |
+					op @ Opcode::Div
 				) => {
 					self.execute_binary_operation(op)?
 				}
 
-				Ok(Opcode::OpTrue) => self.push(TRUE_OBJ)?,
-				Ok(Opcode::OpFalse) => self.push(FALSE_OBJ)?,
+				Ok(Opcode::True) => self.push(TRUE_OBJ)?,
+				Ok(Opcode::False) => self.push(FALSE_OBJ)?,
 
-				Ok(Opcode::OpBang) => self.execute_bang_operator()?,
-				Ok(Opcode::OpMinus) => self.execute_minus_operator()?,
+				Ok(Opcode::Bang) => self.execute_bang_operator()?,
+				Ok(Opcode::Minus) => self.execute_minus_operator()?,
 
 				Ok(
-					op @ Opcode::OpEqual |
-					op @ Opcode::OpNotEqual |
-					op @ Opcode::OpGreaterThan
+					op @ Opcode::Equal |
+					op @ Opcode::NotEqual |
+					op @ Opcode::GreaterThan
 				) => {
 					self.execute_comparison(op)?
 				}
 
-				Ok(Opcode::OpJump) => {
+				Ok(Opcode::Jump) => {
 					let pos = read_u16(&ins[ip..]) as usize;
 					self.current_frame().ip = pos;
 				}
-				Ok(Opcode::OpJumpIfFalse) => {
+				Ok(Opcode::JumpIfFalse) => {
 					let pos = read_u16(&ins[ip..]) as usize;
 					self.current_frame().ip += 2;
 
@@ -136,7 +136,7 @@ impl VM {
 					}
 				}
 
-				Ok(Opcode::OpSetGlobal) => {
+				Ok(Opcode::SetGlobal) => {
 					let global_index = read_u16(&ins[ip..]) as usize;
 					self.current_frame().ip += 2;
 
@@ -149,27 +149,27 @@ impl VM {
 						_ => panic!("Global index higher than length (...which might a thing)")
 					}
 				}
-				Ok(Opcode::OpGetGlobal) => {
+				Ok(Opcode::GetGlobal) => {
 					let global_index = read_u16(&ins[ip..]) as usize;
 					self.current_frame().ip += 2;
 
 					self.push(self.globals[global_index].clone())?;
 				}
-				Ok(Opcode::OpSetLocal) => {
+				Ok(Opcode::SetLocal) => {
 					let local_index = read_u8(&ins[ip..]) as usize;
 					self.current_frame().ip += 1;
 
 					let base_pointer = self.current_frame().base_pointer;
 					self.stack[base_pointer + local_index] = self.pop();
 				}
-				Ok(Opcode::OpGetLocal) => {
+				Ok(Opcode::GetLocal) => {
 					let local_index = read_u8(&ins[ip..]) as usize;
 					self.current_frame().ip += 1;
 
 					let base_pointer = self.current_frame().base_pointer;
 					self.push(self.stack[base_pointer + local_index].clone().unwrap())?;
 				}
-				Ok(Opcode::OpGetBuiltin) => {
+				Ok(Opcode::GetBuiltin) => {
 					let builtin_index = read_u8(&ins[ip..]) as usize;
 					self.current_frame().ip += 1;
 
@@ -177,7 +177,7 @@ impl VM {
 
 					self.push(Object::Builtin(definition.builtin))?;
 				}
-				Ok(Opcode::OpGetFree) => {
+				Ok(Opcode::GetFree) => {
 					let free_index = read_u8(&ins[ip..]) as usize;
 					self.current_frame().ip += 1;
 
@@ -185,7 +185,7 @@ impl VM {
 					self.push(obj)?;
 				}
 
-				Ok(Opcode::OpArray) => {
+				Ok(Opcode::Array) => {
 					let num_elements = read_u16(&ins[ip..]) as usize;
 					self.current_frame().ip += 2;
 
@@ -195,7 +195,7 @@ impl VM {
 
 					self.push(array)?;
 				}
-				Ok(Opcode::OpHash) => {
+				Ok(Opcode::Hash) => {
 					let num_elements = read_u16(&ins[ip..]) as usize;
 					self.current_frame().ip += 2;
 
@@ -205,20 +205,20 @@ impl VM {
 
 					self.push(hash)?;
 				}
-				Ok(Opcode::OpIndex) => {
+				Ok(Opcode::Index) => {
 					let index = self.pop().ok_or("index not on stack")?;
 					let left = self.pop().ok_or("left expression not on stack")?;
 
 					self.execute_index_expression(left, index)?;
 				}
 
-				Ok(Opcode::OpCall) => {
+				Ok(Opcode::Call) => {
 					let num_args = read_u8(&ins[ip..]);
 					self.current_frame().ip += 1;
 
 					self.execute_call(num_args)?;
 				}
-				Ok(Opcode::OpReturnValue) => {
+				Ok(Opcode::ReturnValue) => {
 					let return_value = self.pop().unwrap();
 
 					let frame = self.pop_frame().unwrap();
@@ -226,18 +226,18 @@ impl VM {
 
 					self.push(return_value)?;
 				}
-				Ok(Opcode::OpReturn) => {
+				Ok(Opcode::Return) => {
 					let frame = self.pop_frame().unwrap();
 					self.stack.truncate(frame.base_pointer - 1);
 				}
-				Ok(Opcode::OpClosure) => {
+				Ok(Opcode::Closure) => {
 					let const_index = read_u16(&ins[ip..]);
 					let num_free = read_u8(&ins[ip+2..]);
 					self.current_frame().ip += 3;
 
 					self.push_closure(const_index as usize, num_free as usize)?;
 				}
-				Ok(Opcode::OpCurrentClosure) => {
+				Ok(Opcode::CurrentClosure) => {
 					let current_closure = self.current_frame().closure.clone();
 					self.push(Object::Closure(current_closure))?;
 				}
@@ -267,10 +267,10 @@ impl VM {
 
 	fn execute_binary_integer_operation(&mut self, op: Opcode, left: i64, right: i64) -> VMResult {
 		let result = match op {
-			Opcode::OpAdd => left + right,
-			Opcode::OpSub => left - right,
-			Opcode::OpMul => left * right,
-			Opcode::OpDiv => left / right,
+			Opcode::Add => left + right,
+			Opcode::Sub => left - right,
+			Opcode::Mul => left * right,
+			Opcode::Div => left / right,
 			_ => return Err(format!("unknown integer operator: {:?}", op))
 		};
 
@@ -278,7 +278,7 @@ impl VM {
 	}
 
 	fn execute_binary_string_operation(&mut self, op: Opcode, left: &str, right: &str) -> VMResult {
-		if !matches!(op, Opcode::OpAdd) {
+		if !matches!(op, Opcode::Add) {
 			return Err(format!("unknown string operator: {:?}", op))
 		}
 
@@ -294,17 +294,17 @@ impl VM {
 		}
 
 		match op {
-			Opcode::OpEqual => self.push(Object::Boolean(right == left)),
-			Opcode::OpNotEqual => self.push(Object::Boolean(right != left)),
+			Opcode::Equal => self.push(Object::Boolean(right == left)),
+			Opcode::NotEqual => self.push(Object::Boolean(right != left)),
 			_ => return Err(format!("unknown operator: {:?} ({:?} {:?})", op, left, right))
 		}
 	}
 
 	fn execute_integer_comparison(&mut self, op: Opcode, left: i64, right: i64) -> VMResult {
 		match op {
-			Opcode::OpEqual => self.push(Object::Boolean(right == left)),
-			Opcode::OpNotEqual => self.push(Object::Boolean(right != left)),
-			Opcode::OpGreaterThan => self.push(Object::Boolean(right > left)),
+			Opcode::Equal => self.push(Object::Boolean(right == left)),
+			Opcode::NotEqual => self.push(Object::Boolean(right != left)),
+			Opcode::GreaterThan => self.push(Object::Boolean(right > left)),
 			_ => Err(format!("unknown operator: {:?}", op))
 		}
 	}

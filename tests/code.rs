@@ -3,10 +3,10 @@ use moly_lang::code::{concat_instructions, instruction_to_string, lookup, make, 
 #[test]
 fn test_make() {
 	let tests: Vec<(Opcode, Vec<usize>, Vec<u8>)> = vec![
-		(Opcode::OpConstant, vec![65534], vec![Opcode::OpConstant as u8, 255, 254]),
-		(Opcode::OpAdd, vec![], vec![Opcode::OpAdd as u8]),
-		(Opcode::OpGetLocal, vec![255], vec![Opcode::OpGetLocal as u8, 255]),
-		(Opcode::OpClosure, vec![65534, 255], vec![Opcode::OpClosure as u8, 255, 254, 255]),
+		(Opcode::Constant, vec![65534], vec![Opcode::Constant as u8, 255, 254]),
+		(Opcode::Add, vec![], vec![Opcode::Add as u8]),
+		(Opcode::GetLocal, vec![255], vec![Opcode::GetLocal as u8, 255]),
+		(Opcode::Closure, vec![65534, 255], vec![Opcode::Closure as u8, 255, 254, 255]),
 	];
 
 	for (op, operands, expected) in tests {
@@ -23,11 +23,11 @@ fn test_make() {
 #[test]
 fn test_instruction_string() {
 	let instructions = vec![
-		make(Opcode::OpAdd, &vec![]),
-		make(Opcode::OpGetLocal, &vec![1]),
-		make(Opcode::OpConstant, &vec![2]),
-		make(Opcode::OpConstant, &vec![65535]),
-		make(Opcode::OpClosure, &vec![65535, 255]),
+		make(Opcode::Add, &vec![]),
+		make(Opcode::GetLocal, &vec![1]),
+		make(Opcode::Constant, &vec![2]),
+		make(Opcode::Constant, &vec![65535]),
+		make(Opcode::Closure, &vec![65535, 255]),
 	];
 
 	let expected = "0000 OpAdd
@@ -45,9 +45,9 @@ fn test_instruction_string() {
 #[test]
 fn test_read_operands() {
 	let tests = vec![
-		(Opcode::OpConstant, vec![65535], 2),
-		(Opcode::OpGetLocal, vec![255], 1),
-		(Opcode::OpClosure, vec![65535, 255], 3),
+		(Opcode::Constant, vec![65535], 2),
+		(Opcode::GetLocal, vec![255], 1),
+		(Opcode::Closure, vec![65535, 255], 3),
 	];
 
 	for (op, operands, bytes_read) in tests {

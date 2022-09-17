@@ -8,43 +8,43 @@ pub type Instructions = Vec<u8>;
 #[repr(u8)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Opcode {
-	OpConstant = 0,
-	OpPop,
+	Constant = 0,
+	Pop,
 
-	OpAdd,
-	OpSub,
-	OpMul,
-	OpDiv,
+	Add,
+	Sub,
+	Mul,
+	Div,
 
-	OpTrue,
-	OpFalse,
+	True,
+	False,
 
-	OpEqual,
-	OpNotEqual,
-	OpGreaterThan,
+	Equal,
+	NotEqual,
+	GreaterThan,
 
-	OpMinus,
-	OpBang,
+	Minus,
+	Bang,
 
-	OpJumpIfFalse,
-	OpJump,
+	JumpIfFalse,
+	Jump,
 
-	OpGetGlobal,
-	OpSetGlobal,
-	OpGetLocal,
-	OpSetLocal,
-	OpGetBuiltin,
-	OpGetFree,
+	GetGlobal,
+	SetGlobal,
+	GetLocal,
+	SetLocal,
+	GetBuiltin,
+	GetFree,
 
-	OpArray,
-	OpHash,
-	OpIndex,
+	Array,
+	Hash,
+	Index,
 
-	OpCall,
-	OpReturnValue,
-	OpReturn,
-	OpClosure,
-	OpCurrentClosure,
+	Call,
+	ReturnValue,
+	Return,
+	Closure,
+	CurrentClosure,
 }
 
 //TODO Replace with macro

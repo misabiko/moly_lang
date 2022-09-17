@@ -72,7 +72,7 @@ impl Compiler {
 			Statement::Expression(exp) => {
 				self.compile_expression(exp)?;
 
-				self.emit(Opcode::OpPop, vec![]);
+				self.emit(Opcode::Pop, vec![]);
 			}
 			Statement::Let { name, value } => {
 				//TODO Either dissolve Expression in Let statement, or add nested struct
@@ -91,15 +91,15 @@ impl Compiler {
 				self.compile_expression(value)?;
 
 				if scope == GLOBAL_SCOPE {
-					self.emit(Opcode::OpSetGlobal, vec![index]);
+					self.emit(Opcode::SetGlobal, vec![index]);
 				} else {
-					self.emit(Opcode::OpSetLocal, vec![index]);
+					self.emit(Opcode::SetLocal, vec![index]);
 				}
 			}
 			Statement::Return(Some(exp)) => {
 				self.compile_expression(exp)?;
 
-				self.emit(Opcode::OpReturnValue, vec![]);
+				self.emit(Opcode::ReturnValue, vec![]);
 			}
 			_ => return Err(format!("{:?} not handled", stmt))
 		}
@@ -111,23 +111,23 @@ impl Compiler {
 		match exp {
 			Expression::Integer(value) => {
 				let operand = self.add_constant(Object::Integer(value));
-				self.emit(Opcode::OpConstant, vec![operand]);
+				self.emit(Opcode::Constant, vec![operand]);
 			}
 			Expression::Boolean(value) => if value {
-				self.emit(Opcode::OpTrue, vec![]);
+				self.emit(Opcode::True, vec![]);
 			} else {
-				self.emit(Opcode::OpFalse, vec![]);
+				self.emit(Opcode::False, vec![]);
 			}
 			Expression::String(value) => {
 				let operand = self.add_constant(Object::String(value));
-				self.emit(Opcode::OpConstant, vec![operand]);
+				self.emit(Opcode::Constant, vec![operand]);
 			}
 			Expression::Prefix { operator, right } => {
 				self.compile_expression(*right)?;
 
 				match operator.as_str() {
-					"!" => self.emit(Opcode::OpBang, vec![]),
-					"-" => self.emit(Opcode::OpMinus, vec![]),
+					"!" => self.emit(Opcode::Bang, vec![]),
+					"-" => self.emit(Opcode::Minus, vec![]),
 					_ => return Err(format!("unknown operator {:?}", operator))
 				};
 			}
@@ -137,7 +137,7 @@ impl Compiler {
 
 					self.compile_expression(*left)?;
 
-					self.emit(Opcode::OpGreaterThan, vec![]);
+					self.emit(Opcode::GreaterThan, vec![]);
 
 					return Ok(());
 				}
@@ -147,13 +147,13 @@ impl Compiler {
 				self.compile_expression(*right)?;
 
 				match operator.as_str() {
-					"+" => self.emit(Opcode::OpAdd, vec![]),
-					"-" => self.emit(Opcode::OpSub, vec![]),
-					"*" => self.emit(Opcode::OpMul, vec![]),
-					"/" => self.emit(Opcode::OpDiv, vec![]),
-					">" => self.emit(Opcode::OpGreaterThan, vec![]),
-					"==" => self.emit(Opcode::OpEqual, vec![]),
-					"!=" => self.emit(Opcode::OpNotEqual, vec![]),
+					"+" => self.emit(Opcode::Add, vec![]),
+					"-" => self.emit(Opcode::Sub, vec![]),
+					"*" => self.emit(Opcode::Mul, vec![]),
+					"/" => self.emit(Opcode::Div, vec![]),
+					">" => self.emit(Opcode::GreaterThan, vec![]),
+					"==" => self.emit(Opcode::Equal, vec![]),
+					"!=" => self.emit(Opcode::NotEqual, vec![]),
 					_ => return Err(format!("unknown operator {}", operator))
 				};
 			}
@@ -170,16 +170,16 @@ impl Compiler {
 				self.compile_expression(*condition)?;
 
 				//Emit an OpJumpIfFalse with temp value
-				let jump_if_false_pos = self.emit(Opcode::OpJumpIfFalse, vec![0]);
+				let jump_if_false_pos = self.emit(Opcode::JumpIfFalse, vec![0]);
 
 				self.compile(consequence)?;
 
-				if self.last_instruction_is(Opcode::OpPop) {
+				if self.last_instruction_is(Opcode::Pop) {
 					self.remove_last_pop();
 				}
 
 				//Emit an OpJump with temp value
-				let jump_pos = self.emit(Opcode::OpJump, vec![0]);
+				let jump_pos = self.emit(Opcode::Jump, vec![0]);
 
 				let after_consequence_pos = self.current_instructions().len();
 				self.change_operand(jump_if_false_pos, after_consequence_pos);
@@ -187,7 +187,7 @@ impl Compiler {
 				if let Some(alternative) = alternative {
 					self.compile(alternative)?;
 
-					if self.last_instruction_is(Opcode::OpPop) {
+					if self.last_instruction_is(Opcode::Pop) {
 						self.remove_last_pop();
 					}
 				}
@@ -201,7 +201,7 @@ impl Compiler {
 					self.compile_expression(el)?;
 				}
 
-				self.emit(Opcode::OpArray, vec![length]);
+				self.emit(Opcode::Array, vec![length]);
 			}
 			Expression::Hash(mut pairs) => {
 				let length = pairs.len();
@@ -212,13 +212,13 @@ impl Compiler {
 					self.compile_expression(v)?;
 				}
 
-				self.emit(Opcode::OpHash, vec![length * 2]);
+				self.emit(Opcode::Hash, vec![length * 2]);
 			}
 			Expression::Index { left, index } => {
 				self.compile_expression(*left)?;
 				self.compile_expression(*index)?;
 
-				self.emit(Opcode::OpIndex, vec![]);
+				self.emit(Opcode::Index, vec![]);
 			}
 			Expression::Function { parameters, body, name } => {
 				self.enter_scope();
@@ -234,11 +234,11 @@ impl Compiler {
 
 				self.compile(body)?;
 
-				if self.last_instruction_is(Opcode::OpPop) {
+				if self.last_instruction_is(Opcode::Pop) {
 					self.replace_last_pop_with_return();
 				}
-				if !self.last_instruction_is(Opcode::OpReturnValue) {
-					self.emit(Opcode::OpReturn, vec![]);
+				if !self.last_instruction_is(Opcode::ReturnValue) {
+					self.emit(Opcode::Return, vec![]);
 				}
 
 				let free_symbols = self.symbol_table.borrow().free_symbols.clone();
@@ -255,7 +255,7 @@ impl Compiler {
 					num_locals,
 					num_parameters,
 				}));
-				self.emit(Opcode::OpClosure, vec![fn_index, num_free_symbols]);
+				self.emit(Opcode::Closure, vec![fn_index, num_free_symbols]);
 			}
 			Expression::Call { function, arguments } => {
 				self.compile_expression(*function)?;
@@ -265,7 +265,7 @@ impl Compiler {
 					self.compile_expression(arg)?;
 				}
 
-				self.emit(Opcode::OpCall, vec![length]);
+				self.emit(Opcode::Call, vec![length]);
 			}
 		}
 
@@ -330,9 +330,9 @@ impl Compiler {
 
 	fn replace_last_pop_with_return(&mut self) {
 		let last_pos = self.scopes[self.scope_index].last_instruction.as_ref().unwrap().position;
-		self.replace_instruction(last_pos, make(Opcode::OpReturnValue, &vec![]));
+		self.replace_instruction(last_pos, make(Opcode::ReturnValue, &vec![]));
 
-		self.scopes[self.scope_index].last_instruction.as_mut().unwrap().opcode = Opcode::OpReturnValue;
+		self.scopes[self.scope_index].last_instruction.as_mut().unwrap().opcode = Opcode::ReturnValue;
 	}
 
 	fn replace_instruction(&mut self, pos: usize, new_instruction: Instructions) {
@@ -379,11 +379,11 @@ impl Compiler {
 
 	fn load_symbol(&mut self, symbol: Symbol) {
 		match symbol.scope {
-			GLOBAL_SCOPE => self.emit(Opcode::OpGetGlobal, vec![symbol.index]),
-			LOCAL_SCOPE => self.emit(Opcode::OpGetLocal, vec![symbol.index]),
-			BUILTIN_SCOPE => self.emit(Opcode::OpGetBuiltin, vec![symbol.index]),
-			FREE_SCOPE => self.emit(Opcode::OpGetFree, vec![symbol.index]),
-			FUNCTION_SCOPE => self.emit(Opcode::OpCurrentClosure, vec![]),
+			GLOBAL_SCOPE => self.emit(Opcode::GetGlobal, vec![symbol.index]),
+			LOCAL_SCOPE => self.emit(Opcode::GetLocal, vec![symbol.index]),
+			BUILTIN_SCOPE => self.emit(Opcode::GetBuiltin, vec![symbol.index]),
+			FREE_SCOPE => self.emit(Opcode::GetFree, vec![symbol.index]),
+			FUNCTION_SCOPE => self.emit(Opcode::CurrentClosure, vec![]),
 			s => panic!("unsupported scope {:?}", s)
 		};
 	}

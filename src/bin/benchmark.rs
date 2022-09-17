@@ -19,7 +19,6 @@ let fibonacci = fn(x) {
 };
 fibonacci(35);
 ";
-//fibonacci(35) → 97.46s
 
 fn main() {
 	let duration: Duration;

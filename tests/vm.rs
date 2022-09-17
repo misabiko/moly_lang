@@ -653,7 +653,7 @@ fn run_vm_tests(tests: Vec<VMTestCase>) {
 		let vm_result = vm.run();
 		let stack_elem = vm.last_popped_stack_elem;
 		match (expected, vm_result) {
-			(Err(Some(expected_err)), Err(vm_err)) => assert_eq!(expected_err, vm_err),
+			(Err(Some(expected_err)), Err(vm_err)) => assert_eq!(vm_err, expected_err),
 			(Err(None) | Ok(_), Err(vm_err)) => panic!("vm error: {}", vm_err),
 			(Err(Some(expected_err)), Ok(_)) => panic!("expected vm error: {}", expected_err),
 			(Err(None), _) => assert!(stack_elem.is_none(), "{:?} should be None", stack_elem),
@@ -677,7 +677,7 @@ fn test_expected_object(expected: Object, actual: Option<Object>) {
 
 fn test_integer_object(expected: i64, actual: Object) {
 	if let Object::Integer(value) = actual {
-		assert_eq!(expected, value);
+		assert_eq!(value, expected);
 	} else {
 		panic!("{:?} is not Integer", actual);
 	}
@@ -685,7 +685,7 @@ fn test_integer_object(expected: i64, actual: Object) {
 
 fn test_boolean_object(expected: bool, actual: Object) {
 	if let Object::Boolean(value) = actual {
-		assert_eq!(expected, value);
+		assert_eq!(value, expected);
 	} else {
 		panic!("{:?} is not Boolean", actual);
 	}
@@ -693,7 +693,7 @@ fn test_boolean_object(expected: bool, actual: Object) {
 
 fn test_string_object(expected: String, actual: Object) {
 	if let Object::String(value) = actual {
-		assert_eq!(expected, value);
+		assert_eq!(value, expected);
 	} else {
 		panic!("{:?} is not String", actual);
 	}
@@ -701,7 +701,7 @@ fn test_string_object(expected: String, actual: Object) {
 
 fn test_array_object(expected: Vec<Object>, actual: Object) {
 	if let Object::Array(elements) = actual {
-		assert_eq!(expected.len(), elements.len(), "wrong num of elements");
+		assert_eq!(elements.len(), expected.len(), "wrong num of elements");
 
 		for (expected_el, el) in expected.into_iter().zip(elements.into_iter()) {
 			if let Object::Integer(expected_el) = expected_el {
@@ -717,7 +717,7 @@ fn test_array_object(expected: Vec<Object>, actual: Object) {
 
 fn test_hash_object(expected: HashMap<HashingObject, (HashingObject, Object)>, actual: Object) {
 	if let Object::Hash(mut pairs) = actual {
-		assert_eq!(expected.len(), pairs.len(), "wrong num of pairs");
+		assert_eq!(pairs.len(), expected.len(), "wrong num of pairs");
 
 		for (expected_k, expected_v) in expected {
 			if let Some((_, actual_v)) = pairs.remove(&expected_k) {
@@ -736,7 +736,7 @@ fn test_hash_object(expected: HashMap<HashingObject, (HashingObject, Object)>, a
 
 fn test_error_object(expected: String, actual: Object) {
 	if let Object::Error(value) = actual {
-		assert_eq!(expected, value, "wrong error message");
+		assert_eq!(value, expected, "wrong error message");
 	} else {
 		panic!("{:?} is not Error", actual);
 	}

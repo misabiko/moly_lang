@@ -1103,7 +1103,7 @@ fn test_instructions(expected: Vec<Instructions>, actual: Instructions) {
 }
 
 fn test_constants(expected: Vec<Object>, actual: Vec<Object>) {
-	assert_eq!(expected.len(), actual.len(), "wrong number of constants");
+	assert_eq!(actual.len(), expected.len(), "wrong number of constants");
 
 	for (constant, actual) in expected.into_iter().zip(actual.into_iter()) {
 		match constant {
@@ -1144,7 +1144,7 @@ fn test_string_object(expected: String, actual: Object) {
 
 fn test_array_object(expected: Vec<Object>, actual: Object) {
 	if let Object::Array(elements) = actual {
-		assert_eq!(expected.len(), elements.len(), "wrong num of elements");
+		assert_eq!(elements.len(), expected.len(), "wrong num of elements");
 
 		for (expected_el, el) in expected.into_iter().zip(elements.into_iter()) {
 			if let Object::Integer(expected_el) = expected_el {
@@ -1160,7 +1160,7 @@ fn test_array_object(expected: Vec<Object>, actual: Object) {
 
 fn test_hash_object(expected: HashMap<HashingObject, (HashingObject, Object)>, actual: Object) {
 	if let Object::Hash(mut pairs) = actual {
-		assert_eq!(expected.len(), pairs.len(), "wrong num of pairs");
+		assert_eq!(pairs.len(), expected.len(), "wrong num of pairs");
 
 		for (expected_k, expected_v) in expected {
 			if let Some((_, actual_v)) = pairs.remove(&expected_k) {

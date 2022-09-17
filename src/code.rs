@@ -1,10 +1,11 @@
 use std::fmt::Write;
 use byteorder::{BigEndian, ByteOrder};
+use enum_primitive::{enum_from_primitive, enum_from_primitive_impl, enum_from_primitive_impl_ty, FromPrimitive};
 
 pub type Instructions = Vec<u8>;
 
-//TODO Remove Op prefix
 //TODO Document calling convention
+enum_from_primitive! {
 #[repr(u8)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Opcode {
@@ -46,53 +47,6 @@ pub enum Opcode {
 	Closure,
 	CurrentClosure,
 }
-
-//TODO Replace with macro
-impl TryFrom<u8> for Opcode {
-	type Error = ();
-
-	fn try_from(value: u8) -> Result<Self, Self::Error> {
-		match value {
-			0 => Ok(Opcode::OpConstant),
-			1 => Ok(Opcode::OpPop),
-
-			2 => Ok(Opcode::OpAdd),
-			3 => Ok(Opcode::OpSub),
-			4 => Ok(Opcode::OpMul),
-			5 => Ok(Opcode::OpDiv),
-
-			6 => Ok(Opcode::OpTrue),
-			7 => Ok(Opcode::OpFalse),
-
-			8 => Ok(Opcode::OpEqual),
-			9 => Ok(Opcode::OpNotEqual),
-			10 => Ok(Opcode::OpGreaterThan),
-
-			11 => Ok(Opcode::OpMinus),
-			12 => Ok(Opcode::OpBang),
-
-			13 => Ok(Opcode::OpJumpIfFalse),
-			14 => Ok(Opcode::OpJump),
-
-			15 => Ok(Opcode::OpGetGlobal),
-			16 => Ok(Opcode::OpSetGlobal),
-			17 => Ok(Opcode::OpGetLocal),
-			18 => Ok(Opcode::OpSetLocal),
-			19 => Ok(Opcode::OpGetBuiltin),
-			20 => Ok(Opcode::OpGetFree),
-
-			21 => Ok(Opcode::OpArray),
-			22 => Ok(Opcode::OpHash),
-			23 => Ok(Opcode::OpIndex),
-
-			24 => Ok(Opcode::OpCall),
-			25 => Ok(Opcode::OpReturnValue),
-			26 => Ok(Opcode::OpReturn),
-			27 => Ok(Opcode::OpClosure),
-			28 => Ok(Opcode::OpCurrentClosure),
-			_ => Err(())
-		}
-	}
 }
 
 pub struct Definition {
@@ -103,48 +57,50 @@ pub struct Definition {
 pub type Operand = usize;
 
 pub fn lookup(op: u8) -> Result<Definition, String> {
-	match op.try_into() {
-		Ok(Opcode::OpConstant) => Ok(Definition {name: "OpConstant", operand_widths: vec![2]}),
-		Ok(Opcode::OpPop) => Ok(Definition {name: "OpPop", operand_widths: vec![]}),
+	match Opcode::from_u8(op) {
+		Some(op) => match op {
+			Opcode::Constant => Ok(Definition { name: "OpConstant", operand_widths: vec![2] }),
+			Opcode::Pop => Ok(Definition { name: "OpPop", operand_widths: vec![] }),
 
-		Ok(Opcode::OpAdd) => Ok(Definition {name: "OpAdd", operand_widths: vec![]}),
-		Ok(Opcode::OpSub) => Ok(Definition {name: "OpSub", operand_widths: vec![]}),
-		Ok(Opcode::OpMul) => Ok(Definition {name: "OpMul", operand_widths: vec![]}),
-		Ok(Opcode::OpDiv) => Ok(Definition {name: "OpDiv", operand_widths: vec![]}),
+			Opcode::Add => Ok(Definition { name: "OpAdd", operand_widths: vec![] }),
+			Opcode::Sub => Ok(Definition { name: "OpSub", operand_widths: vec![] }),
+			Opcode::Mul => Ok(Definition { name: "OpMul", operand_widths: vec![] }),
+			Opcode::Div => Ok(Definition { name: "OpDiv", operand_widths: vec![] }),
 
-		Ok(Opcode::OpTrue) => Ok(Definition {name: "OpTrue", operand_widths: vec![]}),
-		Ok(Opcode::OpFalse) => Ok(Definition {name: "OpFalse", operand_widths: vec![]}),
+			Opcode::True => Ok(Definition { name: "OpTrue", operand_widths: vec![] }),
+			Opcode::False => Ok(Definition { name: "OpFalse", operand_widths: vec![] }),
 
-		Ok(Opcode::OpEqual) => Ok(Definition {name: "OpEqual", operand_widths: vec![]}),
-		Ok(Opcode::OpNotEqual) => Ok(Definition {name: "OpNotEqual", operand_widths: vec![]}),
-		Ok(Opcode::OpGreaterThan) => Ok(Definition {name: "OpGreaterThan", operand_widths: vec![]}),
+			Opcode::Equal => Ok(Definition { name: "OpEqual", operand_widths: vec![] }),
+			Opcode::NotEqual => Ok(Definition { name: "OpNotEqual", operand_widths: vec![] }),
+			Opcode::GreaterThan => Ok(Definition { name: "OpGreaterThan", operand_widths: vec![] }),
 
-		Ok(Opcode::OpMinus) => Ok(Definition {name: "OpMinus", operand_widths: vec![]}),
-		Ok(Opcode::OpBang) => Ok(Definition {name: "OpBang", operand_widths: vec![]}),
+			Opcode::Minus => Ok(Definition { name: "OpMinus", operand_widths: vec![] }),
+			Opcode::Bang => Ok(Definition { name: "OpBang", operand_widths: vec![] }),
 
-		Ok(Opcode::OpJumpIfFalse) => Ok(Definition {name: "OpJumpIfFalse", operand_widths: vec![2]}),
-		Ok(Opcode::OpJump) => Ok(Definition {name: "OpJump", operand_widths: vec![2]}),
+			Opcode::JumpIfFalse => Ok(Definition { name: "OpJumpIfFalse", operand_widths: vec![2] }),
+			Opcode::Jump => Ok(Definition { name: "OpJump", operand_widths: vec![2] }),
 
-		Ok(Opcode::OpGetGlobal) => Ok(Definition {name: "OpGetGlobal", operand_widths: vec![2]}),
-		Ok(Opcode::OpSetGlobal) => Ok(Definition {name: "OpSetGlobal", operand_widths: vec![2]}),
-		Ok(Opcode::OpGetLocal) => Ok(Definition {name: "OpGetLocal", operand_widths: vec![1]}),
-		Ok(Opcode::OpSetLocal) => Ok(Definition {name: "OpSetLocal", operand_widths: vec![1]}),
-		Ok(Opcode::OpGetBuiltin) => Ok(Definition {name: "OpGetBuiltin", operand_widths: vec![1]}),
-		Ok(Opcode::OpGetFree) => Ok(Definition {name: "OpGetFree", operand_widths: vec![1]}),
+			Opcode::GetGlobal => Ok(Definition { name: "OpGetGlobal", operand_widths: vec![2] }),
+			Opcode::SetGlobal => Ok(Definition { name: "OpSetGlobal", operand_widths: vec![2] }),
+			Opcode::GetLocal => Ok(Definition { name: "OpGetLocal", operand_widths: vec![1] }),
+			Opcode::SetLocal => Ok(Definition { name: "OpSetLocal", operand_widths: vec![1] }),
+			Opcode::GetBuiltin => Ok(Definition { name: "OpGetBuiltin", operand_widths: vec![1] }),
+			Opcode::GetFree => Ok(Definition { name: "OpGetFree", operand_widths: vec![1] }),
 
-		//TODO Test error message for too many elements in an array
-		//Operand width: Number of elements
-		Ok(Opcode::OpArray) => Ok(Definition {name: "OpArray", operand_widths: vec![2]}),
-		//Operand width: Number of keys + Number of values
-		Ok(Opcode::OpHash) => Ok(Definition {name: "OpHash", operand_widths: vec![2]}),
-		Ok(Opcode::OpIndex) => Ok(Definition {name: "OpIndex", operand_widths: vec![]}),
+			//TODO Test error message for too many elements in an array
+			//Operand width: Number of elements
+			Opcode::Array => Ok(Definition { name: "OpArray", operand_widths: vec![2] }),
+			//Operand width: Number of keys + Number of values
+			Opcode::Hash => Ok(Definition { name: "OpHash", operand_widths: vec![2] }),
+			Opcode::Index => Ok(Definition { name: "OpIndex", operand_widths: vec![] }),
 
-		Ok(Opcode::OpCall) => Ok(Definition {name: "OpCall", operand_widths: vec![1]}),
-		Ok(Opcode::OpReturnValue) => Ok(Definition {name: "OpReturnValue", operand_widths: vec![]}),
-		Ok(Opcode::OpReturn) => Ok(Definition {name: "OpReturn", operand_widths: vec![]}),
-		Ok(Opcode::OpClosure) => Ok(Definition {name: "OpClosure", operand_widths: vec![2, 1]}),
-		Ok(Opcode::OpCurrentClosure) => Ok(Definition {name: "OpCurrentClosure", operand_widths: vec![]}),
-		Err(_) => Err(format!("opcode {} undefined", op))
+			Opcode::Call => Ok(Definition { name: "OpCall", operand_widths: vec![1] }),
+			Opcode::ReturnValue => Ok(Definition { name: "OpReturnValue", operand_widths: vec![] }),
+			Opcode::Return => Ok(Definition { name: "OpReturn", operand_widths: vec![] }),
+			Opcode::Closure => Ok(Definition { name: "OpClosure", operand_widths: vec![2, 1] }),
+			Opcode::CurrentClosure => Ok(Definition { name: "OpCurrentClosure", operand_widths: vec![] }),
+		},
+		None => Err(format!("undefined opcode {}", op))
 	}
 }
 

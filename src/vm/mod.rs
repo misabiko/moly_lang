@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::convert::identity;
+use enum_primitive::FromPrimitive;
 use crate::code::{Instructions, Opcode, read_u16, read_u8};
 use crate::compiler::Bytecode;
 use crate::object::{Builtin, Closure, Function, HashingObject, Object};
@@ -35,7 +36,7 @@ impl VM {
 				num_locals: 0,
 				num_parameters: 0,
 			},
-			free: vec![]
+			free: vec![],
 		};
 
 		let mut frames = Vec::with_capacity(MAX_FRAMES);
@@ -59,7 +60,7 @@ impl VM {
 				num_locals: 0,
 				num_parameters: 0,
 			},
-			free: vec![]
+			free: vec![],
 		};
 
 		let mut frames = Vec::with_capacity(MAX_FRAMES);
@@ -90,160 +91,152 @@ impl VM {
 			ip = self.current_frame().ip;
 			ins = self.current_frame().instructions();
 
-			match ins[ip - 1].try_into() {
-				Ok(Opcode::Constant) => {
-					let const_index = read_u16(&ins[ip..]) as usize;
-					self.current_frame().ip += 2;
+			match Opcode::from_u8(ins[ip - 1]) {
+				Some(op) => match op {
+					Opcode::Constant => {
+						let const_index = read_u16(&ins[ip..]) as usize;
+						self.current_frame().ip += 2;
 
-					self.push(self.constants[const_index].clone())?;
-				}
-				Ok(Opcode::Pop) => { self.pop(); },
+						self.push(self.constants[const_index].clone())?;
+					}
+					Opcode::Pop => { self.pop(); }
 
-				Ok(
-					op @ Opcode::Add |
-				    op @ Opcode::Sub |
-					op @ Opcode::Mul |
-					op @ Opcode::Div
-				) => {
-					self.execute_binary_operation(op)?
-				}
+					Opcode::Add |
+					Opcode::Sub |
+					Opcode::Mul |
+					Opcode::Div => self.execute_binary_operation(op)?,
 
-				Ok(Opcode::True) => self.push(TRUE_OBJ)?,
-				Ok(Opcode::False) => self.push(FALSE_OBJ)?,
+					Opcode::True => self.push(TRUE_OBJ)?,
+					Opcode::False => self.push(FALSE_OBJ)?,
 
-				Ok(Opcode::Bang) => self.execute_bang_operator()?,
-				Ok(Opcode::Minus) => self.execute_minus_operator()?,
+					Opcode::Bang => self.execute_bang_operator()?,
+					Opcode::Minus => self.execute_minus_operator()?,
 
-				Ok(
-					op @ Opcode::Equal |
-					op @ Opcode::NotEqual |
-					op @ Opcode::GreaterThan
-				) => {
-					self.execute_comparison(op)?
-				}
+					Opcode::Equal |
+					Opcode::NotEqual |
+					Opcode::GreaterThan => self.execute_comparison(op)?,
 
-				Ok(Opcode::Jump) => {
-					let pos = read_u16(&ins[ip..]) as usize;
-					self.current_frame().ip = pos;
-				}
-				Ok(Opcode::JumpIfFalse) => {
-					let pos = read_u16(&ins[ip..]) as usize;
-					self.current_frame().ip += 2;
-
-					let condition = self.pop().unwrap();
-					if condition == FALSE_OBJ {
+					Opcode::Jump => {
+						let pos = read_u16(&ins[ip..]) as usize;
 						self.current_frame().ip = pos;
 					}
-				}
+					Opcode::JumpIfFalse => {
+						let pos = read_u16(&ins[ip..]) as usize;
+						self.current_frame().ip += 2;
 
-				Ok(Opcode::SetGlobal) => {
-					let global_index = read_u16(&ins[ip..]) as usize;
-					self.current_frame().ip += 2;
-
-					let len = self.globals.len();
-					let value = self.pop().unwrap();
-
-					match global_index {
-						i if i == len => self.globals.push(value),
-						i if i < len => self.globals[global_index] = value,
-						_ => panic!("Global index higher than length (...which might a thing)")
+						let condition = self.pop().unwrap();
+						if condition == FALSE_OBJ {
+							self.current_frame().ip = pos;
+						}
 					}
-				}
-				Ok(Opcode::GetGlobal) => {
-					let global_index = read_u16(&ins[ip..]) as usize;
-					self.current_frame().ip += 2;
 
-					self.push(self.globals[global_index].clone())?;
-				}
-				Ok(Opcode::SetLocal) => {
-					let local_index = read_u8(&ins[ip..]) as usize;
-					self.current_frame().ip += 1;
+					Opcode::SetGlobal => {
+						let global_index = read_u16(&ins[ip..]) as usize;
+						self.current_frame().ip += 2;
 
-					let base_pointer = self.current_frame().base_pointer;
-					self.stack[base_pointer + local_index] = self.pop();
-				}
-				Ok(Opcode::GetLocal) => {
-					let local_index = read_u8(&ins[ip..]) as usize;
-					self.current_frame().ip += 1;
+						let len = self.globals.len();
+						let value = self.pop().unwrap();
 
-					let base_pointer = self.current_frame().base_pointer;
-					self.push(self.stack[base_pointer + local_index].clone().unwrap())?;
-				}
-				Ok(Opcode::GetBuiltin) => {
-					let builtin_index = read_u8(&ins[ip..]) as usize;
-					self.current_frame().ip += 1;
+						match global_index {
+							i if i == len => self.globals.push(value),
+							i if i < len => self.globals[global_index] = value,
+							_ => panic!("Global index higher than length (...which might a thing)")
+						}
+					}
+					Opcode::GetGlobal => {
+						let global_index = read_u16(&ins[ip..]) as usize;
+						self.current_frame().ip += 2;
 
-					let definition = &BUILTINS[builtin_index];
+						self.push(self.globals[global_index].clone())?;
+					}
+					Opcode::SetLocal => {
+						let local_index = read_u8(&ins[ip..]) as usize;
+						self.current_frame().ip += 1;
 
-					self.push(Object::Builtin(definition.builtin))?;
-				}
-				Ok(Opcode::GetFree) => {
-					let free_index = read_u8(&ins[ip..]) as usize;
-					self.current_frame().ip += 1;
+						let base_pointer = self.current_frame().base_pointer;
+						self.stack[base_pointer + local_index] = self.pop();
+					}
+					Opcode::GetLocal => {
+						let local_index = read_u8(&ins[ip..]) as usize;
+						self.current_frame().ip += 1;
 
-					let obj = self.current_frame().closure.free[free_index].clone();
-					self.push(obj)?;
-				}
+						let base_pointer = self.current_frame().base_pointer;
+						self.push(self.stack[base_pointer + local_index].clone().unwrap())?;
+					}
+					Opcode::GetBuiltin => {
+						let builtin_index = read_u8(&ins[ip..]) as usize;
+						self.current_frame().ip += 1;
 
-				Ok(Opcode::Array) => {
-					let num_elements = read_u16(&ins[ip..]) as usize;
-					self.current_frame().ip += 2;
+						let definition = &BUILTINS[builtin_index];
 
-					let sp = self.stack.len();
-					let array = self.build_array(sp - num_elements, sp);
-					self.stack.truncate(sp - num_elements);
+						self.push(Object::Builtin(definition.builtin))?;
+					}
+					Opcode::GetFree => {
+						let free_index = read_u8(&ins[ip..]) as usize;
+						self.current_frame().ip += 1;
 
-					self.push(array)?;
-				}
-				Ok(Opcode::Hash) => {
-					let num_elements = read_u16(&ins[ip..]) as usize;
-					self.current_frame().ip += 2;
+						let obj = self.current_frame().closure.free[free_index].clone();
+						self.push(obj)?;
+					}
 
-					let sp = self.stack.len();
-					let hash = self.build_hash(sp - num_elements, sp)?;
-					self.stack.truncate(sp - num_elements);
+					Opcode::Array => {
+						let num_elements = read_u16(&ins[ip..]) as usize;
+						self.current_frame().ip += 2;
 
-					self.push(hash)?;
-				}
-				Ok(Opcode::Index) => {
-					let index = self.pop().ok_or("index not on stack")?;
-					let left = self.pop().ok_or("left expression not on stack")?;
+						let sp = self.stack.len();
+						let array = self.build_array(sp - num_elements, sp);
+						self.stack.truncate(sp - num_elements);
 
-					self.execute_index_expression(left, index)?;
-				}
+						self.push(array)?;
+					}
+					Opcode::Hash => {
+						let num_elements = read_u16(&ins[ip..]) as usize;
+						self.current_frame().ip += 2;
 
-				Ok(Opcode::Call) => {
-					let num_args = read_u8(&ins[ip..]);
-					self.current_frame().ip += 1;
+						let sp = self.stack.len();
+						let hash = self.build_hash(sp - num_elements, sp)?;
+						self.stack.truncate(sp - num_elements);
 
-					self.execute_call(num_args)?;
-				}
-				Ok(Opcode::ReturnValue) => {
-					let return_value = self.pop().unwrap();
+						self.push(hash)?;
+					}
+					Opcode::Index => {
+						let index = self.pop().ok_or("index not on stack")?;
+						let left = self.pop().ok_or("left expression not on stack")?;
 
-					let frame = self.pop_frame().unwrap();
-					self.stack.truncate(frame.base_pointer - 1);
+						self.execute_index_expression(left, index)?;
+					}
 
-					self.push(return_value)?;
-				}
-				Ok(Opcode::Return) => {
-					let frame = self.pop_frame().unwrap();
-					self.stack.truncate(frame.base_pointer - 1);
-				}
-				Ok(Opcode::Closure) => {
-					let const_index = read_u16(&ins[ip..]);
-					let num_free = read_u8(&ins[ip+2..]);
-					self.current_frame().ip += 3;
+					Opcode::Call => {
+						let num_args = read_u8(&ins[ip..]);
+						self.current_frame().ip += 1;
 
-					self.push_closure(const_index as usize, num_free as usize)?;
-				}
-				Ok(Opcode::CurrentClosure) => {
-					let current_closure = self.current_frame().closure.clone();
-					self.push(Object::Closure(current_closure))?;
-				}
+						self.execute_call(num_args)?;
+					}
+					Opcode::ReturnValue => {
+						let return_value = self.pop().unwrap();
 
-				_ => panic!("{} undefined opcode", ins[ip - 1])
-				//TODO Err(_) => panic!("{} undefined opcode", op)
+						let frame = self.pop_frame().unwrap();
+						self.stack.truncate(frame.base_pointer - 1);
+
+						self.push(return_value)?;
+					}
+					Opcode::Return => {
+						let frame = self.pop_frame().unwrap();
+						self.stack.truncate(frame.base_pointer - 1);
+					}
+					Opcode::Closure => {
+						let const_index = read_u16(&ins[ip..]);
+						let num_free = read_u8(&ins[ip + 2..]);
+						self.current_frame().ip += 3;
+
+						self.push_closure(const_index as usize, num_free as usize)?;
+					}
+					Opcode::CurrentClosure => {
+						let current_closure = self.current_frame().closure.clone();
+						self.push(Object::Closure(current_closure))?;
+					}
+				},
+				None => panic!("undefined opcode {}", ins[ip - 1]),
 			}
 		}
 
@@ -256,7 +249,7 @@ impl VM {
 
 		match (&left, &right) {
 			(Some(Object::Integer(left)), Some(Object::Integer(right)))
-				=> self.execute_binary_integer_operation(op, *left, *right)?,
+			=> self.execute_binary_integer_operation(op, *left, *right)?,
 			(Some(Object::String(left)), Some(Object::String(right)))
 			=> self.execute_binary_string_operation(op, left, right)?,
 			_ => return Err(format!("unsupported types for binary operation: {:?} and {:?}", left, right))
@@ -279,7 +272,7 @@ impl VM {
 
 	fn execute_binary_string_operation(&mut self, op: Opcode, left: &str, right: &str) -> VMResult {
 		if !matches!(op, Opcode::Add) {
-			return Err(format!("unknown string operator: {:?}", op))
+			return Err(format!("unknown string operator: {:?}", op));
 		}
 
 		self.push(Object::String(format!("{}{}", left, right)))
@@ -290,7 +283,7 @@ impl VM {
 		let right = self.pop().unwrap();
 
 		if let (Object::Integer(left), Object::Integer(right)) = (&left, &right) {
-			return self.execute_integer_comparison(op, *left, *right)
+			return self.execute_integer_comparison(op, *left, *right);
 		}
 
 		match op {
@@ -324,7 +317,7 @@ impl VM {
 
 		if let Object::Integer(value) = operand {
 			self.push(Object::Integer(-value))
-		}else {
+		} else {
 			Err(format!("unsupported type for negation: {:?}", operand))
 		}
 	}
@@ -341,7 +334,7 @@ impl VM {
 
 		for i in (start_index..end_index).step_by(2) {
 			let key = self.stack[i].as_ref().unwrap();
-			let value = self.stack[i+1].as_ref().unwrap();
+			let value = self.stack[i + 1].as_ref().unwrap();
 
 			let hash_key = HashingObject::try_from(key.clone())?;
 
@@ -354,9 +347,9 @@ impl VM {
 	fn execute_index_expression(&mut self, left: Object, index: Object) -> VMResult {
 		match (left, index) {
 			(Object::Array(elements), Object::Integer(index))
-				=> self.execute_array_index(elements, index),
+			=> self.execute_array_index(elements, index),
 			(Object::Hash(pairs), index)
-				=> self.execute_hash_index(pairs, index),
+			=> self.execute_hash_index(pairs, index),
 			(left, index) => Err(format!("index operator not supported: {:?}[{:?}]", left, index))
 		}
 	}
@@ -364,8 +357,8 @@ impl VM {
 	fn execute_array_index(&mut self, array: Vec<Object>, index: i64) -> VMResult {
 		let index = if index >= 0 && index as usize <= array.len() {
 			index as usize
-		}else {
-			return Err(format!("index {} out of bound [0..{}]", index, array.len() - 1))
+		} else {
+			return Err(format!("index {} out of bound [0..{}]", index, array.len() - 1));
 		};
 
 		self.push(array.get(index).cloned().unwrap())
@@ -394,7 +387,7 @@ impl VM {
 
 		if closure.func.num_parameters != num_args {
 			//TODO Standardize assert_eq errors
-			return Err(format!("wrong number of arguments: want={}, got={}", closure.func.num_parameters, num_args))
+			return Err(format!("wrong number of arguments: want={}, got={}", closure.func.num_parameters, num_args));
 		}
 		let num_locals = closure.func.num_locals;
 		self.push_frame(Frame::new(closure, self.stack.len() - num_args));
@@ -413,14 +406,14 @@ impl VM {
 
 		if let Some(result) = result {
 			self.push(result)
-		}else {
+		} else {
 			Ok(())
 		}
 	}
 
 	fn push(&mut self, obj: Object) -> VMResult {
 		if self.stack.len() >= STACK_SIZE {
-			return Err("stack overflow".into())
+			return Err("stack overflow".into());
 		}
 
 		self.stack.push(Some(obj));
@@ -438,7 +431,7 @@ impl VM {
 	//TODO Dissolve if still not using index iterator
 	fn current_frame(&mut self) -> &mut Frame {
 		//Should always have at least one frame
-			//TODO Try having VM.main_frame field
+		//TODO Try having VM.main_frame field
 		self.frames.last_mut().unwrap()
 	}
 
@@ -458,7 +451,7 @@ impl VM {
 			self.stack.truncate(self.stack.len() - num_free);
 
 			self.push(Object::Closure(Closure { func, free }))
-		}else {
+		} else {
 			Err(format!("not a function: {}", constant))
 		}
 	}

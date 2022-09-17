@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use enum_primitive::FromPrimitive;
 use crate::ast::{Expression, Program, Statement};
 use crate::code::{Instructions, make, Opcode, Operand};
 use crate::compiler::symbol_table::{GLOBAL_SCOPE, LOCAL_SCOPE, BUILTIN_SCOPE, FREE_SCOPE, FUNCTION_SCOPE, Symbol, SymbolTable};
@@ -343,7 +344,7 @@ impl Compiler {
 	}
 
 	fn change_operand(&mut self, op_pos: usize, operand: usize) {
-		let op: Opcode = self.current_instructions()[op_pos].try_into().unwrap();
+		let op = Opcode::from_u8(self.current_instructions()[op_pos]).unwrap();
 		let new_instruction = make(op, &vec![operand]);
 
 		self.replace_instruction(op_pos, new_instruction)

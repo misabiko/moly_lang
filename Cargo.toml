@@ -9,3 +9,4 @@ name = "benchmark"
 [dependencies]
 ctrlc = "3.2.3"
 byteorder = "1.4.3"
+enum_primitive = "0.1.1"

@@ -4,7 +4,7 @@ use std::rc::Rc;
 use enum_primitive::FromPrimitive;
 use crate::ast::{Expression, Program, Statement};
 use crate::code::{Instructions, make, Opcode, Operand};
-use crate::compiler::symbol_table::{GLOBAL_SCOPE, LOCAL_SCOPE, BUILTIN_SCOPE, FREE_SCOPE, FUNCTION_SCOPE, Symbol, SymbolTable};
+use crate::compiler::symbol_table::{SymbolScope, Symbol, SymbolTable};
 use crate::object::{Function, Object};
 use crate::object::builtins::BUILTINS;
 
@@ -91,7 +91,7 @@ impl Compiler {
 
 				self.compile_expression(value)?;
 
-				if scope == GLOBAL_SCOPE {
+				if let SymbolScope::Global = scope {
 					self.emit(Opcode::SetGlobal, vec![index]);
 				} else {
 					self.emit(Opcode::SetLocal, vec![index]);
@@ -380,12 +380,11 @@ impl Compiler {
 
 	fn load_symbol(&mut self, symbol: Symbol) {
 		match symbol.scope {
-			GLOBAL_SCOPE => self.emit(Opcode::GetGlobal, vec![symbol.index]),
-			LOCAL_SCOPE => self.emit(Opcode::GetLocal, vec![symbol.index]),
-			BUILTIN_SCOPE => self.emit(Opcode::GetBuiltin, vec![symbol.index]),
-			FREE_SCOPE => self.emit(Opcode::GetFree, vec![symbol.index]),
-			FUNCTION_SCOPE => self.emit(Opcode::CurrentClosure, vec![]),
-			s => panic!("unsupported scope {:?}", s)
+			SymbolScope::Global => self.emit(Opcode::GetGlobal, vec![symbol.index]),
+			SymbolScope::Local => self.emit(Opcode::GetLocal, vec![symbol.index]),
+			SymbolScope::Builtin => self.emit(Opcode::GetBuiltin, vec![symbol.index]),
+			SymbolScope::Free => self.emit(Opcode::GetFree, vec![symbol.index]),
+			SymbolScope::Function => self.emit(Opcode::CurrentClosure, vec![]),
 		};
 	}
 }

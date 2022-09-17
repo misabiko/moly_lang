@@ -2,16 +2,16 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-pub type SymbolScope = &'static str;
-
-//TODO Make enum
-pub const GLOBAL_SCOPE: SymbolScope = "GLOBAL";
-pub const LOCAL_SCOPE: SymbolScope = "LOCAL";
-pub const BUILTIN_SCOPE: SymbolScope = "BUILTIN";
-pub const FREE_SCOPE: SymbolScope = "FREE";
-pub const FUNCTION_SCOPE: SymbolScope = "FUNCTION";
 //Could add function argument scope if the need special treatment
 // see "Resolving References to Arguments" in monkey compiler book
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum SymbolScope {
+	Global,
+	Local,
+	Builtin,
+	Free,
+	Function,
+}
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Symbol {
@@ -43,9 +43,9 @@ impl SymbolTable {
 			name: name.into(),
 			index: self.num_definitions,
 			scope: if self.outer.is_some() {
-				LOCAL_SCOPE
+				SymbolScope::Local
 			}else {
-				GLOBAL_SCOPE
+				SymbolScope::Global
 			}
 		};
 
@@ -59,7 +59,7 @@ impl SymbolTable {
 		let symbol = Symbol {
 			name: name.into(),
 			index,
-			scope: BUILTIN_SCOPE,
+			scope: SymbolScope::Builtin,
 		};
 
 		self.store.insert(name.into(), symbol);
@@ -71,7 +71,7 @@ impl SymbolTable {
 		let symbol = Symbol {
 			name: name.clone(),
 			index: self.free_symbols.len(),
-			scope: FREE_SCOPE,
+			scope: SymbolScope::Free,
 		};
 
 		self.free_symbols.push(original);
@@ -85,7 +85,7 @@ impl SymbolTable {
 		let symbol = Symbol {
 			name: name.into(),
 			index: 0,
-			scope: FUNCTION_SCOPE,
+			scope: SymbolScope::Function,
 		};
 
 		self.store.insert(name.into(), symbol);
@@ -104,7 +104,7 @@ impl SymbolTable {
 			match symbol {
 				None => None,
 				Some(symbol @ Symbol {
-					scope: GLOBAL_SCOPE | BUILTIN_SCOPE,
+					scope: SymbolScope::Global | SymbolScope::Builtin,
 					..
 				}) => Some(symbol),
 				Some(symbol) => Some(self.define_free(symbol).clone())

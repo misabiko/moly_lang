@@ -64,7 +64,8 @@ pub enum Expression {
 		alternative: Option<BlockStatement>,
 	},
 	Function {
-		parameters: Vec<String>,	//TODO Replace with Identifier struct if Expression::Identifier changes
+		/// name in Expression::Identifier
+		parameters: Vec<String>,
 		body: BlockStatement,
 		name: Option<String>,
 	},

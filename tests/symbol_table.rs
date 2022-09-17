@@ -1,17 +1,17 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use moly_lang::compiler::symbol_table::{GLOBAL_SCOPE, LOCAL_SCOPE, BUILTIN_SCOPE, Symbol, SymbolTable, FREE_SCOPE, FUNCTION_SCOPE};
+use moly_lang::compiler::symbol_table::{Symbol, SymbolTable, SymbolScope};
 
 #[test]
 fn test_define() {
 	let expected: HashMap<&'static str, Symbol> = vec![
-		("a", Symbol { name: "a".into(), scope: GLOBAL_SCOPE, index: 0}),
-		("b", Symbol { name: "b".into(), scope: GLOBAL_SCOPE, index: 1}),
-		("c", Symbol { name: "c".into(), scope: LOCAL_SCOPE, index: 0}),
-		("d", Symbol { name: "d".into(), scope: LOCAL_SCOPE, index: 1}),
-		("e", Symbol { name: "e".into(), scope: LOCAL_SCOPE, index: 0}),
-		("f", Symbol { name: "f".into(), scope: LOCAL_SCOPE, index: 1}),
+		("a", Symbol { name: "a".into(), scope: SymbolScope::Global, index: 0}),
+		("b", Symbol { name: "b".into(), scope: SymbolScope::Global, index: 1}),
+		("c", Symbol { name: "c".into(), scope: SymbolScope::Local, index: 0}),
+		("d", Symbol { name: "d".into(), scope: SymbolScope::Local, index: 1}),
+		("e", Symbol { name: "e".into(), scope: SymbolScope::Local, index: 0}),
+		("f", Symbol { name: "f".into(), scope: SymbolScope::Local, index: 1}),
 	].into_iter().collect();
 
 	let global = Rc::new(RefCell::new(SymbolTable::new(None)));
@@ -56,8 +56,8 @@ fn test_resolve_global() {
 	}
 
 	let expected = vec![
-		Symbol { name: "a".into(), scope: GLOBAL_SCOPE, index: 0 },
-		Symbol { name: "b".into(), scope: GLOBAL_SCOPE, index: 1 },
+		Symbol { name: "a".into(), scope: SymbolScope::Global, index: 0 },
+		Symbol { name: "b".into(), scope: SymbolScope::Global, index: 1 },
 	];
 
 	for sym in expected {
@@ -86,10 +86,10 @@ fn test_resolve_local() {
 	}
 
 	let expected = vec![
-		Symbol { name: "a".into(), scope: GLOBAL_SCOPE, index: 0 },
-		Symbol { name: "b".into(), scope: GLOBAL_SCOPE, index: 1 },
-		Symbol { name: "c".into(), scope: LOCAL_SCOPE, index: 0 },
-		Symbol { name: "d".into(), scope: LOCAL_SCOPE, index: 1 },
+		Symbol { name: "a".into(), scope: SymbolScope::Global, index: 0 },
+		Symbol { name: "b".into(), scope: SymbolScope::Global, index: 1 },
+		Symbol { name: "c".into(), scope: SymbolScope::Local, index: 0 },
+		Symbol { name: "d".into(), scope: SymbolScope::Local, index: 1 },
 	];
 
 	for sym in expected {
@@ -126,16 +126,16 @@ fn test_resolve_nested_local() {
 
 	let expected = vec![
 		(first_local, vec![
-			Symbol { name: "a".into(), scope: GLOBAL_SCOPE, index: 0 },
-			Symbol { name: "b".into(), scope: GLOBAL_SCOPE, index: 1 },
-			Symbol { name: "c".into(), scope: LOCAL_SCOPE, index: 0 },
-			Symbol { name: "d".into(), scope: LOCAL_SCOPE, index: 1 },
+			Symbol { name: "a".into(), scope: SymbolScope::Global, index: 0 },
+			Symbol { name: "b".into(), scope: SymbolScope::Global, index: 1 },
+			Symbol { name: "c".into(), scope: SymbolScope::Local, index: 0 },
+			Symbol { name: "d".into(), scope: SymbolScope::Local, index: 1 },
 		]),
 		(second_local, vec![
-			Symbol { name: "a".into(), scope: GLOBAL_SCOPE, index: 0 },
-			Symbol { name: "b".into(), scope: GLOBAL_SCOPE, index: 1 },
-			Symbol { name: "e".into(), scope: LOCAL_SCOPE, index: 0 },
-			Symbol { name: "f".into(), scope: LOCAL_SCOPE, index: 1 },
+			Symbol { name: "a".into(), scope: SymbolScope::Global, index: 0 },
+			Symbol { name: "b".into(), scope: SymbolScope::Global, index: 1 },
+			Symbol { name: "e".into(), scope: SymbolScope::Local, index: 0 },
+			Symbol { name: "f".into(), scope: SymbolScope::Local, index: 1 },
 		]),
 	];
 
@@ -157,10 +157,10 @@ fn test_define_resolve_builtins() {
 	let second_local = Rc::new(RefCell::new(SymbolTable::new(Some(first_local.clone()))));
 
 	let expected = vec![
-		Symbol { name: "a".into(), scope: BUILTIN_SCOPE, index: 0 },
-		Symbol { name: "b".into(), scope: BUILTIN_SCOPE, index: 1 },
-		Symbol { name: "e".into(), scope: BUILTIN_SCOPE, index: 2 },
-		Symbol { name: "f".into(), scope: BUILTIN_SCOPE, index: 3 },
+		Symbol { name: "a".into(), scope: SymbolScope::Builtin, index: 0 },
+		Symbol { name: "b".into(), scope: SymbolScope::Builtin, index: 1 },
+		Symbol { name: "e".into(), scope: SymbolScope::Builtin, index: 2 },
+		Symbol { name: "f".into(), scope: SymbolScope::Builtin, index: 3 },
 	];
 
 	{
@@ -208,26 +208,26 @@ fn test_resolve_free() {
 		(
 			first_local,
 			 vec![
-				Symbol { name: "a".into(), scope: GLOBAL_SCOPE, index: 0 },
-				Symbol { name: "b".into(), scope: GLOBAL_SCOPE, index: 1 },
-				Symbol { name: "c".into(), scope: LOCAL_SCOPE, index: 0 },
-				Symbol { name: "d".into(), scope: LOCAL_SCOPE, index: 1 },
+				Symbol { name: "a".into(), scope: SymbolScope::Global, index: 0 },
+				Symbol { name: "b".into(), scope: SymbolScope::Global, index: 1 },
+				Symbol { name: "c".into(), scope: SymbolScope::Local, index: 0 },
+				Symbol { name: "d".into(), scope: SymbolScope::Local, index: 1 },
 			],
 			vec![]
 		),
 		(
 			second_local,
 			vec![
-				Symbol { name: "a".into(), scope: GLOBAL_SCOPE, index: 0 },
-				Symbol { name: "b".into(), scope: GLOBAL_SCOPE, index: 1 },
-				Symbol { name: "c".into(), scope: FREE_SCOPE, index: 0 },
-				Symbol { name: "d".into(), scope: FREE_SCOPE, index: 1 },
-				Symbol { name: "e".into(), scope: LOCAL_SCOPE, index: 0 },
-				Symbol { name: "f".into(), scope: LOCAL_SCOPE, index: 1 },
+				Symbol { name: "a".into(), scope: SymbolScope::Global, index: 0 },
+				Symbol { name: "b".into(), scope: SymbolScope::Global, index: 1 },
+				Symbol { name: "c".into(), scope: SymbolScope::Free, index: 0 },
+				Symbol { name: "d".into(), scope: SymbolScope::Free, index: 1 },
+				Symbol { name: "e".into(), scope: SymbolScope::Local, index: 0 },
+				Symbol { name: "f".into(), scope: SymbolScope::Local, index: 1 },
 			],
 			vec![
-				Symbol { name: "c".into(), scope: LOCAL_SCOPE, index: 0 },
-				Symbol { name: "d".into(), scope: LOCAL_SCOPE, index: 1 },
+				Symbol { name: "c".into(), scope: SymbolScope::Local, index: 0 },
+				Symbol { name: "d".into(), scope: SymbolScope::Local, index: 1 },
 			]
 		),
 	];
@@ -272,10 +272,10 @@ fn test_resolve_unresolvable_free() {
 	}
 
 	let expected = vec![
-		Symbol { name: "a".into(), scope: GLOBAL_SCOPE, index: 0 },
-		Symbol { name: "c".into(), scope: FREE_SCOPE, index: 0 },
-		Symbol { name: "e".into(), scope: LOCAL_SCOPE, index: 0 },
-		Symbol { name: "f".into(), scope: LOCAL_SCOPE, index: 1 },
+		Symbol { name: "a".into(), scope: SymbolScope::Global, index: 0 },
+		Symbol { name: "c".into(), scope: SymbolScope::Free, index: 0 },
+		Symbol { name: "e".into(), scope: SymbolScope::Local, index: 0 },
+		Symbol { name: "f".into(), scope: SymbolScope::Local, index: 1 },
 	];
 
 	for sym in expected {
@@ -300,7 +300,7 @@ fn test_define_and_resolve_function_name() {
 
 	let expected = Symbol {
 		name: "a".into(),
-		scope: FUNCTION_SCOPE,
+		scope: SymbolScope::Function,
 		index: 0,
 	};
 
@@ -319,7 +319,7 @@ fn test_shadowing_function_name() {
 
 	let expected = Symbol {
 		name: "a".into(),
-		scope: GLOBAL_SCOPE,
+		scope: SymbolScope::Global,
 		index: 0,
 	};
 

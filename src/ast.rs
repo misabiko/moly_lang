@@ -22,7 +22,7 @@ impl PartialEq for BlockStatement {
 	}
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Statement {
 	Let {
 		name: Expression,
@@ -43,7 +43,7 @@ impl fmt::Display for Statement {
 	}
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Expression {
 	Identifier(String),
 	Integer(i64),
@@ -55,6 +55,7 @@ pub enum Expression {
 	},
 	Infix {
 		left: Box<Expression>,
+		//TODO Try &'static str?
 		operator: String,
 		right: Box<Expression>,
 	},
@@ -70,6 +71,7 @@ pub enum Expression {
 		name: Option<String>,
 	},
 	Call {
+		//TODO Only store function name?
 		function: Box<Expression>,
 		arguments: Vec<Expression>,
 	},

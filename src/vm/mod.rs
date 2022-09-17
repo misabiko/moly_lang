@@ -446,9 +446,7 @@ impl VM {
 
 		let constant = self.constants[const_index as usize].clone();
 		if let Object::Function(func) = constant {
-			//TODO Can we take from stack instead of copy and truncate?
-			let free = self.stack[self.stack.len() - num_free..].iter().cloned().map(|o| o.unwrap()).collect();
-			self.stack.truncate(self.stack.len() - num_free);
+			let free = self.stack.split_off(self.stack.len() - num_free).into_iter().map(|o| o.unwrap()).collect();
 
 			self.push(Object::Closure(Closure { func, free }))
 		} else {

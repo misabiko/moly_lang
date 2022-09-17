@@ -191,7 +191,6 @@ impl Parser {
 	}
 
 	fn parse_prefix_expression(&mut self) -> Option<Expression> {
-		//TODO Try std::mem::take
 		let operator = self.cur_token.literal.clone().unwrap();
 
 		self.next_token();
@@ -206,7 +205,6 @@ impl Parser {
 	}
 
 	fn parse_infix_expression(&mut self, left: Expression) -> Option<Expression> {
-		//TODO Try std::mem::take
 		let operator = self.cur_token.literal.clone().unwrap();
 
 		let precedence = self.cur_precedence();

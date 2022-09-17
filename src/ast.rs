@@ -71,7 +71,7 @@ pub enum Expression {
 		name: Option<String>,
 	},
 	Call {
-		//TODO Only store function name?
+		/// Either Identifier or Function
 		function: Box<Expression>,
 		arguments: Vec<Expression>,
 	},

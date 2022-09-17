@@ -308,7 +308,6 @@ impl Parser {
 		})
 	}
 
-	//TODO returns only Vec<Expression::Identifier>
 	fn parse_function_parameters(&mut self) -> Option<Vec<String>> {
 		let mut identifiers = vec![];
 

@@ -1099,12 +1099,7 @@ fn parse(input: &str) -> Program {
 fn test_instructions(expected: Vec<Instructions>, actual: Instructions) {
 	let concatted = concat_instructions(expected);
 
-	assert_eq!(instruction_to_string(&actual), instruction_to_string(&concatted));
-	/*assert_eq!(actual.len(), concatted.len(), "wrong instructions length");
-
-	for (i, (ins, actual)) in concatted.into_iter().zip(actual.into_iter()).enumerate() {
-		assert_eq!(ins, actual, "wrong instruction at {}", i)
-	}*/
+	assert_eq!(instruction_to_string(&actual), instruction_to_string(&concatted), "wrong instructions");
 }
 
 fn test_constants(expected: Vec<Object>, actual: Vec<Object>) {

@@ -1,8 +1,7 @@
-use std::collections::HashMap;
 use std::rc::Rc;
 use moly_lang::ast::Program;
 use moly_lang::code::{concat_instructions, instruction_to_string, Instructions, make, Opcode};
-use moly_lang::object::{Function, HashingObject, Object};
+use moly_lang::object::{Function, Object};
 use moly_lang::compiler::{Compiler, EmittedInstruction};
 use moly_lang::lexer::Lexer;
 use moly_lang::parser::Parser;
@@ -649,7 +648,7 @@ fn test_function_calls() {
 						make(Opcode::GetLocal, &vec![0]),
 						make(Opcode::ReturnValue, &vec![]),
 					]),
-					num_locals: 0,
+					num_locals: 1,
 					num_parameters: 1,
 				}),
 				Object::Integer(24),
@@ -678,7 +677,7 @@ fn test_function_calls() {
 						make(Opcode::GetLocal, &vec![2]),
 						make(Opcode::ReturnValue, &vec![]),
 					]),
-					num_locals: 0,
+					num_locals: 3,
 					num_parameters: 3,
 				}),
 				Object::Integer(24),
@@ -852,7 +851,7 @@ fn test_closures() {
 						make(Opcode::Add, &vec![]),
 						make(Opcode::ReturnValue, &vec![]),
 					]),
-					num_locals: 0,
+					num_locals: 1,
 					num_parameters: 1,
 				}),
 				Object::Function(Function {
@@ -861,7 +860,7 @@ fn test_closures() {
 						make(Opcode::Closure, &vec![0, 1]),
 						make(Opcode::ReturnValue, &vec![]),
 					]),
-					num_locals: 0,
+					num_locals: 1,
 					num_parameters: 1,
 				}),
 			],
@@ -890,7 +889,7 @@ fn test_closures() {
 						make(Opcode::Add, &vec![]),
 						make(Opcode::ReturnValue, &vec![]),
 					]),
-					num_locals: 0,
+					num_locals: 1,
 					num_parameters: 1,
 				}),
 				Object::Function(Function {
@@ -900,7 +899,7 @@ fn test_closures() {
 						make(Opcode::Closure, &vec![0, 2]),
 						make(Opcode::ReturnValue, &vec![]),
 					]),
-					num_locals: 0,
+					num_locals: 1,
 					num_parameters: 1,
 				}),
 				Object::Function(Function {
@@ -909,7 +908,7 @@ fn test_closures() {
 						make(Opcode::Closure, &vec![1, 1]),
 						make(Opcode::ReturnValue, &vec![]),
 					]),
-					num_locals: 0,
+					num_locals: 1,
 					num_parameters: 1,
 				}),
 			],
@@ -1012,7 +1011,7 @@ fn test_recursive_functions() {
 						make(Opcode::Call, &vec![1]),
 						make(Opcode::ReturnValue, &vec![]),
 					]),
-					num_locals: 0,
+					num_locals: 1,
 					num_parameters: 1,
 				}),
 				Object::Integer(1),
@@ -1045,7 +1044,7 @@ fn test_recursive_functions() {
 						make(Opcode::Call, &vec![1]),
 						make(Opcode::ReturnValue, &vec![]),
 					]),
-					num_locals: 0,
+					num_locals: 1,
 					num_parameters: 1,
 				}),
 				Object::Integer(1),
@@ -1086,101 +1085,21 @@ fn run_compiler_tests(tests: Vec<CompilerTestCase>) {
 
 		let bytecode = compiler.bytecode();
 
-		test_instructions(expected_instructions, bytecode.instructions);
+		let concatted = concat_instructions(expected_instructions);
+		assert_eq!(
+			instruction_to_string(&bytecode.instructions),
+			instruction_to_string(&concatted),
+			"wrong instructions\nInput: `{}`", input
+		);
 
-		test_constants(expected_constants, bytecode.constants);
+		assert_eq!(
+			bytecode.constants,
+			expected_constants,
+			"wrong constant\nInput `{}`", input
+		);
 	}
 }
 
 fn parse(input: &str) -> Program {
 	Parser::new(Lexer::new(input)).parse_program()
-}
-
-fn test_instructions(expected: Vec<Instructions>, actual: Instructions) {
-	let concatted = concat_instructions(expected);
-
-	assert_eq!(instruction_to_string(&actual), instruction_to_string(&concatted), "wrong instructions");
-}
-
-fn test_constants(expected: Vec<Object>, actual: Vec<Object>) {
-	assert_eq!(actual.len(), expected.len(), "wrong number of constants");
-
-	for (constant, actual) in expected.into_iter().zip(actual.into_iter()) {
-		match constant {
-			Object::Integer(v) => test_integer_object(v, actual),
-			Object::Boolean(v) => test_boolean_object(v, actual),
-			Object::String(v) => test_string_object(v, actual),
-			Object::Array(v) => test_array_object(v, actual),
-			Object::Hash(v) => test_hash_object(v, actual),
-			Object::Function(v) => test_function_object(v, actual),
-			_ => {}	//TODO Write tests for rest of objects
-		}
-	}
-}
-
-fn test_integer_object(expected: i64, actual: Object) {
-	if let Object::Integer(value) = actual {
-		assert_eq!(value, expected)
-	} else {
-		panic!("{:?} is not Integer", actual)
-	}
-}
-
-fn test_boolean_object(expected: bool, actual: Object) {
-	if let Object::Boolean(value) = actual {
-		assert_eq!(value, expected)
-	} else {
-		panic!("{:?} is not Boolean", actual)
-	}
-}
-
-fn test_string_object(expected: String, actual: Object) {
-	if let Object::String(value) = actual {
-		assert_eq!(value, expected)
-	} else {
-		panic!("{:?} is not String", actual)
-	}
-}
-
-fn test_array_object(expected: Vec<Object>, actual: Object) {
-	if let Object::Array(elements) = actual {
-		assert_eq!(elements.len(), expected.len(), "wrong num of elements");
-
-		for (expected_el, el) in expected.into_iter().zip(elements.into_iter()) {
-			if let Object::Integer(expected_el) = expected_el {
-				test_integer_object(expected_el, el);
-			}else {
-				panic!("{:?} isn't Integer", expected_el);
-			}
-		}
-	} else {
-		panic!("{:?} is not Array", actual);
-	}
-}
-
-fn test_hash_object(expected: HashMap<HashingObject, (HashingObject, Object)>, actual: Object) {
-	if let Object::Hash(mut pairs) = actual {
-		assert_eq!(pairs.len(), expected.len(), "wrong num of pairs");
-
-		for (expected_k, expected_v) in expected {
-			if let Some((_, actual_v)) = pairs.remove(&expected_k) {
-
-				if let (_, Object::Integer(expected_v)) = expected_v {
-					test_integer_object(expected_v, actual_v)
-				}
-			}else {
-				panic!("no pair for given key {:?} in pair {:?}", expected_k, pairs)
-			}
-		}
-	} else {
-		panic!("{:?} is not Hash", actual);
-	}
-}
-
-fn test_function_object(expected: Function, actual: Object) {
-	if let Object::Function(function) = actual {
-		test_instructions(vec![expected.instructions], function.instructions);
-	} else {
-		panic!("{:?} is not Function", actual);
-	}
 }

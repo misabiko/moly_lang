@@ -81,6 +81,7 @@ impl TryFrom<Object> for HashingObject {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Function {
 	pub instructions: Instructions,
+	/// Number of local symbols, includes num_parameters
 	pub num_locals: u8,
 	pub num_parameters: u8,
 }

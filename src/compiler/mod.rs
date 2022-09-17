@@ -330,10 +330,10 @@ impl Compiler {
 	}
 
 	fn replace_instruction(&mut self, pos: usize, new_instruction: Instructions) {
-		//TODO Maybe could be done with self.instructions[pos+1..] = new_instruction[..]?
-		for (i, ins) in new_instruction.into_iter().enumerate() {
-			self.current_instructions()[pos + i] = ins;
-		}
+		self.current_instructions().splice(
+			pos..pos+new_instruction.len(),
+			new_instruction
+		);
 	}
 
 	fn change_operand(&mut self, op_pos: usize, operand: usize) {

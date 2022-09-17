@@ -2,14 +2,22 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+///Size of biggest scope (global)
+pub type SymbolIndex = u16;
+
 //Could add function argument scope if the need special treatment
 // see "Resolving References to Arguments" in monkey compiler book
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SymbolScope {
+	/// Maximum of 65536 symbols
 	Global,
+	/// Maximum of 256 symbols
 	Local,
+	/// Maximum of 256 symbols
 	Builtin,
+	/// Maximum of 256 symbols
 	Free,
+	/// Symbol representing the current running function, for recursion
 	Function,
 }
 
@@ -17,14 +25,14 @@ pub enum SymbolScope {
 pub struct Symbol {
 	pub name: String,
 	pub scope: SymbolScope,
-	pub index: usize,
+	pub index: SymbolIndex,
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SymbolTable {
 	pub outer: Option<Rc<RefCell<SymbolTable>>>,
 	pub store: HashMap<String, Symbol>,
-	pub num_definitions: usize,
+	pub num_definitions: SymbolIndex,
 	pub free_symbols: Vec<Symbol>,
 }
 
@@ -55,10 +63,10 @@ impl SymbolTable {
 		self.store.get(name).unwrap()
 	}
 
-	pub fn define_builtin(&mut self, index: usize, name: &str) -> &Symbol {
+	pub fn define_builtin(&mut self, index: u8, name: &str) -> &Symbol {
 		let symbol = Symbol {
 			name: name.into(),
-			index,
+			index: index as SymbolIndex,
 			scope: SymbolScope::Builtin,
 		};
 
@@ -70,7 +78,7 @@ impl SymbolTable {
 		let name = original.name.clone();
 		let symbol = Symbol {
 			name: name.clone(),
-			index: self.free_symbols.len(),
+			index: self.free_symbols.len() as SymbolIndex,
 			scope: SymbolScope::Free,
 		};
 

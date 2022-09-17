@@ -567,9 +567,9 @@ fn test_compiler_scopes() {
 
 	compiler.emit(Opcode::Sub, vec![]);
 
-	assert_eq!(compiler.scopes[compiler.scope_index].instructions.len(), 1, "instructions length wrong");
+	assert_eq!(compiler.current_scope().instructions.len(), 1, "instructions length wrong");
 
-	let last = &compiler.scopes.get(compiler.scope_index).unwrap().last_instruction;
+	let last = &compiler.current_scope().last_instruction;
 	assert!(matches!(last, Some(EmittedInstruction { opcode: Opcode::Sub, .. })), "last_instruction wrong");
 
 	assert!(Rc::ptr_eq(compiler.symbol_table.borrow().outer.as_ref().unwrap(), &global_symbol_table), "compiler did not enclose symbol_table");
@@ -582,12 +582,12 @@ fn test_compiler_scopes() {
 
 	compiler.emit(Opcode::Add, vec![]);
 
-	assert_eq!(compiler.scopes[compiler.scope_index].instructions.len(), 2, "instructions length wrong");
+	assert_eq!(compiler.current_scope().instructions.len(), 2, "instructions length wrong");
 
-	let last = &compiler.scopes.get(compiler.scope_index).unwrap().last_instruction;
+	let last = &compiler.current_scope().last_instruction;
 	assert!(matches!(last, Some(EmittedInstruction { opcode: Opcode::Add, .. })), "last_instruction wrong");
 
-	let previous = &compiler.scopes.get(compiler.scope_index).unwrap().previous_instruction;
+	let previous = &compiler.current_scope().previous_instruction;
 	assert!(matches!(previous, Some(EmittedInstruction { opcode: Opcode::Mul, .. })), "previous_instruction wrong");
 }
 

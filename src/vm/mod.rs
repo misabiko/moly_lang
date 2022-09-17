@@ -229,7 +229,7 @@ impl VM {
 						let num_free = read_u8(&ins[ip + 2..]);
 						self.current_frame().ip += 3;
 
-						self.push_closure(const_index as usize, num_free as usize)?;
+						self.push_closure(const_index, num_free)?;
 					}
 					Opcode::CurrentClosure => {
 						let current_closure = self.current_frame().closure.clone();
@@ -383,16 +383,16 @@ impl VM {
 	}
 
 	fn call_closure(&mut self, closure: Closure, num_args: u8) -> VMResult {
-		let num_args = num_args as usize;
-
 		if closure.func.num_parameters != num_args {
 			//TODO Standardize assert_eq errors
 			return Err(format!("wrong number of arguments: want={}, got={}", closure.func.num_parameters, num_args));
 		}
+
+		let num_args = num_args as usize;
 		let num_locals = closure.func.num_locals;
 		self.push_frame(Frame::new(closure, self.stack.len() - num_args));
 
-		self.stack.resize(self.stack.len() - num_args + num_locals, None);
+		self.stack.resize(self.stack.len() - num_args + num_locals as usize, None);
 
 		Ok(())
 	}
@@ -441,8 +441,10 @@ impl VM {
 		self.frames.pop()
 	}
 
-	fn push_closure(&mut self, const_index: usize, num_free: usize) -> VMResult {
-		let constant = self.constants[const_index].clone();
+	fn push_closure(&mut self, const_index: u16, num_free: u8) -> VMResult {
+		let num_free = num_free as usize;
+
+		let constant = self.constants[const_index as usize].clone();
 		if let Object::Function(func) = constant {
 			//TODO Can we take from stack instead of copy and truncate?
 			let free = self.stack[self.stack.len() - num_free..].iter().cloned().map(|o| o.unwrap()).collect();

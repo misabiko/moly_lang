@@ -166,7 +166,7 @@ fn test_define_resolve_builtins() {
 	{
 		let mut borrow = global.borrow_mut();
 		for (i, value) in expected.iter().enumerate() {
-			borrow.define_builtin(i, &value.name);
+			borrow.define_builtin(i as u8, &value.name);
 		}
 	}
 

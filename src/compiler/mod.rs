@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use enum_primitive::FromPrimitive;
 use crate::ast::{Expression, Program, Statement};
-use crate::code::{Instructions, make, Opcode, Operand};
+use crate::code::{Instructions, make, Opcode, OperandIndex};
 use crate::compiler::symbol_table::{SymbolScope, Symbol, SymbolTable};
 use crate::object::{Function, Object};
 use crate::object::builtins::BUILTINS;
@@ -14,7 +14,7 @@ pub struct Compiler {
 	pub constants: Vec<Object>,
 	pub symbol_table: Rc<RefCell<SymbolTable>>,
 	pub scopes: Vec<CompilationScope>,
-	pub scope_index: usize,
+	pub scope_index: u8,
 }
 
 pub struct CompilationScope {
@@ -27,7 +27,7 @@ impl Compiler {
 	pub fn new() -> Self {
 		let mut table = SymbolTable::new(None);
 		for (i, v) in BUILTINS.iter().enumerate() {
-			table.define_builtin(i, v.name);
+			table.define_builtin(i as u8, v.name);
 		}
 
 		Self {
@@ -78,7 +78,7 @@ impl Compiler {
 				let (index, scope) = {
 					let mut table = self.symbol_table.borrow_mut();
 					let symbol = table.define(name.as_str());
-					(symbol.index, symbol.scope)
+					(symbol.index as OperandIndex, symbol.scope)
 				};
 
 				self.compile_expression(value)?;
@@ -220,7 +220,7 @@ impl Compiler {
 					self.symbol_table.borrow_mut().define_function_name(&name);
 				}
 
-				let num_parameters = parameters.len();
+				let num_parameters = parameters.len() as u8;
 				for param in parameters.into_iter() {
 					self.symbol_table.borrow_mut().define(&param);
 				}
@@ -235,7 +235,7 @@ impl Compiler {
 				}
 
 				let free_symbols = self.symbol_table.borrow().free_symbols.clone();
-				let num_locals = self.symbol_table.borrow().num_definitions;
+				let num_locals = self.symbol_table.borrow().num_definitions as u8;
 				let instructions = self.leave_scope().unwrap();
 
 				let num_free_symbols = free_symbols.len();
@@ -272,13 +272,13 @@ impl Compiler {
 		}
 	}
 
-	fn add_constant(&mut self, obj: Object) -> Operand {
+	fn add_constant(&mut self, obj: Object) -> OperandIndex {
 		self.constants.push(obj);
 
 		self.constants.len() - 1
 	}
 
-	pub fn emit(&mut self, op: Opcode, operands: Vec<Operand>) -> usize {
+	pub fn emit(&mut self, op: Opcode, operands: Vec<OperandIndex>) -> usize {
 		let pos = self.add_instruction(make(op, &operands));
 		self.set_last_instruction(op, pos);
 
@@ -286,7 +286,7 @@ impl Compiler {
 	}
 
 	fn current_instructions(&mut self) -> &mut Instructions {
-		&mut self.scopes[self.scope_index].instructions
+		&mut self.current_scope_mut().instructions
 	}
 
 	fn add_instruction(&mut self, ins: Instructions) -> usize {
@@ -297,19 +297,20 @@ impl Compiler {
 	}
 
 	fn set_last_instruction(&mut self, op: Opcode, pos: usize) {
-		let previous = std::mem::take(&mut self.scopes[self.scope_index].last_instruction);
+		let scope = self.current_scope_mut();
+		let previous = std::mem::take(&mut scope.last_instruction);
 		let last = EmittedInstruction { opcode: op, position: pos };
 
-		self.scopes[self.scope_index].previous_instruction = previous;
-		self.scopes[self.scope_index].last_instruction = Some(last);
+		scope.previous_instruction = previous;
+		scope.last_instruction = Some(last);
 	}
 
 	fn last_instruction_is(&self, op: Opcode) -> bool {
-		self.scopes[self.scope_index].last_instruction.as_ref().map(|ins| ins.opcode) == Some(op)
+		self.current_scope().last_instruction.as_ref().map(|ins| ins.opcode) == Some(op)
 	}
 
 	fn remove_last_pop(&mut self) {
-		let scope = self.scopes.get_mut(self.scope_index).unwrap();
+		let scope = self.current_scope_mut();
 		let last = scope.last_instruction.as_ref().unwrap();
 		let previous = &mut scope.previous_instruction;
 
@@ -322,14 +323,14 @@ impl Compiler {
 	}
 
 	fn replace_last_pop_with_return(&mut self) {
-		let last_pos = self.scopes[self.scope_index].last_instruction.as_ref().unwrap().position;
+		let last_pos = self.current_scope().last_instruction.as_ref().unwrap().position;
 		self.replace_instruction(last_pos, make(Opcode::ReturnValue, &vec![]));
 
-		self.scopes[self.scope_index].last_instruction.as_mut().unwrap().opcode = Opcode::ReturnValue;
+		self.current_scope_mut().last_instruction.as_mut().unwrap().opcode = Opcode::ReturnValue;
 	}
 
 	fn replace_instruction(&mut self, pos: usize, new_instruction: Instructions) {
-		//Maybe could be done with self.instructions[pos+1..] = new_instruction[..]?
+		//TODO Maybe could be done with self.instructions[pos+1..] = new_instruction[..]?
 		for (i, ins) in new_instruction.into_iter().enumerate() {
 			self.current_instructions()[pos + i] = ins;
 		}
@@ -370,12 +371,21 @@ impl Compiler {
 		ins
 	}
 
+	pub fn current_scope(&self) -> &CompilationScope {
+		&self.scopes[self.scope_index as usize]
+	}
+
+	pub fn current_scope_mut(&mut self) -> &mut CompilationScope {
+		&mut self.scopes[self.scope_index as usize]
+	}
+
 	fn load_symbol(&mut self, symbol: Symbol) {
+		let operands = vec![symbol.index as OperandIndex];
 		match symbol.scope {
-			SymbolScope::Global => self.emit(Opcode::GetGlobal, vec![symbol.index]),
-			SymbolScope::Local => self.emit(Opcode::GetLocal, vec![symbol.index]),
-			SymbolScope::Builtin => self.emit(Opcode::GetBuiltin, vec![symbol.index]),
-			SymbolScope::Free => self.emit(Opcode::GetFree, vec![symbol.index]),
+			SymbolScope::Global => self.emit(Opcode::GetGlobal, operands),
+			SymbolScope::Local => self.emit(Opcode::GetLocal, operands),
+			SymbolScope::Builtin => self.emit(Opcode::GetBuiltin, operands),
+			SymbolScope::Free => self.emit(Opcode::GetFree, operands),
 			SymbolScope::Function => self.emit(Opcode::CurrentClosure, vec![]),
 		};
 	}

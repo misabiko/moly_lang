@@ -54,7 +54,7 @@ pub struct Definition {
 	pub operand_widths: Vec<u8>,
 }
 
-pub type Operand = usize;
+pub type OperandIndex = usize;
 
 pub fn lookup(op: u8) -> Result<Definition, String> {
 	match Opcode::from_u8(op) {
@@ -104,7 +104,7 @@ pub fn lookup(op: u8) -> Result<Definition, String> {
 	}
 }
 
-pub fn make(op: Opcode, operands: &Vec<Operand>) -> Instructions {
+pub fn make(op: Opcode, operands: &Vec<OperandIndex>) -> Instructions {
 	let def = if let Ok(def) = lookup(op as u8) {
 		def
 	}else {
@@ -135,14 +135,14 @@ pub fn make(op: Opcode, operands: &Vec<Operand>) -> Instructions {
 	instruction.into()
 }
 
-pub fn read_operands(def: &Definition, ins: &[u8]) -> (Vec<Operand>, usize) {
+pub fn read_operands(def: &Definition, ins: &[u8]) -> (Vec<OperandIndex>, usize) {
 	let mut operands = vec![0; def.operand_widths.len()];
 	let mut offset = 0;
 
 	for (i, width) in def.operand_widths.iter().enumerate() {
 		match width {
-			1 => operands[i] = read_u8(&ins[offset..]) as Operand,
-			2 => operands[i] = read_u16(&ins[offset..]) as Operand,
+			1 => operands[i] = read_u8(&ins[offset..]) as OperandIndex,
+			2 => operands[i] = read_u16(&ins[offset..]) as OperandIndex,
 			_ => {}
 		}
 
@@ -185,7 +185,7 @@ pub fn instruction_to_string(ins: &Instructions) -> String {
 	out
 }
 
-fn fmt_instruction(def: Definition, operands: Vec<Operand>) -> String {
+fn fmt_instruction(def: Definition, operands: Vec<OperandIndex>) -> String {
 	let operand_count = def.operand_widths.len();
 
 	if operands.len() != operand_count {

@@ -22,7 +22,7 @@ pub fn start() {
 
 	let mut table = SymbolTable::new(None);
 	for (i, v) in BUILTINS.iter().enumerate() {
-		table.define_builtin(i, v.name);
+		table.define_builtin(i as u8, v.name);
 	}
 	let mut symbol_table = Rc::new(RefCell::new(table));
 

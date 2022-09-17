@@ -81,9 +81,8 @@ impl TryFrom<Object> for HashingObject {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Function {
 	pub instructions: Instructions,
-	//TODO Resize to maximum
-	pub num_locals: usize,
-	pub num_parameters: usize,
+	pub num_locals: u8,
+	pub num_parameters: u8,
 }
 
 pub type Builtin = fn(Vec<Object>) -> Option<Object>;

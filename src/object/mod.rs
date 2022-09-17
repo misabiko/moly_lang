@@ -15,6 +15,7 @@ pub enum Object {
 	Function(Function),
 	Builtin(Builtin),
 	Error(String),
+	Closure(Closure),
 }
 
 impl fmt::Display for Object {
@@ -35,6 +36,7 @@ impl fmt::Display for Object {
 			Object::Function(Function { instructions, .. }) => write!(f, "Function[{:?}]", instructions),
 			Object::Builtin(_) => write!(f, "builtin function"),
 			Object::Error(err) => write!(f, "ERROR: {}", err),
+			Object::Closure { .. } => write!(f, "Closure[{:?}]", self),
 		}
 	}
 }
@@ -85,3 +87,9 @@ pub struct Function {
 }
 
 pub type Builtin = fn(Vec<Object>) -> Option<Object>;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Closure {
+	pub func: Function,
+	pub free: Vec<Object>,
+}

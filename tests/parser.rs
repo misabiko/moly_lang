@@ -323,7 +323,7 @@ fn test_function_literal_parsing() {
 	for input in tests {
 		let stmt = parse_single_statement(input);
 
-		if let Statement::Expression(Expression::Function { parameters, body }) = stmt {
+		if let Statement::Expression(Expression::Function { parameters, body, .. }) = stmt {
 			assert_eq!(parameters.len(), 2, "function parameters wrong, want 2. ({:?})", parameters);
 
 			assert_eq!(&parameters[0], "x");
@@ -511,6 +511,17 @@ fn test_parsing_hash_literals_with_expressions() {
 		}
 	} else {
 		panic!("{:?} is not Statement::Expression(Hash)", stmt)
+	}
+}
+
+#[test]
+fn test_function_literal_with_name() {
+	let stmt = parse_single_statement("let myFunction = fn() { };");
+
+	if let Statement::Let { value: Expression::Function { name, .. }, .. } = stmt {
+		assert_eq!(name, Some("myFunction".into()), "function literal name wrong")
+	} else {
+		panic!("{:?} is not Statement::Let {{ value: Function }}", stmt)
 	}
 }
 

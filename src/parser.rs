@@ -75,7 +75,7 @@ impl Parser {
 			return None;
 		}
 
-		let name = Expression::Identifier(self.cur_token.literal.clone().expect("Current token doesn't have a value"));
+		let stmt_name = self.cur_token.literal.clone().expect("Current token doesn't have a value");
 
 		if !self.expect_peek(TokenType::Assign) {
 			return None;
@@ -83,14 +83,18 @@ impl Parser {
 
 		self.next_token();
 
-		let value = self.parse_expression(Precedence::Lowest)?;
+		let mut value = self.parse_expression(Precedence::Lowest)?;
+
+		if let Expression::Function { name, .. } = &mut value {
+			*name = Some(stmt_name.clone());
+		}
 
 		if self.peek_token_is(TokenType::Semicolon) {
 			self.next_token();
 		}
 
 		Some(Statement::Let {
-			name,
+			name: Expression::Identifier(stmt_name),
 			value,
 		})
 	}
@@ -300,6 +304,7 @@ impl Parser {
 		Some(Expression::Function {
 			parameters,
 			body,
+			name: None,//TODO
 		})
 	}
 

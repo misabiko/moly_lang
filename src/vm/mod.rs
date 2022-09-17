@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::convert::identity;
 use crate::code::{Instructions, Opcode, read_u16, read_u8};
 use crate::compiler::Bytecode;
-use crate::object::{Builtin, Function, HashingObject, Object};
+use crate::object::{Builtin, Closure, Function, HashingObject, Object};
 use crate::object::builtins::BUILTINS;
 use crate::vm::frame::Frame;
 
@@ -29,12 +29,17 @@ pub struct VM {
 
 impl VM {
 	pub fn new(bytecode: Bytecode) -> Self {
+		let main_closure = Closure {
+			func: Function {
+				instructions: bytecode.instructions,
+				num_locals: 0,
+				num_parameters: 0,
+			},
+			free: vec![]
+		};
+
 		let mut frames = Vec::with_capacity(MAX_FRAMES);
-		frames.push(Frame::new(Function {
-			instructions: bytecode.instructions,
-			num_locals: 0,
-			num_parameters: 0,
-		}, 0));
+		frames.push(Frame::new(main_closure, 0));
 
 		Self {
 			constants: bytecode.constants,
@@ -48,12 +53,17 @@ impl VM {
 	}
 
 	pub fn new_with_global_store(bytecode: Bytecode, globals: Vec<Object>) -> Self {
+		let main_closure = Closure {
+			func: Function {
+				instructions: bytecode.instructions,
+				num_locals: 0,
+				num_parameters: 0,
+			},
+			free: vec![]
+		};
+
 		let mut frames = Vec::with_capacity(MAX_FRAMES);
-		frames.push(Frame::new(Function {
-			instructions: bytecode.instructions,
-			num_locals: 0,
-			num_parameters: 0,
-		}, 0));
+		frames.push(Frame::new(main_closure, 0));
 
 		Self {
 			constants: bytecode.constants,
@@ -167,6 +177,13 @@ impl VM {
 
 					self.push(Object::Builtin(definition.builtin))?;
 				}
+				Ok(Opcode::OpGetFree) => {
+					let free_index = read_u8(&ins[ip..]) as usize;
+					self.current_frame().ip += 1;
+
+					let obj = self.current_frame().closure.free[free_index].clone();
+					self.push(obj)?;
+				}
 
 				Ok(Opcode::OpArray) => {
 					let num_elements = read_u16(&ins[ip..]) as usize;
@@ -212,6 +229,17 @@ impl VM {
 				Ok(Opcode::OpReturn) => {
 					let frame = self.pop_frame().unwrap();
 					self.stack.truncate(frame.base_pointer - 1);
+				}
+				Ok(Opcode::OpClosure) => {
+					let const_index = read_u16(&ins[ip..]);
+					let num_free = read_u8(&ins[ip+2..]);
+					self.current_frame().ip += 3;
+
+					self.push_closure(const_index as usize, num_free as usize)?;
+				}
+				Ok(Opcode::OpCurrentClosure) => {
+					let current_closure = self.current_frame().closure.clone();
+					self.push(Object::Closure(current_closure))?;
 				}
 
 				_ => panic!("{} undefined opcode", ins[ip - 1])
@@ -355,21 +383,21 @@ impl VM {
 		let num_args_usize = num_args as usize;
 		let callee = self.stack[self.stack.len() - 1 - num_args_usize].clone().unwrap();
 		match callee {
-			Object::Function(function) => self.call_function(function, num_args),
+			Object::Closure(closure) => self.call_closure(closure, num_args),
 			Object::Builtin(builtin) => self.call_builtin(builtin, num_args),
-			callee => Err(format!("calling non-function and non-builtin {:?}", callee))
+			callee => Err(format!("calling non-closure and non-builtin {:?}", callee))
 		}
 	}
 
-	fn call_function(&mut self, function: Function, num_args: u8) -> VMResult {
+	fn call_closure(&mut self, closure: Closure, num_args: u8) -> VMResult {
 		let num_args = num_args as usize;
 
-		if function.num_parameters != num_args {
+		if closure.func.num_parameters != num_args {
 			//TODO Standardize assert_eq errors
-			return Err(format!("wrong number of arguments: want={}, got={}", function.num_parameters, num_args))
+			return Err(format!("wrong number of arguments: want={}, got={}", closure.func.num_parameters, num_args))
 		}
-		let num_locals = function.num_locals;
-		self.push_frame(Frame::new(function, self.stack.len() - num_args));
+		let num_locals = closure.func.num_locals;
+		self.push_frame(Frame::new(closure, self.stack.len() - num_args));
 
 		self.stack.resize(self.stack.len() - num_args + num_locals, None);
 
@@ -420,6 +448,19 @@ impl VM {
 
 	fn pop_frame(&mut self) -> Option<Frame> {
 		self.frames.pop()
+	}
+
+	fn push_closure(&mut self, const_index: usize, num_free: usize) -> VMResult {
+		let constant = self.constants[const_index].clone();
+		if let Object::Function(func) = constant {
+			//TODO Can we take from stack instead of copy and truncate?
+			let free = self.stack[self.stack.len() - num_free..].iter().cloned().map(|o| o.unwrap()).collect();
+			self.stack.truncate(self.stack.len() - num_free);
+
+			self.push(Object::Closure(Closure { func, free }))
+		}else {
+			Err(format!("not a function: {}", constant))
+		}
 	}
 }
 

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use crate::ast::{Expression, Program, Statement};
 use crate::code::{Instructions, make, Opcode, Operand};
-use crate::compiler::symbol_table::{GLOBAL_SCOPE, LOCAL_SCOPE, BUILTIN_SCOPE, Symbol, SymbolTable};
+use crate::compiler::symbol_table::{GLOBAL_SCOPE, LOCAL_SCOPE, BUILTIN_SCOPE, FREE_SCOPE, FUNCTION_SCOPE, Symbol, SymbolTable};
 use crate::object::{Function, Object};
 use crate::object::builtins::BUILTINS;
 
@@ -73,10 +73,8 @@ impl Compiler {
 				self.compile_expression(exp)?;
 
 				self.emit(Opcode::OpPop, vec![]);
-			},
+			}
 			Statement::Let { name, value } => {
-				self.compile_expression(value)?;
-
 				//TODO Either dissolve Expression in Let statement, or add nested struct
 				let name = if let Expression::Identifier(name) = name {
 					name
@@ -89,9 +87,12 @@ impl Compiler {
 					let symbol = table.define(name.as_str());
 					(symbol.index, symbol.scope)
 				};
+
+				self.compile_expression(value)?;
+
 				if scope == GLOBAL_SCOPE {
 					self.emit(Opcode::OpSetGlobal, vec![index]);
-				}else {
+				} else {
 					self.emit(Opcode::OpSetLocal, vec![index]);
 				}
 			}
@@ -114,7 +115,7 @@ impl Compiler {
 			}
 			Expression::Boolean(value) => if value {
 				self.emit(Opcode::OpTrue, vec![]);
-			}else {
+			} else {
 				self.emit(Opcode::OpFalse, vec![]);
 			}
 			Expression::String(value) => {
@@ -138,7 +139,7 @@ impl Compiler {
 
 					self.emit(Opcode::OpGreaterThan, vec![]);
 
-					return Ok(())
+					return Ok(());
 				}
 
 				self.compile_expression(*left)?;
@@ -157,10 +158,10 @@ impl Compiler {
 				};
 			}
 			Expression::Identifier(name) => {
-				let symbol = if let Some(s) = self.symbol_table.borrow().resolve(&name) {
+				let symbol = if let Some(s) = self.symbol_table.borrow_mut().resolve(&name) {
 					s
-				}else {
-					return Err(format!("undefined variable {}", name))
+				} else {
+					return Err(format!("undefined variable {}", name));
 				};
 
 				self.load_symbol(symbol);
@@ -193,7 +194,7 @@ impl Compiler {
 
 				let after_alternative_pos = self.current_instructions().len();
 				self.change_operand(jump_pos, after_alternative_pos);
-			},
+			}
 			Expression::Array(elements) => {
 				let length = elements.len();
 				for el in elements {
@@ -219,8 +220,12 @@ impl Compiler {
 
 				self.emit(Opcode::OpIndex, vec![]);
 			}
-			Expression::Function { parameters, body } => {
+			Expression::Function { parameters, body, name } => {
 				self.enter_scope();
+
+				if let Some(name) = name {
+					self.symbol_table.borrow_mut().define_function_name(&name);
+				}
 
 				let num_parameters = parameters.len();
 				for param in parameters.into_iter() {
@@ -236,15 +241,21 @@ impl Compiler {
 					self.emit(Opcode::OpReturn, vec![]);
 				}
 
+				let free_symbols = self.symbol_table.borrow().free_symbols.clone();
 				let num_locals = self.symbol_table.borrow().num_definitions;
 				let instructions = self.leave_scope().unwrap();
 
-				let function = self.add_constant(Object::Function(Function {
+				let num_free_symbols = free_symbols.len();
+				for sym in free_symbols {
+					self.load_symbol(sym);
+				}
+
+				let fn_index = self.add_constant(Object::Function(Function {
 					instructions,
 					num_locals,
 					num_parameters,
 				}));
-				self.emit(Opcode::OpConstant, vec![function]);
+				self.emit(Opcode::OpClosure, vec![fn_index, num_free_symbols]);
 			}
 			Expression::Call { function, arguments } => {
 				self.compile_expression(*function)?;
@@ -256,7 +267,6 @@ impl Compiler {
 
 				self.emit(Opcode::OpCall, vec![length]);
 			}
-			_ => return Err(format!("{:?} not handled", exp))	//TODO Remove rest
 		}
 
 		Ok(())
@@ -328,7 +338,7 @@ impl Compiler {
 	fn replace_instruction(&mut self, pos: usize, new_instruction: Instructions) {
 		//Maybe could be done with self.instructions[pos+1..] = new_instruction[..]?
 		for (i, ins) in new_instruction.into_iter().enumerate() {
-			self.current_instructions()[pos+i] = ins;
+			self.current_instructions()[pos + i] = ins;
 		}
 	}
 
@@ -351,7 +361,8 @@ impl Compiler {
 			SymbolTable {
 				outer: None,
 				store: HashMap::new(),
-				num_definitions: 0
+				num_definitions: 0,
+				free_symbols: vec![],
 			}
 		)));
 		self.symbol_table = Rc::new(RefCell::new(SymbolTable::new(Some(table))));
@@ -371,6 +382,8 @@ impl Compiler {
 			GLOBAL_SCOPE => self.emit(Opcode::OpGetGlobal, vec![symbol.index]),
 			LOCAL_SCOPE => self.emit(Opcode::OpGetLocal, vec![symbol.index]),
 			BUILTIN_SCOPE => self.emit(Opcode::OpGetBuiltin, vec![symbol.index]),
+			FREE_SCOPE => self.emit(Opcode::OpGetFree, vec![symbol.index]),
+			FUNCTION_SCOPE => self.emit(Opcode::OpCurrentClosure, vec![]),
 			s => panic!("unsupported scope {:?}", s)
 		};
 	}

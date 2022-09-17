@@ -468,6 +468,164 @@ fn test_builtin_functions() {
 	run_vm_tests(tests)
 }
 
+#[test]
+fn test_closures() {
+	let tests = vec![
+		VMTestCase {
+			input: "
+			let newClosure = fn(a) {
+				fn() { a; };
+			};
+			let closure = newClosure(99);
+			closure();
+			",
+			expected: Ok(Object::Integer(99))
+		},
+		VMTestCase {
+			input: "
+			let newAdder = fn(a, b) {
+				fn(c) { a + b + c };
+			};
+			let adder = newAdder(1, 2);
+			adder(8);
+			",
+			expected: Ok(Object::Integer(11))
+		},
+		VMTestCase {
+			input: "
+			let newAdder = fn(a, b) {
+				let c = a + b;
+				fn(d) { c + d };
+			};
+			let adder = newAdder(1, 2);
+			adder(8);
+			",
+			expected: Ok(Object::Integer(11))
+		},
+		VMTestCase {
+			input: "
+			let newAdderOuter = fn(a, b) {
+				let c = a + b;
+				fn(d) {
+					let e = d + c;
+					fn(f) { e + f; };
+				};
+			};
+			let newAdderInner = newAdderOuter(1, 2)
+			let adder = newAdderInner(3);
+			adder(8);
+			",
+			expected: Ok(Object::Integer(14))
+		},
+		VMTestCase {
+			input: "
+			let a = 1;
+			let newAdderOuter = fn(b) {
+				fn(c) {
+					fn(d) { a + b + c + d };
+				};
+			};
+			let newAdderInner = newAdderOuter(2)
+			let adder = newAdderInner(3);
+			adder(8);
+			",
+			expected: Ok(Object::Integer(14))
+		},
+		VMTestCase {
+			input: "
+			let newClosure = fn(a, b) {
+				let one = fn() { a; };
+				let two = fn() { b; };
+				fn() { one() + two(); };
+			};
+			let closure = newClosure(9, 90);
+			closure();
+			",
+			expected: Ok(Object::Integer(99))
+		},
+	];
+
+	run_vm_tests(tests)
+}
+
+#[test]
+fn test_recursive_functions() {
+	let tests = vec![
+		VMTestCase {
+			input: "
+			let countDown = fn(x) {
+				if (x == 0) {
+					return 0;
+				} else {
+					countDown(x - 1);
+				}
+			};
+			countDown(1);
+			",
+			expected: Ok(Object::Integer(0))
+		},
+		VMTestCase {
+			input: "
+			let countDown = fn(x) {
+				if (x == 0) {
+					return 0;
+				} else {
+					countDown(x - 1);
+				}
+			};
+			let wrapper = fn() {
+				countDown(1);
+			};
+			wrapper();
+			",
+			expected: Ok(Object::Integer(0))
+		},
+		VMTestCase {
+			input: "
+			let wrapper = fn() {
+				let countDown = fn(x) {
+					if (x == 0) {
+						return 0;
+					} else {
+						countDown(x - 1);
+					}
+				};
+				countDown(1);
+			};
+			wrapper();
+			",
+			expected: Ok(Object::Integer(0))
+		},
+	];
+
+	run_vm_tests(tests)
+}
+
+#[test]
+fn test_recursive_fibonacci() {
+	let tests = vec![
+		VMTestCase {
+			input: "
+			let fibonacci = fn(x) {
+				if (x == 0) {
+					return 0;
+				} else {
+					if (x == 1) {
+						return 1;
+					} else {
+						fibonacci(x - 1) + fibonacci(x - 2);
+					}
+				}
+			};
+			fibonacci(15);
+			",
+			expected: Ok(Object::Integer(610)),
+		}
+	];
+
+	run_vm_tests(tests)
+}
+
 fn run_vm_tests(tests: Vec<VMTestCase>) {
 	for VMTestCase { input, expected } in tests {
 		//println!("{}", input);
@@ -480,6 +638,16 @@ fn run_vm_tests(tests: Vec<VMTestCase>) {
 
 		let bytecode = compiler.bytecode();
 		//println!("{}", instruction_to_string(&bytecode.instructions));
+
+		/*for (i, constant) in bytecode.constants.iter().enumerate() {
+			println!("CONSTANT {} {:p} ({:?}):", i, constant, constant);
+
+			match constant {
+				Object::Function(f) => println!(" Instructions:\n{}", instruction_to_string(&f.instructions)),
+				Object::Integer(i) => println!(" Value: {}\n", i),
+				_ => {}
+			}
+		}*/
 
 		let mut vm = VM::new(bytecode);
 		let vm_result = vm.run();
@@ -503,7 +671,7 @@ fn test_expected_object(expected: Object, actual: Option<Object>) {
 		(Object::Array(value), Some(actual)) => test_array_object(value, actual),
 		(Object::Hash(value), Some(actual)) => test_hash_object(value, actual),
 		(Object::Error(value), Some(actual)) => test_error_object(value, actual),
-		(Object::Builtin(_) | Object::Function(_), _) => {},	//TODO Check that never call this
+		_ => {},	//TODO Add tests for rest of objects
 	}
 }
 

@@ -6,6 +6,7 @@ fn test_make() {
 		(Opcode::OpConstant, vec![65534], vec![Opcode::OpConstant as u8, 255, 254]),
 		(Opcode::OpAdd, vec![], vec![Opcode::OpAdd as u8]),
 		(Opcode::OpGetLocal, vec![255], vec![Opcode::OpGetLocal as u8, 255]),
+		(Opcode::OpClosure, vec![65534, 255], vec![Opcode::OpClosure as u8, 255, 254, 255]),
 	];
 
 	for (op, operands, expected) in tests {
@@ -26,12 +27,14 @@ fn test_instruction_string() {
 		make(Opcode::OpGetLocal, &vec![1]),
 		make(Opcode::OpConstant, &vec![2]),
 		make(Opcode::OpConstant, &vec![65535]),
+		make(Opcode::OpClosure, &vec![65535, 255]),
 	];
 
 	let expected = "0000 OpAdd
 0001 OpGetLocal 1
 0003 OpConstant 2
 0006 OpConstant 65535
+0009 OpClosure 65535 255
 ";
 
 	let concatted = concat_instructions(instructions);
@@ -44,6 +47,7 @@ fn test_read_operands() {
 	let tests = vec![
 		(Opcode::OpConstant, vec![65535], 2),
 		(Opcode::OpGetLocal, vec![255], 1),
+		(Opcode::OpClosure, vec![65535, 255], 3),
 	];
 
 	for (op, operands, bytes_read) in tests {

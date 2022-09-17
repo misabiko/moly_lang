@@ -1,23 +1,22 @@
 use crate::code::Instructions;
-use crate::object::Function;
+use crate::object::Closure;
 
 pub struct Frame {
-	pub func: Function,
+	pub closure: Closure,
 	pub ip: usize,
 	pub base_pointer: usize,
 }
 
 impl Frame {
-	pub fn new(func: Function, base_pointer: usize) -> Self {
+	pub fn new(closure: Closure, base_pointer: usize) -> Self {
 		Frame {
-			func,
+			closure,
 			ip: 0,
 			base_pointer,
 		}
 	}
 
-	//TODO Dissolve if Object::Function doesn't expand
 	pub fn instructions(&self) -> &Instructions {
-		&self.func.instructions
+		&self.closure.func.instructions
 	}
 }

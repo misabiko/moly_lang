@@ -34,6 +34,7 @@ pub enum Opcode {
 	OpGetLocal,
 	OpSetLocal,
 	OpGetBuiltin,
+	OpGetFree,
 
 	OpArray,
 	OpHash,
@@ -42,6 +43,8 @@ pub enum Opcode {
 	OpCall,
 	OpReturnValue,
 	OpReturn,
+	OpClosure,
+	OpCurrentClosure,
 }
 
 //TODO Replace with macro
@@ -76,14 +79,17 @@ impl TryFrom<u8> for Opcode {
 			17 => Ok(Opcode::OpGetLocal),
 			18 => Ok(Opcode::OpSetLocal),
 			19 => Ok(Opcode::OpGetBuiltin),
+			20 => Ok(Opcode::OpGetFree),
 
-			20 => Ok(Opcode::OpArray),
-			21 => Ok(Opcode::OpHash),
-			22 => Ok(Opcode::OpIndex),
+			21 => Ok(Opcode::OpArray),
+			22 => Ok(Opcode::OpHash),
+			23 => Ok(Opcode::OpIndex),
 
-			23 => Ok(Opcode::OpCall),
-			24 => Ok(Opcode::OpReturnValue),
-			25 => Ok(Opcode::OpReturn),
+			24 => Ok(Opcode::OpCall),
+			25 => Ok(Opcode::OpReturnValue),
+			26 => Ok(Opcode::OpReturn),
+			27 => Ok(Opcode::OpClosure),
+			28 => Ok(Opcode::OpCurrentClosure),
 			_ => Err(())
 		}
 	}
@@ -124,6 +130,7 @@ pub fn lookup(op: u8) -> Result<Definition, String> {
 		Ok(Opcode::OpGetLocal) => Ok(Definition {name: "OpGetLocal", operand_widths: vec![1]}),
 		Ok(Opcode::OpSetLocal) => Ok(Definition {name: "OpSetLocal", operand_widths: vec![1]}),
 		Ok(Opcode::OpGetBuiltin) => Ok(Definition {name: "OpGetBuiltin", operand_widths: vec![1]}),
+		Ok(Opcode::OpGetFree) => Ok(Definition {name: "OpGetFree", operand_widths: vec![1]}),
 
 		//TODO Test error message for too many elements in an array
 		//Operand width: Number of elements
@@ -135,6 +142,8 @@ pub fn lookup(op: u8) -> Result<Definition, String> {
 		Ok(Opcode::OpCall) => Ok(Definition {name: "OpCall", operand_widths: vec![1]}),
 		Ok(Opcode::OpReturnValue) => Ok(Definition {name: "OpReturnValue", operand_widths: vec![]}),
 		Ok(Opcode::OpReturn) => Ok(Definition {name: "OpReturn", operand_widths: vec![]}),
+		Ok(Opcode::OpClosure) => Ok(Definition {name: "OpClosure", operand_widths: vec![2, 1]}),
+		Ok(Opcode::OpCurrentClosure) => Ok(Definition {name: "OpCurrentClosure", operand_widths: vec![]}),
 		Err(_) => Err(format!("opcode {} undefined", op))
 	}
 }
@@ -230,6 +239,7 @@ fn fmt_instruction(def: Definition, operands: Vec<Operand>) -> String {
 	match operand_count {
 		0 => def.name.into(),
 		1 => format!("{} {}", def.name, operands[0]),
+		2 => format!("{} {} {}", def.name, operands[0], operands[1]),
 		_ => format!("ERROR: unhandled operand_count for {}\n", def.name),
 	}
 }

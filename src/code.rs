@@ -104,11 +104,11 @@ pub fn lookup(op: u8) -> Result<Definition, String> {
 	}
 }
 
-pub fn make(op: Opcode, operands: &Vec<OperandIndex>) -> Instructions {
+pub fn make(op: Opcode, operands: &[OperandIndex]) -> Instructions {
 	let def = if let Ok(def) = lookup(op as u8) {
 		def
 	}else {
-		return vec![].into()
+		return [].into()
 	};
 
 	let mut instruction_len: usize = 1;

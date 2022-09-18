@@ -72,7 +72,7 @@ impl Compiler {
 			Statement::Expression(exp) => {
 				self.compile_expression(exp)?;
 
-				self.emit(Opcode::Pop, vec![]);
+				self.emit(Opcode::Pop, &[]);
 			}
 			Statement::Let { name, value } => {
 				let (index, scope) = {
@@ -84,15 +84,15 @@ impl Compiler {
 				self.compile_expression(value)?;
 
 				if let SymbolScope::Global = scope {
-					self.emit(Opcode::SetGlobal, vec![index]);
+					self.emit(Opcode::SetGlobal, &[index]);
 				} else {
-					self.emit(Opcode::SetLocal, vec![index]);
+					self.emit(Opcode::SetLocal, &[index]);
 				}
 			}
 			Statement::Return(Some(exp)) => {
 				self.compile_expression(exp)?;
 
-				self.emit(Opcode::ReturnValue, vec![]);
+				self.emit(Opcode::ReturnValue, &[]);
 			}
 			_ => return Err(format!("{:?} not handled", stmt))
 		}
@@ -104,23 +104,23 @@ impl Compiler {
 		match exp {
 			Expression::Integer(value) => {
 				let operand = self.add_constant(Object::Integer(value as i64));
-				self.emit(Opcode::Constant, vec![operand]);
+				self.emit(Opcode::Constant, &[operand]);
 			}
 			Expression::Boolean(value) => if value {
-				self.emit(Opcode::True, vec![]);
+				self.emit(Opcode::True, &[]);
 			} else {
-				self.emit(Opcode::False, vec![]);
+				self.emit(Opcode::False, &[]);
 			}
 			Expression::String(value) => {
 				let operand = self.add_constant(Object::String(value));
-				self.emit(Opcode::Constant, vec![operand]);
+				self.emit(Opcode::Constant, &[operand]);
 			}
 			Expression::Prefix { operator, right } => {
 				self.compile_expression(*right)?;
 
 				match operator.as_str() {
-					"!" => self.emit(Opcode::Bang, vec![]),
-					"-" => self.emit(Opcode::Minus, vec![]),
+					"!" => self.emit(Opcode::Bang, &[]),
+					"-" => self.emit(Opcode::Minus, &[]),
 					_ => return Err(format!("unknown operator {:?}", operator))
 				};
 			}
@@ -130,7 +130,7 @@ impl Compiler {
 
 					self.compile_expression(*left)?;
 
-					self.emit(Opcode::GreaterThan, vec![]);
+					self.emit(Opcode::GreaterThan, &[]);
 
 					return Ok(());
 				}
@@ -140,13 +140,13 @@ impl Compiler {
 				self.compile_expression(*right)?;
 
 				match operator {
-					"+" => self.emit(Opcode::Add, vec![]),
-					"-" => self.emit(Opcode::Sub, vec![]),
-					"*" => self.emit(Opcode::Mul, vec![]),
-					"/" => self.emit(Opcode::Div, vec![]),
-					">" => self.emit(Opcode::GreaterThan, vec![]),
-					"==" => self.emit(Opcode::Equal, vec![]),
-					"!=" => self.emit(Opcode::NotEqual, vec![]),
+					"+" => self.emit(Opcode::Add, &[]),
+					"-" => self.emit(Opcode::Sub, &[]),
+					"*" => self.emit(Opcode::Mul, &[]),
+					"/" => self.emit(Opcode::Div, &[]),
+					">" => self.emit(Opcode::GreaterThan, &[]),
+					"==" => self.emit(Opcode::Equal, &[]),
+					"!=" => self.emit(Opcode::NotEqual, &[]),
 					_ => return Err(format!("unknown operator {}", operator))
 				};
 			}
@@ -163,7 +163,7 @@ impl Compiler {
 				self.compile_expression(*condition)?;
 
 				//Emit an OpJumpIfFalse with temp value
-				let jump_if_false_pos = self.emit(Opcode::JumpIfFalse, vec![0]);
+				let jump_if_false_pos = self.emit(Opcode::JumpIfFalse, &[0]);
 
 				self.compile(consequence)?;
 
@@ -172,7 +172,7 @@ impl Compiler {
 				}
 
 				//Emit an OpJump with temp value
-				let jump_pos = self.emit(Opcode::Jump, vec![0]);
+				let jump_pos = self.emit(Opcode::Jump, &[0]);
 
 				let after_consequence_pos = self.current_instructions().len();
 				self.change_operand(jump_if_false_pos, after_consequence_pos);
@@ -194,7 +194,7 @@ impl Compiler {
 					self.compile_expression(el)?;
 				}
 
-				self.emit(Opcode::Array, vec![length]);
+				self.emit(Opcode::Array, &[length]);
 			}
 			Expression::Hash(mut pairs) => {
 				let length = pairs.len();
@@ -205,13 +205,13 @@ impl Compiler {
 					self.compile_expression(v)?;
 				}
 
-				self.emit(Opcode::Hash, vec![length * 2]);
+				self.emit(Opcode::Hash, &[length * 2]);
 			}
 			Expression::Index { left, index } => {
 				self.compile_expression(*left)?;
 				self.compile_expression(*index)?;
 
-				self.emit(Opcode::Index, vec![]);
+				self.emit(Opcode::Index, &[]);
 			}
 			Expression::Function { parameters, body, name } => {
 				self.enter_scope();
@@ -231,7 +231,7 @@ impl Compiler {
 					self.replace_last_pop_with_return();
 				}
 				if !self.last_instruction_is(Opcode::ReturnValue) {
-					self.emit(Opcode::Return, vec![]);
+					self.emit(Opcode::Return, &[]);
 				}
 
 				let free_symbols = self.symbol_table.borrow().free_symbols.clone();
@@ -248,7 +248,7 @@ impl Compiler {
 					num_locals,
 					num_parameters,
 				}));
-				self.emit(Opcode::Closure, vec![fn_index, num_free_symbols]);
+				self.emit(Opcode::Closure, &[fn_index, num_free_symbols]);
 			}
 			Expression::Call { function, arguments } => {
 				self.compile_expression(*function)?;
@@ -258,7 +258,7 @@ impl Compiler {
 					self.compile_expression(arg)?;
 				}
 
-				self.emit(Opcode::Call, vec![length]);
+				self.emit(Opcode::Call, &[length]);
 			}
 		}
 
@@ -278,8 +278,8 @@ impl Compiler {
 		self.constants.len() - 1
 	}
 
-	pub fn emit(&mut self, op: Opcode, operands: Vec<OperandIndex>) -> usize {
-		let pos = self.add_instruction(make(op, &operands));
+	pub fn emit(&mut self, op: Opcode, operands: &[OperandIndex]) -> usize {
+		let pos = self.add_instruction(make(op, operands));
 		self.set_last_instruction(op, pos);
 
 		pos
@@ -324,7 +324,7 @@ impl Compiler {
 
 	fn replace_last_pop_with_return(&mut self) {
 		let last_pos = self.current_scope().last_instruction.as_ref().unwrap().position;
-		self.replace_instruction(last_pos, make(Opcode::ReturnValue, &vec![]));
+		self.replace_instruction(last_pos, make(Opcode::ReturnValue, &[]));
 
 		self.current_scope_mut().last_instruction.as_mut().unwrap().opcode = Opcode::ReturnValue;
 	}
@@ -338,7 +338,7 @@ impl Compiler {
 
 	fn change_operand(&mut self, op_pos: usize, operand: usize) {
 		let op = Opcode::from_u8(self.current_instructions()[op_pos]).unwrap();
-		let new_instruction = make(op, &vec![operand]);
+		let new_instruction = make(op, &[operand]);
 
 		self.replace_instruction(op_pos, new_instruction)
 	}
@@ -380,13 +380,13 @@ impl Compiler {
 	}
 
 	fn load_symbol(&mut self, symbol: Symbol) {
-		let operands = vec![symbol.index as OperandIndex];
+		let operands = &[symbol.index as OperandIndex];
 		match symbol.scope {
 			SymbolScope::Global => self.emit(Opcode::GetGlobal, operands),
 			SymbolScope::Local => self.emit(Opcode::GetLocal, operands),
 			SymbolScope::Builtin => self.emit(Opcode::GetBuiltin, operands),
 			SymbolScope::Free => self.emit(Opcode::GetFree, operands),
-			SymbolScope::Function => self.emit(Opcode::CurrentClosure, vec![]),
+			SymbolScope::Function => self.emit(Opcode::CurrentClosure, &[]),
 		};
 	}
 }

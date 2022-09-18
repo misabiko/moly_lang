@@ -405,11 +405,6 @@ impl Parser {
 			self.next_token();
 
 			let key = self.parse_expression(Precedence::Lowest)?;
-			/*let key = if let Ok(key) = HashingExpression::try_from(self.parse_expression(Precedence::Lowest)?) {
-				key
-			}else {
-				return None;
-			};*/
 
 			if !self.expect_peek(TokenType::Colon) {
 				return None

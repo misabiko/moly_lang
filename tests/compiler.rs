@@ -19,69 +19,69 @@ fn test_integer_arithmetic() {
 			input: "1 + 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Add, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Add, &[]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
 			input: "1; 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Pop, &vec![]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Pop, &[]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
 			input: "1 - 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Sub, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Sub, &[]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
 			input: "1 * 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Mul, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Mul, &[]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
 			input: "2 / 1",
 			expected_constants: vec![Object::Integer(2), Object::Integer(1)],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Div, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Div, &[]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
 			input: "1 + 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Add, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Add, &[]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
 			input: "-1",
 			expected_constants: vec![Object::Integer(1)],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Minus, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Minus, &[]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -96,85 +96,85 @@ fn test_boolean_expressions() {
 			input: "true",
 			expected_constants: vec![],
 			expected_instructions: vec![
-				make(Opcode::True, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::True, &[]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
 			input: "false",
 			expected_constants: vec![],
 			expected_instructions: vec![
-				make(Opcode::False, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::False, &[]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
 			input: "1 > 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::GreaterThan, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::GreaterThan, &[]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
 			input: "1 < 2",
 			expected_constants: vec![Object::Integer(2), Object::Integer(1)],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::GreaterThan, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::GreaterThan, &[]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
 			input: "1 == 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Equal, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Equal, &[]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
 			input: "1 != 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::NotEqual, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::NotEqual, &[]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
 			input: "true == false",
 			expected_constants: vec![],
 			expected_instructions: vec![
-				make(Opcode::True, &vec![]),
-				make(Opcode::False, &vec![]),
-				make(Opcode::Equal, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::True, &[]),
+				make(Opcode::False, &[]),
+				make(Opcode::Equal, &[]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
 			input: "true != false",
 			expected_constants: vec![],
 			expected_instructions: vec![
-				make(Opcode::True, &vec![]),
-				make(Opcode::False, &vec![]),
-				make(Opcode::NotEqual, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::True, &[]),
+				make(Opcode::False, &[]),
+				make(Opcode::NotEqual, &[]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
 			input: "!true",
 			expected_constants: vec![],
 			expected_instructions: vec![
-				make(Opcode::True, &vec![]),
-				make(Opcode::Bang, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::True, &[]),
+				make(Opcode::Bang, &[]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -192,19 +192,19 @@ fn test_conditionals() {
 			expected_constants: vec![Object::Integer(10), Object::Integer(3333)],
 			expected_instructions: vec![
 				// 0000
-				make(Opcode::True, &vec![]),
+				make(Opcode::True, &[]),
 				// 0001
-				make(Opcode::JumpIfFalse, &vec![10]),
+				make(Opcode::JumpIfFalse, &[10]),
 				// 0004
-				make(Opcode::Constant, &vec![0]),
+				make(Opcode::Constant, &[0]),
 				// 0007
-				make(Opcode::Jump, &vec![10]),
+				make(Opcode::Jump, &[10]),
 				// 0010
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Pop, &[]),
 				// 0011
-				make(Opcode::Constant, &vec![1]),
+				make(Opcode::Constant, &[1]),
 				// 0013
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -214,21 +214,21 @@ fn test_conditionals() {
 			expected_constants: vec![Object::Integer(10), Object::Integer(20), Object::Integer(3333)],
 			expected_instructions: vec![
 				// 0000
-				make(Opcode::True, &vec![]),
+				make(Opcode::True, &[]),
 				// 0001
-				make(Opcode::JumpIfFalse, &vec![10]),
+				make(Opcode::JumpIfFalse, &[10]),
 				// 0004
-				make(Opcode::Constant, &vec![0]),
+				make(Opcode::Constant, &[0]),
 				// 0007
-				make(Opcode::Jump, &vec![13]),
+				make(Opcode::Jump, &[13]),
 				// 0010
-				make(Opcode::Constant, &vec![1]),
+				make(Opcode::Constant, &[1]),
 				// 0013
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Pop, &[]),
 				// 0014
-				make(Opcode::Constant, &vec![2]),
+				make(Opcode::Constant, &[2]),
 				// 0017
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -246,10 +246,10 @@ fn test_global_let_statements() {
 			",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::SetGlobal, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::SetGlobal, &vec![1]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::SetGlobal, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::SetGlobal, &[1]),
 			],
 		},
 		CompilerTestCase {
@@ -259,10 +259,10 @@ fn test_global_let_statements() {
 			",
 			expected_constants: vec![Object::Integer(1)],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::SetGlobal, &vec![0]),
-				make(Opcode::GetGlobal, &vec![0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::SetGlobal, &[0]),
+				make(Opcode::GetGlobal, &[0]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -273,12 +273,12 @@ fn test_global_let_statements() {
 			",
 			expected_constants: vec![Object::Integer(1)],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::SetGlobal, &vec![0]),
-				make(Opcode::GetGlobal, &vec![0]),
-				make(Opcode::SetGlobal, &vec![1]),
-				make(Opcode::GetGlobal, &vec![1]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::SetGlobal, &[0]),
+				make(Opcode::GetGlobal, &[0]),
+				make(Opcode::SetGlobal, &[1]),
+				make(Opcode::GetGlobal, &[1]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -293,8 +293,8 @@ fn test_string_expressions() {
 			input: r#""monkey"#,
 			expected_constants: vec![Object::String("monkey".into())],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Pop, &[]),
 			]
 		},
 		CompilerTestCase {
@@ -304,10 +304,10 @@ fn test_string_expressions() {
 				Object::String("key".into()),
 			],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Add, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Add, &[]),
+				make(Opcode::Pop, &[]),
 			]
 		},
 	];
@@ -323,8 +323,8 @@ fn test_array_literals() {
 			expected_constants: vec![],
 			expected_instructions: vec![
 				//TODO Profile copying operand vec
-				make(Opcode::Array, &vec![0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Array, &[0]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -335,11 +335,11 @@ fn test_array_literals() {
 				Object::Integer(3),
 			],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Constant, &vec![2]),
-				make(Opcode::Array, &vec![3]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Constant, &[2]),
+				make(Opcode::Array, &[3]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -353,17 +353,17 @@ fn test_array_literals() {
 				Object::Integer(6),
 			],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Add, &vec![]),
-				make(Opcode::Constant, &vec![2]),
-				make(Opcode::Constant, &vec![3]),
-				make(Opcode::Sub, &vec![]),
-				make(Opcode::Constant, &vec![4]),
-				make(Opcode::Constant, &vec![5]),
-				make(Opcode::Mul, &vec![]),
-				make(Opcode::Array, &vec![3]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Add, &[]),
+				make(Opcode::Constant, &[2]),
+				make(Opcode::Constant, &[3]),
+				make(Opcode::Sub, &[]),
+				make(Opcode::Constant, &[4]),
+				make(Opcode::Constant, &[5]),
+				make(Opcode::Mul, &[]),
+				make(Opcode::Array, &[3]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -378,8 +378,8 @@ fn test_hash_literals() {
 			input: "{}",
 			expected_constants: vec![],
 			expected_instructions: vec![
-				make(Opcode::Hash, &vec![0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Hash, &[0]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -387,14 +387,14 @@ fn test_hash_literals() {
 			expected_constants: vec![1, 2, 3, 4, 5, 6].into_iter()
 				.map(|i| Object::Integer(i)).collect(),
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Constant, &vec![2]),
-				make(Opcode::Constant, &vec![3]),
-				make(Opcode::Constant, &vec![4]),
-				make(Opcode::Constant, &vec![5]),
-				make(Opcode::Hash, &vec![6]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Constant, &[2]),
+				make(Opcode::Constant, &[3]),
+				make(Opcode::Constant, &[4]),
+				make(Opcode::Constant, &[5]),
+				make(Opcode::Hash, &[6]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -402,16 +402,16 @@ fn test_hash_literals() {
 			expected_constants: vec![1, 2, 3, 4, 5, 6].into_iter()
 				.map(|i| Object::Integer(i)).collect(),
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Constant, &vec![2]),
-				make(Opcode::Add, &vec![]),
-				make(Opcode::Constant, &vec![3]),
-				make(Opcode::Constant, &vec![4]),
-				make(Opcode::Constant, &vec![5]),
-				make(Opcode::Mul, &vec![]),
-				make(Opcode::Hash, &vec![4]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Constant, &[2]),
+				make(Opcode::Add, &[]),
+				make(Opcode::Constant, &[3]),
+				make(Opcode::Constant, &[4]),
+				make(Opcode::Constant, &[5]),
+				make(Opcode::Mul, &[]),
+				make(Opcode::Hash, &[4]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -427,15 +427,15 @@ fn test_index_expressions() {
 			expected_constants: vec![1, 2, 3, 1, 1].into_iter()
 				.map(|i| Object::Integer(i)).collect(),
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Constant, &vec![2]),
-				make(Opcode::Array, &vec![3]),
-				make(Opcode::Constant, &vec![3]),
-				make(Opcode::Constant, &vec![4]),
-				make(Opcode::Add, &vec![]),
-				make(Opcode::Index, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Constant, &[2]),
+				make(Opcode::Array, &[3]),
+				make(Opcode::Constant, &[3]),
+				make(Opcode::Constant, &[4]),
+				make(Opcode::Add, &[]),
+				make(Opcode::Index, &[]),
+				make(Opcode::Pop, &[]),
 			]
 		},
 		CompilerTestCase {
@@ -443,14 +443,14 @@ fn test_index_expressions() {
 			expected_constants: vec![1, 2, 2, 1].into_iter()
 				.map(|i| Object::Integer(i)).collect(),
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Hash, &vec![2]),
-				make(Opcode::Constant, &vec![2]),
-				make(Opcode::Constant, &vec![3]),
-				make(Opcode::Sub, &vec![]),
-				make(Opcode::Index, &vec![]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Hash, &[2]),
+				make(Opcode::Constant, &[2]),
+				make(Opcode::Constant, &[3]),
+				make(Opcode::Sub, &[]),
+				make(Opcode::Index, &[]),
+				make(Opcode::Pop, &[]),
 			]
 		},
 	];
@@ -468,18 +468,18 @@ fn test_functions() {
 				Object::Integer(10),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::Constant, &vec![0]),
-						make(Opcode::Constant, &vec![1]),
-						make(Opcode::Add, &vec![]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::Constant, &[0]),
+						make(Opcode::Constant, &[1]),
+						make(Opcode::Add, &[]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 0,
 					num_parameters: 0,
 				}),
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &vec![2, 0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Closure, &[2, 0]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -489,18 +489,18 @@ fn test_functions() {
 				Object::Integer(10),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::Constant, &vec![0]),
-						make(Opcode::Constant, &vec![1]),
-						make(Opcode::Add, &vec![]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::Constant, &[0]),
+						make(Opcode::Constant, &[1]),
+						make(Opcode::Add, &[]),
+						make(Opcode::ReturnValue, &[]),
 				]),
 					num_locals: 0,
 					num_parameters: 0,
 				}),
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &vec![2, 0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Closure, &[2, 0]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -510,18 +510,18 @@ fn test_functions() {
 				Object::Integer(2),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::Constant, &vec![0]),
-						make(Opcode::Pop, &vec![]),
-						make(Opcode::Constant, &vec![1]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::Constant, &[0]),
+						make(Opcode::Pop, &[]),
+						make(Opcode::Constant, &[1]),
+						make(Opcode::ReturnValue, &[]),
 				]),
 					num_locals: 0,
 					num_parameters: 0,
 				}),
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &vec![2, 0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Closure, &[2, 0]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -537,15 +537,15 @@ fn test_functions_without_return_value() {
 			expected_constants: vec![
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::Return, &vec![]),
+						make(Opcode::Return, &[]),
 				]),
 					num_locals: 0,
 					num_parameters: 0,
 				})
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &vec![0, 0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Closure, &[0, 0]),
+				make(Opcode::Pop, &[]),
 			]
 		}
 	];
@@ -559,12 +559,12 @@ fn test_compiler_scopes() {
 	assert_eq!(compiler.scope_index, 0, "scope_index wrong");
 	let global_symbol_table = compiler.symbol_table.clone();
 
-	compiler.emit(Opcode::Mul, vec![]);
+	compiler.emit(Opcode::Mul, &[]);
 
 	compiler.enter_scope();
 	assert_eq!(compiler.scope_index, 1, "scope_index wrong");
 
-	compiler.emit(Opcode::Sub, vec![]);
+	compiler.emit(Opcode::Sub, &[]);
 
 	assert_eq!(compiler.current_scope().instructions.len(), 1, "instructions length wrong");
 
@@ -579,7 +579,7 @@ fn test_compiler_scopes() {
 	assert!(Rc::ptr_eq(&compiler.symbol_table, &global_symbol_table), "compiler did not restore global symbol table");
 	assert_eq!(compiler.symbol_table.borrow().outer, None, "compiler modified global symbol table incorrectly");
 
-	compiler.emit(Opcode::Add, vec![]);
+	compiler.emit(Opcode::Add, &[]);
 
 	assert_eq!(compiler.current_scope().instructions.len(), 2, "instructions length wrong");
 
@@ -599,17 +599,17 @@ fn test_function_calls() {
 				Object::Integer(24),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::Constant, &vec![0]), // The literal "24"
-					make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::Constant, &[0]), // The literal "24"
+					make(Opcode::ReturnValue, &[]),
 				]),
 					num_locals: 0,
 					num_parameters: 0,
 				})
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &vec![1, 0]), // The compiled function
-				make(Opcode::Call, &vec![0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Closure, &[1, 0]), // The compiled function
+				make(Opcode::Call, &[0]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -621,20 +621,20 @@ fn test_function_calls() {
 				Object::Integer(24),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::Constant, &vec![0]), // The literal "24"
-					make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::Constant, &[0]), // The literal "24"
+					make(Opcode::ReturnValue, &[]),
 				]),
 					num_locals: 0,
 					num_parameters: 0,
 				})
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &vec![1, 0]), // The compiled function
+				make(Opcode::Closure, &[1, 0]), // The compiled function
 				//TODO Add tip message for redundant variables
-				make(Opcode::SetGlobal, &vec![0]),
-				make(Opcode::GetGlobal, &vec![0]),
-				make(Opcode::Call, &vec![0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::SetGlobal, &[0]),
+				make(Opcode::GetGlobal, &[0]),
+				make(Opcode::Call, &[0]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -645,8 +645,8 @@ fn test_function_calls() {
 			expected_constants: vec![
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::GetLocal, &vec![0]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::GetLocal, &[0]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 1,
 					num_parameters: 1,
@@ -654,12 +654,12 @@ fn test_function_calls() {
 				Object::Integer(24),
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &vec![0, 0]),
-				make(Opcode::SetGlobal, &vec![0]),
-				make(Opcode::GetGlobal, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Call, &vec![1]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Closure, &[0, 0]),
+				make(Opcode::SetGlobal, &[0]),
+				make(Opcode::GetGlobal, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Call, &[1]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -670,12 +670,12 @@ fn test_function_calls() {
 			expected_constants: vec![
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::GetLocal, &vec![0]),
-						make(Opcode::Pop, &vec![]),
-						make(Opcode::GetLocal, &vec![1]),
-						make(Opcode::Pop, &vec![]),
-						make(Opcode::GetLocal, &vec![2]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::GetLocal, &[0]),
+						make(Opcode::Pop, &[]),
+						make(Opcode::GetLocal, &[1]),
+						make(Opcode::Pop, &[]),
+						make(Opcode::GetLocal, &[2]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 3,
 					num_parameters: 3,
@@ -685,14 +685,14 @@ fn test_function_calls() {
 				Object::Integer(26),
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &vec![0, 0]),
-				make(Opcode::SetGlobal, &vec![0]),
-				make(Opcode::GetGlobal, &vec![0]),
-				make(Opcode::Constant, &vec![1]),
-				make(Opcode::Constant, &vec![2]),
-				make(Opcode::Constant, &vec![3]),
-				make(Opcode::Call, &vec![3]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Closure, &[0, 0]),
+				make(Opcode::SetGlobal, &[0]),
+				make(Opcode::GetGlobal, &[0]),
+				make(Opcode::Constant, &[1]),
+				make(Opcode::Constant, &[2]),
+				make(Opcode::Constant, &[3]),
+				make(Opcode::Call, &[3]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -712,18 +712,18 @@ fn test_let_statement_scopes() {
 				Object::Integer(55),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::GetGlobal, &vec![0]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::GetGlobal, &[0]),
+						make(Opcode::ReturnValue, &[]),
 				]),
 					num_locals: 0,
 					num_parameters: 0,
 				})
 			],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::SetGlobal, &vec![0]),
-				make(Opcode::Closure, &vec![1, 0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::SetGlobal, &[0]),
+				make(Opcode::Closure, &[1, 0]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -737,18 +737,18 @@ fn test_let_statement_scopes() {
 				Object::Integer(55),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::Constant, &vec![0]),
-						make(Opcode::SetLocal, &vec![0]),
-						make(Opcode::GetLocal, &vec![0]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::Constant, &[0]),
+						make(Opcode::SetLocal, &[0]),
+						make(Opcode::GetLocal, &[0]),
+						make(Opcode::ReturnValue, &[]),
 				]),
 					num_locals: 1,
 					num_parameters: 0,
 				})
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &vec![1, 0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Closure, &[1, 0]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -764,22 +764,22 @@ fn test_let_statement_scopes() {
 				Object::Integer(77),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::Constant, &vec![0]),
-						make(Opcode::SetLocal, &vec![0]),
-						make(Opcode::Constant, &vec![1]),
-						make(Opcode::SetLocal, &vec![1]),
-						make(Opcode::GetLocal, &vec![0]),
-						make(Opcode::GetLocal, &vec![1]),
-						make(Opcode::Add, &vec![]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::Constant, &[0]),
+						make(Opcode::SetLocal, &[0]),
+						make(Opcode::Constant, &[1]),
+						make(Opcode::SetLocal, &[1]),
+						make(Opcode::GetLocal, &[0]),
+						make(Opcode::GetLocal, &[1]),
+						make(Opcode::Add, &[]),
+						make(Opcode::ReturnValue, &[]),
 				]),
 					num_locals: 2,
 					num_parameters: 0,
 				})
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &vec![2, 0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Closure, &[2, 0]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -797,15 +797,15 @@ fn test_builtins() {
             ",
 			expected_constants: vec![Object::Integer(1)],
 			expected_instructions: vec![
-				make(Opcode::GetBuiltin, &vec![0]),
-				make(Opcode::Array, &vec![0]),
-				make(Opcode::Call, &vec![1]),
-				make(Opcode::Pop, &vec![]),
-				make(Opcode::GetBuiltin, &vec![5]),
-				make(Opcode::Array, &vec![0]),
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::Call, &vec![2]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::GetBuiltin, &[0]),
+				make(Opcode::Array, &[0]),
+				make(Opcode::Call, &[1]),
+				make(Opcode::Pop, &[]),
+				make(Opcode::GetBuiltin, &[5]),
+				make(Opcode::Array, &[0]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Call, &[2]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -813,18 +813,18 @@ fn test_builtins() {
 			expected_constants: vec![
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::GetBuiltin, &vec![0]),
-						make(Opcode::Array, &vec![0]),
-						make(Opcode::Call, &vec![1]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::GetBuiltin, &[0]),
+						make(Opcode::Array, &[0]),
+						make(Opcode::Call, &[1]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 0,
 					num_parameters: 0,
 				})
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &vec![0, 0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Closure, &[0, 0]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -846,27 +846,27 @@ fn test_closures() {
 			expected_constants: vec![
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::GetFree, &vec![0]),
-						make(Opcode::GetLocal, &vec![0]),
-						make(Opcode::Add, &vec![]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::GetFree, &[0]),
+						make(Opcode::GetLocal, &[0]),
+						make(Opcode::Add, &[]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 1,
 					num_parameters: 1,
 				}),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::GetLocal, &vec![0]),
-						make(Opcode::Closure, &vec![0, 1]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::GetLocal, &[0]),
+						make(Opcode::Closure, &[0, 1]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 1,
 					num_parameters: 1,
 				}),
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &vec![1, 0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Closure, &[1, 0]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -882,39 +882,39 @@ fn test_closures() {
 			expected_constants: vec![
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::GetFree, &vec![0]),
-						make(Opcode::GetFree, &vec![1]),
-						make(Opcode::Add, &vec![]),
-						make(Opcode::GetLocal, &vec![0]),
-						make(Opcode::Add, &vec![]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::GetFree, &[0]),
+						make(Opcode::GetFree, &[1]),
+						make(Opcode::Add, &[]),
+						make(Opcode::GetLocal, &[0]),
+						make(Opcode::Add, &[]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 1,
 					num_parameters: 1,
 				}),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::GetFree, &vec![0]),
-						make(Opcode::GetLocal, &vec![0]),
-						make(Opcode::Closure, &vec![0, 2]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::GetFree, &[0]),
+						make(Opcode::GetLocal, &[0]),
+						make(Opcode::Closure, &[0, 2]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 1,
 					num_parameters: 1,
 				}),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::GetLocal, &vec![0]),
-						make(Opcode::Closure, &vec![1, 1]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::GetLocal, &[0]),
+						make(Opcode::Closure, &[1, 1]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 1,
 					num_parameters: 1,
 				}),
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &vec![2, 0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Closure, &[2, 0]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 		CompilerTestCase {
@@ -942,49 +942,49 @@ fn test_closures() {
 				Object::Integer(88),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::Constant, &vec![3]),
-						make(Opcode::SetLocal, &vec![0]),
-						make(Opcode::GetGlobal, &vec![0]),
-						make(Opcode::GetFree, &vec![0]),
-						make(Opcode::Add, &vec![]),
-						make(Opcode::GetFree, &vec![1]),
-						make(Opcode::Add, &vec![]),
-						make(Opcode::GetLocal, &vec![0]),
-						make(Opcode::Add, &vec![]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::Constant, &[3]),
+						make(Opcode::SetLocal, &[0]),
+						make(Opcode::GetGlobal, &[0]),
+						make(Opcode::GetFree, &[0]),
+						make(Opcode::Add, &[]),
+						make(Opcode::GetFree, &[1]),
+						make(Opcode::Add, &[]),
+						make(Opcode::GetLocal, &[0]),
+						make(Opcode::Add, &[]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 1,
 					num_parameters: 0,
 				}),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::Constant, &vec![2]),
-						make(Opcode::SetLocal, &vec![0]),
-						make(Opcode::GetFree, &vec![0]),
-						make(Opcode::GetLocal, &vec![0]),
-						make(Opcode::Closure, &vec![4, 2]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::Constant, &[2]),
+						make(Opcode::SetLocal, &[0]),
+						make(Opcode::GetFree, &[0]),
+						make(Opcode::GetLocal, &[0]),
+						make(Opcode::Closure, &[4, 2]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 1,
 					num_parameters: 0,
 				}),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::Constant, &vec![1]),
-						make(Opcode::SetLocal, &vec![0]),
-						make(Opcode::GetLocal, &vec![0]),
-						make(Opcode::Closure, &vec![5, 1]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::Constant, &[1]),
+						make(Opcode::SetLocal, &[0]),
+						make(Opcode::GetLocal, &[0]),
+						make(Opcode::Closure, &[5, 1]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 1,
 					num_parameters: 0,
 				}),
 			],
 			expected_instructions: vec![
-				make(Opcode::Constant, &vec![0]),
-				make(Opcode::SetGlobal, &vec![0]),
-				make(Opcode::Closure, &vec![6, 0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::SetGlobal, &[0]),
+				make(Opcode::Closure, &[6, 0]),
+				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -1004,12 +1004,12 @@ fn test_recursive_functions() {
 				Object::Integer(1),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::CurrentClosure, &vec![]),
-						make(Opcode::GetLocal, &vec![0]),
-						make(Opcode::Constant, &vec![0]),
-						make(Opcode::Sub, &vec![]),
-						make(Opcode::Call, &vec![1]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::CurrentClosure, &[]),
+						make(Opcode::GetLocal, &[0]),
+						make(Opcode::Constant, &[0]),
+						make(Opcode::Sub, &[]),
+						make(Opcode::Call, &[1]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 1,
 					num_parameters: 1,
@@ -1017,12 +1017,12 @@ fn test_recursive_functions() {
 				Object::Integer(1),
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &vec![1, 0]),
-				make(Opcode::SetGlobal, &vec![0]),
-				make(Opcode::GetGlobal, &vec![0]),
-				make(Opcode::Constant, &vec![2]),
-				make(Opcode::Call, &vec![1]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Closure, &[1, 0]),
+				make(Opcode::SetGlobal, &[0]),
+				make(Opcode::GetGlobal, &[0]),
+				make(Opcode::Constant, &[2]),
+				make(Opcode::Call, &[1]),
+				make(Opcode::Pop, &[]),
 			]
 		},
 		CompilerTestCase {
@@ -1037,12 +1037,12 @@ fn test_recursive_functions() {
 				Object::Integer(1),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::CurrentClosure, &vec![]),
-						make(Opcode::GetLocal, &vec![0]),
-						make(Opcode::Constant, &vec![0]),
-						make(Opcode::Sub, &vec![]),
-						make(Opcode::Call, &vec![1]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::CurrentClosure, &[]),
+						make(Opcode::GetLocal, &[0]),
+						make(Opcode::Constant, &[0]),
+						make(Opcode::Sub, &[]),
+						make(Opcode::Call, &[1]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 1,
 					num_parameters: 1,
@@ -1050,23 +1050,23 @@ fn test_recursive_functions() {
 				Object::Integer(1),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::Closure, &vec![1, 0]),
-						make(Opcode::SetLocal, &vec![0]),
-						make(Opcode::GetLocal, &vec![0]),
-						make(Opcode::Constant, &vec![2]),
-						make(Opcode::Call, &vec![1]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::Closure, &[1, 0]),
+						make(Opcode::SetLocal, &[0]),
+						make(Opcode::GetLocal, &[0]),
+						make(Opcode::Constant, &[2]),
+						make(Opcode::Call, &[1]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 1,
 					num_parameters: 0,
 				}),
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &vec![3, 0]),
-				make(Opcode::SetGlobal, &vec![0]),
-				make(Opcode::GetGlobal, &vec![0]),
-				make(Opcode::Call, &vec![0]),
-				make(Opcode::Pop, &vec![]),
+				make(Opcode::Closure, &[3, 0]),
+				make(Opcode::SetGlobal, &[0]),
+				make(Opcode::GetGlobal, &[0]),
+				make(Opcode::Call, &[0]),
+				make(Opcode::Pop, &[]),
 			]
 		},
 	];

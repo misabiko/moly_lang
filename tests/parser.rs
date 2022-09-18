@@ -9,7 +9,6 @@ use moly_lang::ast::{Expression};
 
 #[test]
 fn test_let_statements() {
-	//TODO vec![] → []
 	let tests = vec![
 		("let x = 5;", "x", Expression::Integer(5)),
 		("let y = true;", "y", Expression::Boolean(true)),
@@ -91,7 +90,7 @@ fn test_boolean_expression() {
 
 #[test]
 fn test_parsing_prefix_expressions() {
-	let prefix_tests = vec![
+	let prefix_tests = [
 		("!5;", "!", Expression::Integer(5)),
 		("-15;", "-", Expression::Integer(15)),
 		("!true;", "!", Expression::Boolean(true)),
@@ -113,7 +112,7 @@ fn test_parsing_prefix_expressions() {
 
 #[test]
 fn test_parsing_infix_expressions() {
-	let infix_tests = vec![
+	let infix_tests = [
 		("5 + 5;", Expression::Integer(5), "+", Expression::Integer(5)),
 		("5 - 5;", Expression::Integer(5), "-", Expression::Integer(5)),
 		("5 * 5;", Expression::Integer(5), "*", Expression::Integer(5)),

@@ -2,7 +2,7 @@ use moly_lang::code::{concat_instructions, instruction_to_string, lookup, make, 
 
 #[test]
 fn test_make() {
-	let tests: Vec<(Opcode, Vec<usize>, Vec<u8>)> = vec![
+	let tests: [(Opcode, Vec<usize>, Vec<u8>); 4] = [
 		(Opcode::Constant, vec![65534], vec![Opcode::Constant as u8, 255, 254]),
 		(Opcode::Add, vec![], vec![Opcode::Add as u8]),
 		(Opcode::GetLocal, vec![255], vec![Opcode::GetLocal as u8, 255]),
@@ -23,11 +23,11 @@ fn test_make() {
 #[test]
 fn test_instruction_string() {
 	let instructions = vec![
-		make(Opcode::Add, &vec![]),
-		make(Opcode::GetLocal, &vec![1]),
-		make(Opcode::Constant, &vec![2]),
-		make(Opcode::Constant, &vec![65535]),
-		make(Opcode::Closure, &vec![65535, 255]),
+		make(Opcode::Add, &[]),
+		make(Opcode::GetLocal, &[1]),
+		make(Opcode::Constant, &[2]),
+		make(Opcode::Constant, &[65535]),
+		make(Opcode::Closure, &[65535, 255]),
 	];
 
 	let expected = "0000 OpAdd

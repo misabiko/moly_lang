@@ -32,7 +32,7 @@ if (5 < 10) {
 {"foo": "bar"}
 "#;
 
-	let tests = [
+	let tests = vec![
 		(TokenType::Let, TokenLiteral::Static("let")),
 		(TokenType::Ident, TokenLiteral::String("five".into())),
 		(TokenType::Assign, TokenLiteral::Static("=")),

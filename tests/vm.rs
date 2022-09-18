@@ -243,9 +243,9 @@ fn test_functions_without_return_value() {
 			expected: Ok(Object::Closure(Closure {
 				func: Function {
 					instructions: concat_instructions(vec![
-						make(Opcode::GetGlobal, &vec![0]),
-						make(Opcode::Call, &vec![0]),
-						make(Opcode::ReturnValue, &vec![]),
+						make(Opcode::GetGlobal, &[0]),
+						make(Opcode::Call, &[0]),
+						make(Opcode::ReturnValue, &[]),
 					]),
 					num_locals: 0,
 					num_parameters: 0,

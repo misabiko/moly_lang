@@ -1,6 +1,6 @@
 use crate::ast::{BlockStatement, Expression, Program, Statement};
 use crate::lexer::Lexer;
-use crate::token::{Token, TokenType};
+use crate::token::{Token, TokenLiteral, TokenType};
 
 pub struct Parser {
 	pub lexer: Lexer,
@@ -12,7 +12,7 @@ pub struct Parser {
 
 impl Parser {
 	pub fn new(lexer: Lexer) -> Self {
-		let default_token = Token {token_type: TokenType::Illegal, literal: None};
+		let default_token = Token {token_type: TokenType::Illegal, literal: TokenLiteral::Static("") };
 		let mut parser = Parser {
 			lexer,
 			errors: vec![],
@@ -75,7 +75,9 @@ impl Parser {
 			return None;
 		}
 
-		let stmt_name = self.cur_token.literal.clone().expect("Current token doesn't have a value");
+		let stmt_name = self.cur_token.literal
+			.get_string().cloned()
+			.expect("literal isn't string");
 
 		if !self.expect_peek(TokenType::Assign) {
 			return None;
@@ -127,7 +129,7 @@ impl Parser {
 
 	fn parse_expression(&mut self, precedence: Precedence) -> Option<Expression> {
 		let mut left_exp = match self.cur_token.token_type {
-			TokenType::Ident => Some(self.parse_identifier()),
+			TokenType::Ident => self.parse_identifier(),
 			TokenType::Int => self.parse_integer_literal(),
 			TokenType::Bang | TokenType::Minus => self.parse_prefix_expression(),
 			TokenType::True | TokenType::False => Some(self.parse_boolean()),
@@ -166,17 +168,18 @@ impl Parser {
 		Some(left_exp)
 	}
 
-	fn parse_identifier(&self) -> Expression {
-		Expression::Identifier(self.cur_token.literal.clone().unwrap())
+	fn parse_identifier(&self) -> Option<Expression> {
+		self.cur_token.literal
+			.get_string().cloned()
+			.map(|l| Expression::Identifier(l))
 	}
 
 	fn parse_integer_literal(&mut self) -> Option<Expression> {
-		match self.cur_token.literal.clone().unwrap().parse::<i64>() {
-			Ok(value) => Some(Expression::Integer(value)),
-			Err(err) => {
-				self.errors.push(format!("could not parse {:?} as integer ({:?})", self.cur_token.literal, err));
-				None
-			}
+		if let TokenLiteral::Integer(value) = self.cur_token.literal {
+			Some(Expression::Integer(value as isize))
+		}else {
+			self.errors.push(format!("token literal {:?} isn't an integer", self.cur_token.literal));
+			None
 		}
 	}
 
@@ -191,7 +194,7 @@ impl Parser {
 	}
 
 	fn parse_prefix_expression(&mut self) -> Option<Expression> {
-		let operator = self.cur_token.literal.clone().unwrap();
+		let operator = self.cur_token.token_type.to_string();
 
 		self.next_token();
 
@@ -205,7 +208,11 @@ impl Parser {
 	}
 
 	fn parse_infix_expression(&mut self, left: Expression) -> Option<Expression> {
-		let operator = self.cur_token.literal.clone().unwrap();
+		let operator = if let TokenLiteral::Static(operator) = self.cur_token.literal {
+			operator
+		}else {
+			return None
+		};
 
 		let precedence = self.cur_precedence();
 		self.next_token();
@@ -316,13 +323,14 @@ impl Parser {
 
 		self.next_token();
 
-		identifiers.push(self.cur_token.literal.clone().unwrap());
+		let expect_str = "identifier literal isn't string";
+		identifiers.push(self.cur_token.literal.get_string().cloned().expect(expect_str));
 
 		while self.peek_token_is(TokenType::Comma) {
 			self.next_token();
 			self.next_token();
 
-			identifiers.push(self.cur_token.literal.clone().unwrap());
+			identifiers.push(self.cur_token.literal.get_string().cloned().expect(expect_str));
 		}
 
 		if !self.expect_peek(TokenType::RParen) {
@@ -340,7 +348,11 @@ impl Parser {
 	}
 
 	fn parse_string_literal(&self) -> Expression {
-		Expression::String(self.cur_token.literal.clone().unwrap())
+		Expression::String(
+			self.cur_token.literal
+				.get_string().cloned()
+				.expect("literal isn't string")
+		)
 	}
 
 	fn parse_array_literal(&mut self) -> Option<Expression> {

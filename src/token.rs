@@ -4,8 +4,41 @@ use core::fmt::Formatter;
 #[derive(Debug, Clone)]
 pub struct Token {
 	pub token_type: TokenType,
-	//TODO Replace keywords and symbols with Literal::Default or something
-	pub literal: Option<String>,
+	pub literal: TokenLiteral,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum TokenLiteral {
+	Static(&'static str),
+	String(String),
+	//Minus is parsed as a separate token, so we store positive only
+	Integer(usize),
+}
+
+impl TokenLiteral {
+	pub fn get_static(&self) -> Option<&'static str> {
+		if let TokenLiteral::Static(literal) = self {
+			Some(literal)
+		}else {
+			None
+		}
+	}
+
+	pub fn get_string(&self) -> Option<&String> {
+		if let TokenLiteral::String(literal) = self {
+			Some(literal)
+		}else {
+			None
+		}
+	}
+
+	pub fn get_integer(&self) -> Option<&usize> {
+		if let TokenLiteral::Integer(literal) = self {
+			Some(literal)
+		}else {
+			None
+		}
+	}
 }
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]
@@ -99,15 +132,39 @@ impl fmt::Display for TokenType {
 	}
 }
 
-pub fn lookup_ident(keyword: &str) -> TokenType {
-	match keyword {
-		"fn" => TokenType::Function,
-		"let" => TokenType::Let,
-		"true" => TokenType::True,
-		"false" => TokenType::False,
-		"if" => TokenType::If,
-		"else" => TokenType::Else,
-		"return" => TokenType::Return,
-		_ => TokenType::Ident,
+pub fn lookup_ident(keyword: String) -> Token {
+	match keyword.as_str() {
+		"fn" => Token {
+			token_type: TokenType::Function,
+			literal: TokenLiteral::Static("fn")
+		},
+		"let" => Token {
+			token_type: TokenType::Let,
+			literal: TokenLiteral::Static("let")
+		},
+		"true" => Token {
+			token_type: TokenType::True,
+			literal: TokenLiteral::Static("true")
+		},
+		"false" => Token {
+			token_type: TokenType::False,
+			literal: TokenLiteral::Static("false")
+		},
+		"if" => Token {
+			token_type: TokenType::If,
+			literal: TokenLiteral::Static("if")
+		},
+		"else" => Token {
+			token_type: TokenType::Else,
+			literal: TokenLiteral::Static("else")
+		},
+		"return" => Token {
+			token_type: TokenType::Return,
+			literal: TokenLiteral::Static("return")
+		},
+		_ => Token {
+			token_type: TokenType::Ident,
+			literal: TokenLiteral::String(keyword)
+		},
 	}
 }

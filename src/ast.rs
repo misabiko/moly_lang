@@ -46,7 +46,8 @@ impl fmt::Display for Statement {
 #[derive(Debug, PartialEq)]
 pub enum Expression {
 	Identifier(String),
-	Integer(i64),
+	//TODO Negative usize will overflow, need to handle max integer size properly
+	Integer(isize),
 	Boolean(bool),
 	String(String),
 	Prefix {
@@ -55,8 +56,7 @@ pub enum Expression {
 	},
 	Infix {
 		left: Box<Expression>,
-		//TODO Try &'static str?
-		operator: String,
+		operator: &'static str,
 		right: Box<Expression>,
 	},
 	If {

@@ -103,7 +103,7 @@ impl Compiler {
 	fn compile_expression(&mut self, exp: Expression) -> CompilerResult {
 		match exp {
 			Expression::Integer(value) => {
-				let operand = self.add_constant(Object::Integer(value));
+				let operand = self.add_constant(Object::Integer(value as i64));
 				self.emit(Opcode::Constant, vec![operand]);
 			}
 			Expression::Boolean(value) => if value {
@@ -125,7 +125,7 @@ impl Compiler {
 				};
 			}
 			Expression::Infix { left, operator, right } => {
-				if operator.as_str() == "<" {
+				if operator == "<" {
 					self.compile_expression(*right)?;
 
 					self.compile_expression(*left)?;
@@ -139,7 +139,7 @@ impl Compiler {
 
 				self.compile_expression(*right)?;
 
-				match operator.as_str() {
+				match operator {
 					"+" => self.emit(Opcode::Add, vec![]),
 					"-" => self.emit(Opcode::Sub, vec![]),
 					"*" => self.emit(Opcode::Mul, vec![]),

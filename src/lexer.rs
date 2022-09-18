@@ -1,4 +1,4 @@
-use crate::token::{lookup_ident, Token, TokenType};
+use crate::token::{lookup_ident, Token, TokenLiteral, TokenType};
 
 pub struct Lexer {
 	//TODO Could be Chars
@@ -46,47 +46,44 @@ impl Lexer {
 
 		let token = match self.ch {
 			Some(ch) => match ch {
-				//TODO Order with TokenType
 				'=' => if self.peek_char() == Some('=') {
 					self.read_char();
-					new_token(TokenType::Eq, Some("==".to_owned()))
+					Token { token_type: TokenType::Eq, literal: TokenLiteral::Static("==") }
 				} else {
-					new_token(TokenType::Assign, Some(ch.to_string()))
+					Token { token_type: TokenType::Assign, literal: TokenLiteral::Static("=") }
 				},
-				'+' => new_token(TokenType::Plus, Some(ch.to_string())),
-				'-' => new_token(TokenType::Minus, Some(ch.to_string())),
+				'+' => Token { token_type: TokenType::Plus, literal: TokenLiteral::Static("+") },
+				'-' => Token { token_type: TokenType::Minus, literal: TokenLiteral::Static("-") },
 				'!' => if self.peek_char() == Some('=') {
 					self.read_char();
-					new_token(TokenType::NotEq, Some("!=".to_owned()))
+					Token { token_type: TokenType::NotEq, literal: TokenLiteral::Static("!=")}
 				} else {
-					new_token(TokenType::Bang, Some(ch.to_string()))
+					Token { token_type: TokenType::Bang, literal: TokenLiteral::Static("!") }
 				},
-				'/' => new_token(TokenType::Slash, Some(ch.to_string())),
-				'*' => new_token(TokenType::Asterisk, Some(ch.to_string())),
-				'<' => new_token(TokenType::LT, Some(ch.to_string())),
-				'>' => new_token(TokenType::GT, Some(ch.to_string())),
-				';' => new_token(TokenType::Semicolon, Some(ch.to_string())),
-				':' => new_token(TokenType::Colon, Some(ch.to_string())),
-				'(' => new_token(TokenType::LParen, Some(ch.to_string())),
-				')' => new_token(TokenType::RParen, Some(ch.to_string())),
-				',' => new_token(TokenType::Comma, Some(ch.to_string())),
-				'{' => new_token(TokenType::LBrace, Some(ch.to_string())),
-				'}' => new_token(TokenType::RBrace, Some(ch.to_string())),
-				'[' => new_token(TokenType::LBracket, Some(ch.to_string())),
-				']' => new_token(TokenType::RBracket, Some(ch.to_string())),
-				'"' => new_token(TokenType::String, Some(self.read_string())),
+				'*' => Token { token_type: TokenType::Asterisk, literal: TokenLiteral::Static("*") },
+				'/' => Token { token_type: TokenType::Slash, literal: TokenLiteral::Static("/") },
+				'<' => Token { token_type: TokenType::LT, literal: TokenLiteral::Static("<") },
+				'>' => Token { token_type: TokenType::GT, literal: TokenLiteral::Static(">") },
+				',' => Token { token_type: TokenType::Comma, literal: TokenLiteral::Static(",") },
+				';' => Token { token_type: TokenType::Semicolon, literal: TokenLiteral::Static(";") },
+				':' => Token { token_type: TokenType::Colon, literal: TokenLiteral::Static(":") },
+				'(' => Token { token_type: TokenType::LParen, literal: TokenLiteral::Static("(") },
+				')' => Token { token_type: TokenType::RParen, literal: TokenLiteral::Static(")") },
+				'{' => Token { token_type: TokenType::LBrace, literal: TokenLiteral::Static("{") },
+				'}' => Token { token_type: TokenType::RBrace, literal: TokenLiteral::Static("}") },
+				'[' => Token { token_type: TokenType::LBracket, literal: TokenLiteral::Static("[") },
+				']' => Token { token_type: TokenType::RBracket, literal: TokenLiteral::Static("]") },
+				'"' => Token { token_type: TokenType::String, literal: TokenLiteral::String(self.read_string())},
 				_ => if is_letter(self.ch) {
-					let literal = self.read_identifier();
 					//Returning early to skip the read_char() at the end
-					//TODO return the whole if
-					return new_token(lookup_ident(literal.as_str()), Some(literal))
+					return lookup_ident(self.read_identifier())
 				} else if is_digit(self.ch) {
-					return new_token(TokenType::Int, Some(self.read_number()))
+					return Token { token_type: TokenType::Int, literal: TokenLiteral::Integer(self.read_number())}
 				} else {
-					new_token(TokenType::Illegal, None)
+					Token { token_type: TokenType::Illegal, literal: TokenLiteral::Static("") }
 				}
 			}
-			None => new_token(TokenType::EOF, None),
+			None => Token { token_type: TokenType::EOF, literal: TokenLiteral::Static("") },
 		};
 
 		self.read_char();
@@ -111,7 +108,7 @@ impl Lexer {
 			.collect()
 	}
 
-	fn read_number(&mut self) -> String {
+	fn read_number(&mut self) -> usize {
 		let position = self.position;
 		while is_digit(self.ch) {
 			self.read_char();
@@ -120,6 +117,8 @@ impl Lexer {
 			.skip(position)
 			.take(self.position - position)
 			.collect::<String>()
+			.parse()
+			.expect("failed to parse integer")
 	}
 
 	fn read_string(&mut self) -> String {
@@ -134,14 +133,6 @@ impl Lexer {
 			.skip(position)
 			.take(self.position - position)
 			.collect()
-	}
-}
-
-//TODO Dissolve new_token?
-fn new_token(token_type: TokenType, literal: Option<String>) -> Token {
-	Token {
-		token_type,
-		literal,
 	}
 }
 

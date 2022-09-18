@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use moly_lang::ast::Program;
-use moly_lang::code::instruction_to_string;
 use moly_lang::compiler::Compiler;
 use moly_lang::lexer::Lexer;
 use moly_lang::object::{Function, HashingObject, Object};
@@ -628,7 +627,7 @@ fn test_recursive_fibonacci() {
 
 fn run_vm_tests(tests: Vec<VMTestCase>) {
 	for VMTestCase { input, expected } in tests {
-		println!("{}", input);
+		//println!("{}", input);
 		let program = parse(input);
 
 		let mut compiler = Compiler::new();
@@ -637,6 +636,7 @@ fn run_vm_tests(tests: Vec<VMTestCase>) {
 		}
 
 		let bytecode = compiler.bytecode();
+		/*println!("{}", instruction_to_string(&bytecode.instructions));
 
 		for (i, constant) in bytecode.constants.iter().enumerate() {
 			println!("CONSTANT {} {:p} ({:?}):", i, constant, constant);
@@ -646,7 +646,7 @@ fn run_vm_tests(tests: Vec<VMTestCase>) {
 				Object::Integer(i) => println!(" Value: {}\n", i),
 				_ => {}
 			}
-		}
+		}*/
 
 		let mut vm = VM::new(bytecode);
 		let vm_result = vm.run();

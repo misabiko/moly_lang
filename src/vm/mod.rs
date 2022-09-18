@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::convert::identity;
 use enum_primitive::FromPrimitive;
 use crate::code::{Instructions, Opcode, read_u16, read_u8};
 use crate::compiler::Bytecode;
@@ -16,16 +15,21 @@ const MAX_FRAMES: usize = 1024;
 const TRUE_OBJ: Object = Object::Boolean(true);
 const FALSE_OBJ: Object = Object::Boolean(false);
 
+//https://github.com/rust-lang/rust/issues/44796
+const STACK_INIT: Option<Object> = None;
+const FRAME_INIT: Option<Frame> = None;
+
 pub struct VM {
 	constants: Vec<Object>,
 	pub globals: Vec<Object>,
 
-	//TODO Try fixed size pre allocated array
-	stack: Vec<Option<Object>>,
+	stack: [Option<Object>; STACK_SIZE],
+	sp: usize,
+	//TODO Turn into ref
 	pub last_popped_stack_elem: Option<Object>,
 
-	//TODO Try fixed size pre allocated array
-	pub frames: Vec<Frame>,
+	pub frames: [Option<Frame>; MAX_FRAMES],
+	frame_index: usize,
 }
 
 impl VM {
@@ -39,17 +43,19 @@ impl VM {
 			free: vec![],
 		};
 
-		let mut frames = Vec::with_capacity(MAX_FRAMES);
-		frames.push(Frame::new(main_closure, 0));
+		let mut frames: [Option<Frame>; MAX_FRAMES] = [FRAME_INIT; MAX_FRAMES];
+		frames[0] = Some(Frame::new(main_closure, 0));
 
 		Self {
 			constants: bytecode.constants,
 			globals: Vec::with_capacity(GLOBALS_SIZE),
 
-			stack: Vec::with_capacity(STACK_SIZE),
+			stack: [STACK_INIT; STACK_SIZE],
+			sp: 0,
 			last_popped_stack_elem: None,
 
 			frames,
+			frame_index: 1,
 		}
 	}
 
@@ -63,17 +69,19 @@ impl VM {
 			free: vec![],
 		};
 
-		let mut frames = Vec::with_capacity(MAX_FRAMES);
-		frames.push(Frame::new(main_closure, 0));
+		let mut frames: [Option<Frame>; MAX_FRAMES] = [FRAME_INIT; MAX_FRAMES];
+		frames[0] = Some(Frame::new(main_closure, 0));
 
 		Self {
 			constants: bytecode.constants,
 			globals,
 
-			stack: Vec::with_capacity(STACK_SIZE),
+			stack: [STACK_INIT; STACK_SIZE],
+			sp: 0,
 			last_popped_stack_elem: None,
 
 			frames,
+			frame_index: 1,
 		}
 	}
 
@@ -125,7 +133,7 @@ impl VM {
 						self.current_frame().ip += 2;
 
 						let condition = self.pop().unwrap();
-						if condition == FALSE_OBJ {
+						if condition == &FALSE_OBJ {
 							self.current_frame().ip = pos;
 						}
 					}
@@ -135,7 +143,7 @@ impl VM {
 						self.current_frame().ip += 2;
 
 						let len = self.globals.len();
-						let value = self.pop().unwrap();
+						let value = self.pop().cloned().unwrap();
 
 						match global_index {
 							i if i == len => self.globals.push(value),
@@ -154,7 +162,7 @@ impl VM {
 						self.current_frame().ip += 1;
 
 						let base_pointer = self.current_frame().base_pointer;
-						self.stack[base_pointer + local_index] = self.pop();
+						self.stack[base_pointer + local_index] = self.pop().cloned();
 					}
 					Opcode::GetLocal => {
 						let local_index = read_u8(&ins[ip..]) as usize;
@@ -183,9 +191,8 @@ impl VM {
 						let num_elements = read_u16(&ins[ip..]) as usize;
 						self.current_frame().ip += 2;
 
-						let sp = self.stack.len();
-						let array = self.build_array(sp - num_elements, sp);
-						self.stack.truncate(sp - num_elements);
+						let array = self.build_array(self.sp - num_elements, self.sp);
+						self.sp -= num_elements;
 
 						self.push(array)?;
 					}
@@ -193,15 +200,14 @@ impl VM {
 						let num_elements = read_u16(&ins[ip..]) as usize;
 						self.current_frame().ip += 2;
 
-						let sp = self.stack.len();
-						let hash = self.build_hash(sp - num_elements, sp)?;
-						self.stack.truncate(sp - num_elements);
+						let hash = self.build_hash(self.sp - num_elements, self.sp)?;
+						self.sp -= num_elements;
 
 						self.push(hash)?;
 					}
 					Opcode::Index => {
-						let index = self.pop().ok_or("index not on stack")?;
-						let left = self.pop().ok_or("left expression not on stack")?;
+						let index = self.pop().cloned().ok_or("index not on stack")?;
+						let left = self.pop().cloned().ok_or("left expression not on stack")?;
 
 						self.execute_index_expression(left, index)?;
 					}
@@ -213,16 +219,16 @@ impl VM {
 						self.execute_call(num_args)?;
 					}
 					Opcode::ReturnValue => {
-						let return_value = self.pop().unwrap();
+						let return_value = self.pop().cloned().unwrap();
 
-						let frame = self.pop_frame().unwrap();
-						self.stack.truncate(frame.base_pointer - 1);
+						let base_pointer = self.pop_frame().as_ref().unwrap().base_pointer;
+						self.sp = base_pointer - 1;
 
 						self.push(return_value)?;
 					}
 					Opcode::Return => {
-						let frame = self.pop_frame().unwrap();
-						self.stack.truncate(frame.base_pointer - 1);
+						let base_pointer = self.pop_frame().as_ref().unwrap().base_pointer;
+						self.sp = base_pointer - 1;
 					}
 					Opcode::Closure => {
 						let const_index = read_u16(&ins[ip..]);
@@ -244,8 +250,8 @@ impl VM {
 	}
 
 	fn execute_binary_operation(&mut self, op: Opcode) -> VMResult {
-		let right = self.pop();
-		let left = self.pop();
+		let right = self.pop().cloned();
+		let left = self.pop().cloned();
 
 		match (&left, &right) {
 			(Some(Object::Integer(left)), Some(Object::Integer(right)))
@@ -279,8 +285,8 @@ impl VM {
 	}
 
 	fn execute_comparison(&mut self, op: Opcode) -> VMResult {
-		let left = self.pop().unwrap();
-		let right = self.pop().unwrap();
+		let left = self.pop().cloned().unwrap();
+		let right = self.pop().cloned().unwrap();
 
 		if let (Object::Integer(left), Object::Integer(right)) = (&left, &right) {
 			return self.execute_integer_comparison(op, *left, *right);
@@ -305,7 +311,7 @@ impl VM {
 	fn execute_bang_operator(&mut self) -> VMResult {
 		let operand = self.pop().unwrap();
 
-		match operand {
+		match *operand {
 			TRUE_OBJ => self.push(FALSE_OBJ),
 			FALSE_OBJ => self.push(TRUE_OBJ),
 			_ => return Err(format!("unsupported type for bang operator: {:?}", operand)),
@@ -316,6 +322,7 @@ impl VM {
 		let operand = self.pop().unwrap();
 
 		if let Object::Integer(value) = operand {
+			let value = *value;
 			self.push(Object::Integer(-value))
 		} else {
 			Err(format!("unsupported type for negation: {:?}", operand))
@@ -374,7 +381,7 @@ impl VM {
 
 	fn execute_call(&mut self, num_args: u8) -> VMResult {
 		let num_args_usize = num_args as usize;
-		let callee = self.stack[self.stack.len() - 1 - num_args_usize].clone().unwrap();
+		let callee = self.stack[self.sp - 1 - num_args_usize].clone().unwrap();
 		match callee {
 			Object::Closure(closure) => self.call_closure(closure, num_args),
 			Object::Builtin(builtin) => self.call_builtin(builtin, num_args),
@@ -390,19 +397,20 @@ impl VM {
 
 		let num_args = num_args as usize;
 		let num_locals = closure.func.num_locals;
-		self.push_frame(Frame::new(closure, self.stack.len() - num_args));
+		let base_pointer = self.sp - num_args;
+		self.push_frame(Frame::new(closure, base_pointer));
 
-		self.stack.resize(self.stack.len() - num_args + num_locals as usize, None);
+		self.sp = base_pointer + num_locals as usize;
 
 		Ok(())
 	}
 
 	fn call_builtin(&mut self, builtin: Builtin, num_args: u8) -> VMResult {
 		let num_args = num_args as usize;
-		let args = &self.stack[self.stack.len() - num_args..];
+		let args = &self.stack[self.sp - num_args..self.sp];
 
 		let result = builtin(args.iter().cloned().map(|a| a.unwrap()).collect());
-		self.stack.truncate(self.stack.len() - num_args - 1);
+		self.sp = self.sp - num_args - 1;
 
 		if let Some(result) = result {
 			self.push(result)
@@ -412,33 +420,41 @@ impl VM {
 	}
 
 	fn push(&mut self, obj: Object) -> VMResult {
-		if self.stack.len() >= STACK_SIZE {
+		if self.sp >= STACK_SIZE {
 			return Err("stack overflow".into());
 		}
 
-		self.stack.push(Some(obj));
-		//self.sp += 1;
+		self.stack[self.sp] = Some(obj);
+		self.sp += 1;
 
 		Ok(())
 	}
 
-	fn pop(&mut self) -> Option<Object> {
-		self.last_popped_stack_elem = self.stack.pop().and_then(identity);
+	fn pop(&mut self) -> Option<&Object> {
+		//TODO Throw on dry pop
+		if self.sp == 0 {
+			self.last_popped_stack_elem = None;
+			None
+		}else {
+			self.last_popped_stack_elem = self.stack[self.sp - 1].clone();
+			self.sp -= 1;
 
-		self.last_popped_stack_elem.clone()
+			self.last_popped_stack_elem.as_ref()
+		}
 	}
 
-	//TODO Dissolve if still not using index iterator
 	fn current_frame(&mut self) -> &mut Frame {
-		self.frames.last_mut().unwrap()
+		self.frames[self.frame_index - 1].as_mut().unwrap()
 	}
 
 	fn push_frame(&mut self, frame: Frame) {
-		self.frames.push(frame)
+		self.frames[self.frame_index] = Some(frame);
+		self.frame_index += 1;
 	}
 
-	fn pop_frame(&mut self) -> Option<Frame> {
-		self.frames.pop()
+	fn pop_frame(&mut self) -> &Option<Frame> {
+		self.frame_index -= 1;
+		&self.frames[self.frame_index]
 	}
 
 	fn push_closure(&mut self, const_index: u16, num_free: u8) -> VMResult {
@@ -446,7 +462,9 @@ impl VM {
 
 		let constant = self.constants[const_index as usize].clone();
 		if let Object::Function(func) = constant {
-			let free = self.stack.split_off(self.stack.len() - num_free).into_iter().map(|o| o.unwrap()).collect();
+			//let free = self.stack.split_off(self.sp - num_free).into_iter().map(|o| o.unwrap()).collect();
+			let free = self.stack[self.sp - num_free..self.sp].iter_mut().map(|o| o.take().unwrap()).collect();
+			self.sp -= num_free;
 
 			self.push(Object::Closure(Closure { func, free }))
 		} else {

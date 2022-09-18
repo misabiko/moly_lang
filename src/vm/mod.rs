@@ -25,7 +25,6 @@ pub struct VM {
 
 	stack: [Option<Object>; STACK_SIZE],
 	sp: usize,
-	//TODO Turn into ref
 	pub last_popped_stack_elem: Option<Object>,
 
 	pub frames: [Option<Frame>; MAX_FRAMES],
@@ -432,11 +431,13 @@ impl VM {
 
 	fn pop(&mut self) -> Option<&Object> {
 		//TODO Throw on dry pop
+			//TODO How to remove OpPop after function without return
 		if self.sp == 0 {
 			self.last_popped_stack_elem = None;
 			None
 		}else {
-			self.last_popped_stack_elem = self.stack[self.sp - 1].clone();
+			self.last_popped_stack_elem = self.stack[self.sp - 1].take();
+			assert!(self.last_popped_stack_elem.is_some(), "missing popped value");
 			self.sp -= 1;
 
 			self.last_popped_stack_elem.as_ref()

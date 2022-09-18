@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use moly_lang::ast::Program;
+use moly_lang::code::{concat_instructions, make, Opcode};
 use moly_lang::compiler::Compiler;
 use moly_lang::lexer::Lexer;
-use moly_lang::object::{Function, HashingObject, Object};
+use moly_lang::object::{Closure, Function, HashingObject, Object};
 use moly_lang::parser::Parser;
 use moly_lang::vm::VM;
 
@@ -239,10 +240,17 @@ fn test_functions_without_return_value() {
 			noReturn();
 			noReturnTwo();
 			",
-			expected: Ok(Object::Function(Function {
-				instructions: vec![15, 0, 0, 20, 21],
-				num_locals: 0,
-				num_parameters: 0,
+			expected: Ok(Object::Closure(Closure {
+				func: Function {
+					instructions: concat_instructions(vec![
+						make(Opcode::GetGlobal, &vec![0]),
+						make(Opcode::Call, &vec![0]),
+						make(Opcode::ReturnValue, &vec![]),
+					]),
+					num_locals: 0,
+					num_parameters: 0,
+				},
+				free: vec![],
 			})),
 		},
 	];
@@ -656,88 +664,12 @@ fn run_vm_tests(tests: Vec<VMTestCase>) {
 			(Err(None) | Ok(_), Err(vm_err)) => panic!("vm error: {}", vm_err),
 			(Err(Some(expected_err)), Ok(_)) => panic!("expected vm error: {}", expected_err),
 			(Err(None), _) => assert!(stack_elem.is_none(), "{:?} should be None", stack_elem),
-			(Ok(expected), _) => test_expected_object(expected, stack_elem),
-		}
-	}
-}
-
-fn test_expected_object(expected: Object, actual: Option<Object>) {
-	match (expected, actual) {
-		(_, None) => panic!("missing last popped stack element"),
-		(Object::Integer(value), Some(actual)) => test_integer_object(value, actual),
-		(Object::Boolean(value), Some(actual)) => test_boolean_object(value, actual),
-		(Object::String(value), Some(actual)) => test_string_object(value, actual),
-		(Object::Array(value), Some(actual)) => test_array_object(value, actual),
-		(Object::Hash(value), Some(actual)) => test_hash_object(value, actual),
-		(Object::Error(value), Some(actual)) => test_error_object(value, actual),
-		_ => {},	//TODO Add tests for rest of objects
-	}
-}
-
-fn test_integer_object(expected: i64, actual: Object) {
-	if let Object::Integer(value) = actual {
-		assert_eq!(value, expected);
-	} else {
-		panic!("{:?} is not Integer", actual);
-	}
-}
-
-fn test_boolean_object(expected: bool, actual: Object) {
-	if let Object::Boolean(value) = actual {
-		assert_eq!(value, expected);
-	} else {
-		panic!("{:?} is not Boolean", actual);
-	}
-}
-
-fn test_string_object(expected: String, actual: Object) {
-	if let Object::String(value) = actual {
-		assert_eq!(value, expected);
-	} else {
-		panic!("{:?} is not String", actual);
-	}
-}
-
-fn test_array_object(expected: Vec<Object>, actual: Object) {
-	if let Object::Array(elements) = actual {
-		assert_eq!(elements.len(), expected.len(), "wrong num of elements");
-
-		for (expected_el, el) in expected.into_iter().zip(elements.into_iter()) {
-			if let Object::Integer(expected_el) = expected_el {
-				test_integer_object(expected_el, el);
+			(Ok(expected), _) => if let Some(actual) = stack_elem {
+				assert_eq!(actual, expected)
 			}else {
-				panic!("{:?} isn't Integer", expected_el);
+				panic!("missing last popped stack element")
 			}
 		}
-	} else {
-		panic!("{:?} is not Array", actual);
-	}
-}
-
-fn test_hash_object(expected: HashMap<HashingObject, (HashingObject, Object)>, actual: Object) {
-	if let Object::Hash(mut pairs) = actual {
-		assert_eq!(pairs.len(), expected.len(), "wrong num of pairs");
-
-		for (expected_k, expected_v) in expected {
-			if let Some((_, actual_v)) = pairs.remove(&expected_k) {
-
-				if let (_, Object::Integer(expected_v)) = expected_v {
-					test_integer_object(expected_v, actual_v)
-				}
-			}else {
-				panic!("no pair for given key {:?} in pair {:?}", expected_k, pairs)
-			}
-		}
-	} else {
-		panic!("{:?} is not Hash", actual);
-	}
-}
-
-fn test_error_object(expected: String, actual: Object) {
-	if let Object::Error(value) = actual {
-		assert_eq!(value, expected, "wrong error message");
-	} else {
-		panic!("{:?} is not Error", actual);
 	}
 }
 

@@ -52,9 +52,7 @@ impl Parser {
 		let mut statements = vec![];
 
 		while self.cur_token.token_type != TokenType::EOF {
-			if let Some(stmt) = self.parse_statement() {
-				statements.push(stmt);
-			}
+			statements.push(self.parse_statement());
 
 			self.next_token();
 		}
@@ -62,7 +60,7 @@ impl Parser {
 		Program { statements }
 	}
 
-	fn parse_statement(&mut self) -> Option<Statement> {
+	fn parse_statement(&mut self) -> Statement {
 		match self.cur_token.token_type {
 			TokenType::Let => self.parse_let_statement(),
 			TokenType::Return => self.parse_return_statement(),
@@ -70,9 +68,9 @@ impl Parser {
 		}
 	}
 
-	fn parse_let_statement(&mut self) -> Option<Statement> {
+	fn parse_let_statement(&mut self) -> Statement {
 		if !self.expect_peek(TokenType::Ident) {
-			return None;
+			panic!("expected an identifier")
 		}
 
 		let stmt_name = self.cur_token.literal
@@ -80,7 +78,7 @@ impl Parser {
 			.expect("literal isn't string");
 
 		if !self.expect_peek(TokenType::Assign) {
-			return None;
+			panic!("expected assign operator `=`")
 		}
 
 		self.next_token();
@@ -95,26 +93,25 @@ impl Parser {
 			self.next_token();
 		}
 
-		Some(Statement::Let {
+		Statement::Let {
 			name: stmt_name,
 			value,
-		})
+		}
 	}
 
-	fn parse_return_statement(&mut self) -> Option<Statement> {
+	fn parse_return_statement(&mut self) -> Statement {
 		self.next_token();
 
 		let return_value = if !self.cur_token_is(TokenType::Semicolon) {
 			self.parse_expression(Precedence::Lowest)
 		}else {
-			None
 		};
 
 		if self.peek_token_is(TokenType::Semicolon) {
 			self.next_token();
 		}
 
-		Some(Statement::Return (return_value))
+		Statement::Return (return_value)
 	}
 
 	fn parse_expression_statement(&mut self) -> Option<Statement> {

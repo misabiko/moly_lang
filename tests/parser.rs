@@ -90,6 +90,7 @@ fn test_boolean_expression() {
 #[test]
 fn test_parsing_prefix_expressions() {
 	let prefix_tests = [
+		//Could throw parse error if using bang directly on integer
 		("!5;", "!", Expression::Integer(5)),
 		("-15;", "-", Expression::Integer(15)),
 		("!true;", "!", Expression::Boolean(true)),
@@ -268,8 +269,8 @@ fn test_operator_precedence_parsing() {
 #[test]
 fn test_if_expression() {
 	let tests = vec![
-		("if (x < y) { x }", false),
-		("if (x < y) { x } else { y }", true),
+		("if x < y { x }", false),
+		("if x < y { x } else { y }", true),
 	];
 
 	for (input, has_alternative) in tests {

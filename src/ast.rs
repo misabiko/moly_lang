@@ -51,11 +51,13 @@ pub enum Expression {
 	Boolean(bool),
 	String(String),
 	Prefix {
-		operator: String,
+		//TODO Store TokenType
+		operator: &'static str,
 		right: Box<Expression>,
 	},
 	Infix {
 		left: Box<Expression>,
+		//TODO Store TokenType
 		operator: &'static str,
 		right: Box<Expression>,
 	},

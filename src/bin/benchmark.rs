@@ -7,10 +7,10 @@ use moly_lang::vm::VM;
 
 const INPUT: &str = "
 let fibonacci = fn(x) {
-  if (x == 0) {
+  if x == 0 {
     0
   } else {
-    if (x == 1) {
+    if x == 1 {
       return 1;
     } else {
       fibonacci(x - 1) + fibonacci(x - 2);

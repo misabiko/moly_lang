@@ -52,6 +52,7 @@ impl Lexer {
 				} else {
 					Token { token_type: TokenType::Assign, literal: TokenLiteral::Static("=") }
 				},
+				//TODO += -= /= *= %=
 				'+' => Token { token_type: TokenType::Plus, literal: TokenLiteral::Static("+") },
 				'-' => Token { token_type: TokenType::Minus, literal: TokenLiteral::Static("-") },
 				'!' => if self.peek_char() == Some('=') {
@@ -62,6 +63,8 @@ impl Lexer {
 				},
 				'*' => Token { token_type: TokenType::Asterisk, literal: TokenLiteral::Static("*") },
 				'/' => Token { token_type: TokenType::Slash, literal: TokenLiteral::Static("/") },
+				//TODO %
+				//TODO <= >=
 				'<' => Token { token_type: TokenType::LT, literal: TokenLiteral::Static("<") },
 				'>' => Token { token_type: TokenType::GT, literal: TokenLiteral::Static(">") },
 				',' => Token { token_type: TokenType::Comma, literal: TokenLiteral::Static(",") },

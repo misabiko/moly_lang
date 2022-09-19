@@ -4,7 +4,7 @@ use moly_lang::code::{concat_instructions, make, Opcode};
 use moly_lang::compiler::Compiler;
 use moly_lang::lexer::Lexer;
 use moly_lang::object::{Closure, Function, HashingObject, Object};
-use moly_lang::parser::Parser;
+use moly_lang::parser::{Parser, ParserError};
 use moly_lang::vm::VM;
 
 struct VMTestCase {
@@ -72,13 +72,12 @@ fn test_boolean_expressions() {
 #[test]
 fn test_conditionals() {
 	let tests = vec![
-		VMTestCase { input: "if (true) { 10 }", expected: Ok(Object::Integer(10)) },
-		VMTestCase { input: "if (true) { 10 } else { 20 }", expected: Ok(Object::Integer(10)) },
-		VMTestCase { input: "if (false) { 10 } else { 20 } ", expected: Ok(Object::Integer(20)) },
-		VMTestCase { input: "if (1) { 10 }", expected: Ok(Object::Integer(10)) },
-		VMTestCase { input: "if (1 < 2) { 10 }", expected: Ok(Object::Integer(10)) },
-		VMTestCase { input: "if (1 < 2) { 10 } else { 20 }", expected: Ok(Object::Integer(10)) },
-		VMTestCase { input: "if (1 > 2) { 10 } else { 20 }", expected: Ok(Object::Integer(20)) },
+		VMTestCase { input: "if true { 10 }", expected: Ok(Object::Integer(10)) },
+		VMTestCase { input: "if true { 10 } else { 20 }", expected: Ok(Object::Integer(10)) },
+		VMTestCase { input: "if false { 10 } else { 20 } ", expected: Ok(Object::Integer(20)) },
+		VMTestCase { input: "if 1 < 2 { 10 }", expected: Ok(Object::Integer(10)) },
+		VMTestCase { input: "if 1 < 2 { 10 } else { 20 }", expected: Ok(Object::Integer(10)) },
+		VMTestCase { input: "if 1 > 2 { 10 } else { 20 }", expected: Ok(Object::Integer(20)) },
 	];
 
 	run_vm_tests(tests)
@@ -561,7 +560,7 @@ fn test_recursive_functions() {
 		VMTestCase {
 			input: "
 			let countDown = fn(x) {
-				if (x == 0) {
+				if x == 0 {
 					return 0;
 				} else {
 					countDown(x - 1);
@@ -574,7 +573,7 @@ fn test_recursive_functions() {
 		VMTestCase {
 			input: "
 			let countDown = fn(x) {
-				if (x == 0) {
+				if x == 0 {
 					return 0;
 				} else {
 					countDown(x - 1);
@@ -591,7 +590,7 @@ fn test_recursive_functions() {
 			input: "
 			let wrapper = fn() {
 				let countDown = fn(x) {
-					if (x == 0) {
+					if x == 0 {
 						return 0;
 					} else {
 						countDown(x - 1);
@@ -614,10 +613,10 @@ fn test_recursive_fibonacci() {
 		VMTestCase {
 			input: "
 			let fibonacci = fn(x) {
-				if (x == 0) {
+				if x == 0 {
 					return 0;
 				} else {
-					if (x == 1) {
+					if x == 1 {
 						return 1;
 					} else {
 						fibonacci(x - 1) + fibonacci(x - 2);
@@ -676,6 +675,6 @@ fn run_vm_tests(tests: Vec<VMTestCase>) {
 	}
 }
 
-fn parse(input: &str) -> Result<Program, String> {
+fn parse(input: &str) -> Result<Program, ParserError> {
 	Parser::new(Lexer::new(input)).parse_program()
 }

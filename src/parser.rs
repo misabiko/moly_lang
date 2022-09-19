@@ -1,3 +1,5 @@
+use std::fmt;
+use std::fmt::Formatter;
 use crate::ast::{BlockStatement, Expression, Program, Statement};
 use crate::lexer::Lexer;
 use crate::token::{Token, TokenLiteral, TokenType};
@@ -9,11 +11,9 @@ pub struct Parser {
 	pub peek_token: Token,
 }
 
-type PResult<T> = Result<T, String>;
-
 impl Parser {
 	pub fn new(lexer: Lexer) -> Self {
-		let default_token = Token {token_type: TokenType::Illegal, literal: TokenLiteral::Static("") };
+		let default_token = Token { token_type: TokenType::Illegal, literal: TokenLiteral::Static("") };
 		let mut parser = Parser {
 			lexer,
 
@@ -28,17 +28,17 @@ impl Parser {
 	}
 
 	fn no_prefix_parse_fn_error(&mut self) -> PResult<()> {
-		Err(format!(
+		Err(ParserError::Generic(format!(
 			"no prefix parse function for {:?} found",
 			self.cur_token
-		))
+		)))
 	}
 
 	pub fn next_token(&mut self) {
 		self.cur_token = std::mem::replace(&mut self.peek_token, self.lexer.next_token());
 	}
 
-	pub fn parse_program(&mut self) -> Result<Program, String> {
+	pub fn parse_program(&mut self) -> Result<Program, ParserError> {
 		let mut statements = vec![];
 
 		while self.cur_token.token_type != TokenType::EOF {
@@ -89,8 +89,8 @@ impl Parser {
 		self.next_token();
 
 		let return_value = if let TokenType::Semicolon | TokenType::RBrace | TokenType::Comma = self.cur_token.token_type {
-			return Ok(Statement::Return(None))
-		}else {
+			return Ok(Statement::Return(None));
+		} else {
 			self.parse_expression(Precedence::Lowest)?
 		};
 
@@ -98,7 +98,7 @@ impl Parser {
 			self.next_token();
 		}
 
-		Ok(Statement::Return (Some(return_value)))
+		Ok(Statement::Return(Some(return_value)))
 	}
 
 	fn parse_expression_statement(&mut self) -> PResult<Statement> {
@@ -114,20 +114,20 @@ impl Parser {
 	fn parse_expression(&mut self, precedence: Precedence) -> PResult<Expression> {
 		let mut left_exp = match &self.cur_token {
 			//TODO Consume Token instead of cloning
-			Token {token_type: TokenType::Ident, literal: TokenLiteral::String(ident) }
-				=> Ok(Expression::Identifier(ident.clone())),
-			Token {token_type: TokenType::Int, literal: TokenLiteral::Integer(value) }
-				=> Ok(Expression::Integer(*value as isize)),
-			Token {token_type: TokenType::True, .. } => Ok(Expression::Boolean(true)),
-			Token {token_type: TokenType::False, .. } => Ok(Expression::Boolean(false)),
-			Token {token_type: TokenType::Bang, .. } |
-			Token {token_type: TokenType::Minus, .. } => self.parse_prefix_expression(),
-			Token {token_type: TokenType::LParen, .. } => self.parse_grouped_expression(),
-			Token {token_type: TokenType::If, .. } => self.parse_if_expression(),
-			Token {token_type: TokenType::Function, .. } => self.parse_function_literal(),
-			Token {token_type: TokenType::String, .. } => Ok(self.parse_string_literal()),
-			Token {token_type: TokenType::LBracket, .. } => self.parse_array_literal(),
-			Token {token_type: TokenType::LBrace, .. } => self.parse_hash_literal(),
+			Token { token_type: TokenType::Ident, literal: TokenLiteral::String(ident) }
+			=> Ok(Expression::Identifier(ident.clone())),
+			Token { token_type: TokenType::Int, literal: TokenLiteral::Integer(value) }
+			=> Ok(Expression::Integer(*value as isize)),
+			Token { token_type: TokenType::True, .. } => Ok(Expression::Boolean(true)),
+			Token { token_type: TokenType::False, .. } => Ok(Expression::Boolean(false)),
+			Token { token_type: TokenType::Bang, .. } |
+			Token { token_type: TokenType::Minus, .. } => self.parse_prefix_expression(),
+			Token { token_type: TokenType::LParen, .. } => self.parse_grouped_expression(),
+			Token { token_type: TokenType::If, .. } => self.parse_if_expression(),
+			Token { token_type: TokenType::Function, .. } => self.parse_function_literal(),
+			Token { token_type: TokenType::String, .. } => Ok(self.parse_string_literal()),
+			Token { token_type: TokenType::LBracket, .. } => self.parse_array_literal(),
+			Token { token_type: TokenType::LBrace, .. } => self.parse_hash_literal(),
 			_ => Err(self.no_prefix_parse_fn_error().unwrap_err()),
 		}?;
 
@@ -155,11 +155,14 @@ impl Parser {
 	}
 
 	fn parse_prefix_expression(&mut self) -> PResult<Expression> {
-		let operator = self.cur_token.token_type.to_string();
+		let operator = if let TokenLiteral::Static(operator) = self.cur_token.literal {
+			operator
+		} else {
+			panic!("{:?} isn't operator token", self.cur_token)
+		};
 
 		self.next_token();
 
-		//TODO Throw parse error instead of option
 		let right = self.parse_expression(Precedence::Prefix)?;
 
 		Ok(Expression::Prefix {
@@ -171,7 +174,7 @@ impl Parser {
 	fn parse_infix_expression(&mut self, left: Expression) -> PResult<Expression> {
 		let operator = if let TokenLiteral::Static(operator) = self.cur_token.literal {
 			operator
-		}else {
+		} else {
 			panic!("{:?} isn't operator token", self.cur_token)
 		};
 
@@ -198,13 +201,16 @@ impl Parser {
 	}
 
 	fn parse_if_expression(&mut self) -> PResult<Expression> {
-		//TODO Remove parentheses from if
-		self.expect_peek(TokenType::LParen)?;
-
 		self.next_token();
-		let condition = self.parse_expression(Precedence::Lowest)?;
 
-		self.expect_peek(TokenType::RParen)?;
+		//TODO Should be able to check which expression can return bool (not minus, not string)
+		let condition = self.parse_expression(Precedence::Lowest)?;
+		if let Some(false) = is_bool(&condition) {
+			return Err(ParserError::ExpectedType {
+				expected: "boolean".into(),
+				found: condition.to_string(),
+			})
+		}
 
 		self.expect_peek(TokenType::LBrace)?;
 
@@ -216,7 +222,7 @@ impl Parser {
 			self.expect_peek(TokenType::LBrace)?;
 
 			Some(self.parse_block_statement()?)
-		}else {
+		} else {
 			None
 		};
 
@@ -263,7 +269,7 @@ impl Parser {
 
 		if self.peek_token_is(TokenType::RParen) {
 			self.next_token();
-			return Ok(identifiers)
+			return Ok(identifiers);
 		}
 
 		self.next_token();
@@ -271,8 +277,8 @@ impl Parser {
 		let expect_str = "identifier literal isn't string";
 		identifiers.push(if let TokenLiteral::String(ident) = &self.cur_token.literal {
 			ident.clone()
-		}else {
-			return Err(expect_str.into())
+		} else {
+			return Err(ParserError::Generic(expect_str.into()));
 		});
 
 		while self.peek_token_is(TokenType::Comma) {
@@ -281,8 +287,8 @@ impl Parser {
 
 			identifiers.push(if let TokenLiteral::String(ident) = &self.cur_token.literal {
 				ident.clone()
-			}else {
-				return Err(expect_str.into())
+			} else {
+				return Err(ParserError::Generic(expect_str.into()));
 			});
 		}
 
@@ -315,7 +321,7 @@ impl Parser {
 
 		if self.peek_token_is(end) {
 			self.next_token();
-			return Ok(list)
+			return Ok(list);
 		}
 
 		self.next_token();
@@ -383,10 +389,10 @@ impl Parser {
 			self.next_token();
 			Ok(())
 		} else {
-			Err(format!(
+			Err(ParserError::Generic(format!(
 				"expected next token to be {}, got {} instead",
 				t, self.peek_token.token_type
-			))
+			)))
 		}
 	}
 
@@ -396,6 +402,37 @@ impl Parser {
 
 	fn cur_precedence(&self) -> Precedence {
 		precedences(self.cur_token.token_type).unwrap_or(Precedence::Lowest)
+	}
+}
+
+fn is_bool(exp: &Expression) -> Option<bool> {
+	match exp {
+		//Bool
+		Expression::Boolean(_) => Some(true),
+		Expression::Prefix { operator: "!", right } => is_bool(&right),
+		Expression::Infix {
+			operator:
+			"<" |
+			">" |
+			"<=" |
+			">=" |
+			"==" |
+			"!=", .. } => Some(true),
+		//Not bool
+		Expression::Prefix { operator: "-", .. } |
+		Expression::Integer(_) |
+		Expression::Function { .. } |
+		Expression::Array(_) |
+		Expression::Hash(_) |
+		Expression::String(_) => Some(false),
+		//Maybe bool
+		//TODO Limit prefix and infix types
+		Expression::Prefix { .. } |
+		Expression::Infix { .. } |
+		Expression::Identifier(_) |
+		Expression::If { .. } |
+		Expression::Call { .. } |
+		Expression::Index { .. } => None
 	}
 }
 
@@ -424,5 +461,26 @@ const fn precedences(token_type: TokenType) -> Option<Precedence> {
 		TokenType::LParen => Some(Precedence::Call),
 		TokenType::LBracket => Some(Precedence::Index),
 		_ => None,
+	}
+}
+
+type PResult<T> = Result<T, ParserError>;
+
+#[derive(Debug)]
+pub enum ParserError {
+	ExpectedType {
+		expected: String,
+		found: String,
+	},
+	//TODO Classify generic errors
+	Generic(String),
+}
+
+impl fmt::Display for ParserError {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+		match self {
+			ParserError::ExpectedType { expected, found } => write!(f, "expected {}, found {}", expected, found),
+			ParserError::Generic(err) => write!(f, "{}", err),
+		}
 	}
 }

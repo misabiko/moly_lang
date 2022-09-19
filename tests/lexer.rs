@@ -18,7 +18,7 @@ let result = add(five, ten);
 !-/*5;
 5 < 10 > 5;
 
-if (5 < 10) {
+if 5 < 10 {
     return true;
 } else {
     return false;
@@ -82,11 +82,9 @@ if (5 < 10) {
 		(TokenType::Int, TokenLiteral::Integer(5)),
 		(TokenType::Semicolon, TokenLiteral::Static(";")),
 		(TokenType::If, TokenLiteral::Static("if")),
-		(TokenType::LParen, TokenLiteral::Static("(")),
 		(TokenType::Int, TokenLiteral::Integer(5)),
 		(TokenType::LT, TokenLiteral::Static("<")),
 		(TokenType::Int, TokenLiteral::Integer(10)),
-		(TokenType::RParen, TokenLiteral::Static(")")),
 		(TokenType::LBrace, TokenLiteral::Static("{")),
 		(TokenType::Return, TokenLiteral::Static("return")),
 		(TokenType::True, TokenLiteral::Static("true")),

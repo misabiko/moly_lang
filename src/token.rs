@@ -41,6 +41,7 @@ impl TokenLiteral {
 	}
 }
 
+//TODO Store prefix and infix as their own TokenType?
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]
 pub enum TokenType {
 	Illegal,

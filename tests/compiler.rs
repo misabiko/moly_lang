@@ -4,7 +4,7 @@ use moly_lang::code::{concat_instructions, instruction_to_string, Instructions, 
 use moly_lang::object::{Function, Object};
 use moly_lang::compiler::{Compiler, EmittedInstruction};
 use moly_lang::lexer::Lexer;
-use moly_lang::parser::Parser;
+use moly_lang::parser::{Parser, ParserError};
 
 struct CompilerTestCase {
 	input: &'static str,
@@ -187,7 +187,7 @@ fn test_conditionals() {
 	let tests = vec![
 		CompilerTestCase {
 			input: "
-            if (true) { 10 }; 3333;
+            if true { 10 }; 3333;
             ",
 			expected_constants: vec![Object::Integer(10), Object::Integer(3333)],
 			expected_instructions: vec![
@@ -209,7 +209,7 @@ fn test_conditionals() {
 		},
 		CompilerTestCase {
 			input: "
-            if (true) { 10 } else { 20 }; 3333;
+            if true { 10 } else { 20 }; 3333;
             ",
 			expected_constants: vec![Object::Integer(10), Object::Integer(20), Object::Integer(3333)],
 			expected_instructions: vec![
@@ -322,7 +322,6 @@ fn test_array_literals() {
 			input: "[]",
 			expected_constants: vec![],
 			expected_instructions: vec![
-				//TODO Profile copying operand vec
 				make(Opcode::Array, &[0]),
 				make(Opcode::Pop, &[]),
 			],
@@ -1103,6 +1102,6 @@ fn run_compiler_tests(tests: Vec<CompilerTestCase>) {
 	}
 }
 
-fn parse(input: &str) -> Result<Program, String> {
+fn parse(input: &str) -> Result<Program, ParserError> {
 	Parser::new(Lexer::new(input)).parse_program()
 }

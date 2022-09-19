@@ -40,7 +40,7 @@ pub fn start() {
 		let program = match parser.parse_program() {
 			Ok(program) => program,
 			Err(err) => {
-				print_parser_errors(vec![err]);
+				eprintln!("Parsing error: {}", err);
 				continue;
 			}
 		};
@@ -68,11 +68,5 @@ pub fn start() {
 		}else {
 			println!()
 		}
-	}
-}
-
-fn print_parser_errors(errors: Vec<String>) {
-	for msg in errors {
-		eprintln!("\t{}", msg);
 	}
 }

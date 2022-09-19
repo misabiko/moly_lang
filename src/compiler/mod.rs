@@ -118,9 +118,10 @@ impl Compiler {
 			Expression::Prefix { operator, right } => {
 				self.compile_expression(*right)?;
 
-				match operator.as_str() {
+				match operator {
 					"!" => self.emit(Opcode::Bang, &[]),
 					"-" => self.emit(Opcode::Minus, &[]),
+					//TODO Limit types
 					_ => return Err(format!("unknown operator {:?}", operator))
 				};
 			}
@@ -147,6 +148,7 @@ impl Compiler {
 					">" => self.emit(Opcode::GreaterThan, &[]),
 					"==" => self.emit(Opcode::Equal, &[]),
 					"!=" => self.emit(Opcode::NotEqual, &[]),
+					//TODO Limit types
 					_ => return Err(format!("unknown operator {}", operator))
 				};
 			}

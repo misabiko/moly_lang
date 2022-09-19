@@ -636,7 +636,10 @@ fn test_recursive_fibonacci() {
 fn run_vm_tests(tests: Vec<VMTestCase>) {
 	for VMTestCase { input, expected } in tests {
 		//println!("{}", input);
-		let program = parse(input);
+		let program = match parse(input) {
+			Ok(p) => p,
+			Err(err) => panic!("parse error: {}", err),
+		};
 
 		let mut compiler = Compiler::new();
 		if let Err(err) = compiler.compile(program) {
@@ -673,6 +676,6 @@ fn run_vm_tests(tests: Vec<VMTestCase>) {
 	}
 }
 
-fn parse(input: &str) -> Program {
+fn parse(input: &str) -> Result<Program, String> {
 	Parser::new(Lexer::new(input)).parse_program()
 }

@@ -26,7 +26,10 @@ fn main() {
 
 	let lexer = Lexer::new(INPUT);
 	let mut parser = Parser::new(lexer);
-	let program = parser.parse_program();
+	let program = match parser.parse_program() {
+		Ok(p) => p,
+		Err(err) => panic!("{}", err),
+	};
 
 	let mut compiler = Compiler::new();
 	if let Err(err) = compiler.compile(program) {

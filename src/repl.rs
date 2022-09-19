@@ -37,11 +37,13 @@ pub fn start() {
 
 		let mut parser = Parser::new(Lexer::new(&buffer));
 
-		let program = parser.parse_program();
-		if !parser.errors.is_empty() {
-			print_parser_errors(&parser.errors);
-			continue;
-		}
+		let program = match parser.parse_program() {
+			Ok(program) => program,
+			Err(err) => {
+				print_parser_errors(vec![err]);
+				continue;
+			}
+		};
 
 		//Might be able to not clone, with some std::mem::take
 		let mut compiler = Compiler::new_with_state(symbol_table.clone(), constants.clone());
@@ -69,7 +71,7 @@ pub fn start() {
 	}
 }
 
-fn print_parser_errors(errors: &Vec<String>) {
+fn print_parser_errors(errors: Vec<String>) {
 	for msg in errors {
 		eprintln!("\t{}", msg);
 	}

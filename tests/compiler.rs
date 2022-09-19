@@ -1076,7 +1076,10 @@ fn test_recursive_functions() {
 
 fn run_compiler_tests(tests: Vec<CompilerTestCase>) {
 	for CompilerTestCase { input, expected_constants, expected_instructions } in tests {
-		let program = parse(input);
+		let program = match parse(input) {
+			Ok(p) => p,
+			Err(err) => panic!("parse error: {}", err),
+		};
 
 		let mut compiler = Compiler::new();
 		if let Err(err) = compiler.compile(program) {
@@ -1100,6 +1103,6 @@ fn run_compiler_tests(tests: Vec<CompilerTestCase>) {
 	}
 }
 
-fn parse(input: &str) -> Program {
+fn parse(input: &str) -> Result<Program, String> {
 	Parser::new(Lexer::new(input)).parse_program()
 }

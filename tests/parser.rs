@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fmt::Write;
 use moly_lang::{
 	lexer::Lexer,
 	ast::Statement,
@@ -257,8 +256,10 @@ fn test_operator_precedence_parsing() {
 
 	for (input, expected) in tests {
 		let mut parser = Parser::new(Lexer::new(input));
-		let program = parser.parse_program();
-		check_parser_errors(&parser);
+		let program = match parser.parse_program() {
+			Ok(p) => p,
+			Err(err) => panic!("parse error: {}", err),
+		};
 
 		assert_eq!(program.to_string(), expected);
 	}
@@ -602,22 +603,12 @@ fn test_function_literal_with_name() {
 	}
 }
 
-fn check_parser_errors(parser: &Parser) {
-	if parser.errors.is_empty() {
-		return;
-	}
-
-	let mut error_msg = format!("parser has {} errors:\n", parser.errors.len());
-	for msg in &parser.errors {
-		writeln!(error_msg, "parser error: {}", msg).unwrap();
-	}
-	panic!("{}", error_msg)
-}
-
 fn parse_single_statement(input: &str) -> Statement {
 	let mut parser = Parser::new(Lexer::new(input));
-	let program = parser.parse_program();
-	check_parser_errors(&parser);
+	let program = match parser.parse_program() {
+		Ok(p) => p,
+		Err(err) => panic!("parse error: {}", err),
+	};
 
 	assert_eq!(program.statements.len(), 1, "program.statements does not contain 1 statement");
 

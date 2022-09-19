@@ -1,11 +1,11 @@
 use std::collections::HashMap;
-use moly_lang::ast::Program;
-use moly_lang::code::{concat_instructions, make, Opcode};
-use moly_lang::compiler::Compiler;
-use moly_lang::lexer::Lexer;
-use moly_lang::object::{Closure, Function, HashingObject, Object};
-use moly_lang::parser::{Parser, ParserError};
-use moly_lang::vm::VM;
+use moly::ast::Program;
+use moly::code::{concat_instructions, make, Opcode};
+use moly::compiler::Compiler;
+use moly::lexer::Lexer;
+use moly::object::{Closure, Function, HashingObject, Object};
+use moly::parser::{Parser, ParserError};
+use moly::vm::VM;
 
 struct VMTestCase {
 	input: &'static str,

@@ -26,6 +26,9 @@ pub fn start() {
 	}
 	let mut symbol_table = Rc::new(RefCell::new(table));
 
+	//TODO Show how to exit
+	println!("Enter commands");
+
 	loop {
 		print!("{} ", PROMPT);
 		std::io::stdout().flush()

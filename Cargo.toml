@@ -1,8 +1,10 @@
 [package]
-name = "moly_lang"
+name = "moly"
 version = "0.1.0"
+authors = ["misabiko"]
 edition = "2021"
-default-run = "moly_lang"
+repository = "https://github.com/misabiko/moly_lang"
+default-run = "moly"
 
 [[bin]]
 name = "benchmark"
@@ -11,3 +13,4 @@ name = "benchmark"
 ctrlc = "3.2.3"
 byteorder = "1.4.3"
 enum_primitive = "0.1.1"
+clap = { version = "3.2.22", features = ["derive"] }

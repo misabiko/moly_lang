@@ -1,10 +1,10 @@
 use std::rc::Rc;
-use moly_lang::ast::Program;
-use moly_lang::code::{concat_instructions, instruction_to_string, Instructions, make, Opcode};
-use moly_lang::object::{Function, Object};
-use moly_lang::compiler::{Compiler, EmittedInstruction};
-use moly_lang::lexer::Lexer;
-use moly_lang::parser::{Parser, ParserError};
+use moly::ast::Program;
+use moly::code::{concat_instructions, instruction_to_string, Instructions, make, Opcode};
+use moly::object::{Function, Object};
+use moly::compiler::{Compiler, EmittedInstruction};
+use moly::lexer::Lexer;
+use moly::parser::{Parser, ParserError};
 
 struct CompilerTestCase {
 	input: &'static str,

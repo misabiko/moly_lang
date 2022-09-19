@@ -1,3 +1,8 @@
+use crate::compiler::{Bytecode, Compiler};
+use crate::lexer::Lexer;
+use crate::parser::Parser;
+use crate::vm::VM;
+
 pub mod token;
 pub mod lexer;
 pub mod repl;
@@ -13,3 +18,44 @@ pub mod vm;
 //TODO Explore how Elm did List with "1 or more" length
 //TODO Static string in sum type to pattern match with
 	/* type BooleanOperator = "<" | ">" | "<=" | ">=" | "==" | "!="; */
+
+pub fn build(input: &str) -> Result<Bytecode, String> {
+	let mut parser = Parser::new(Lexer::new(input));
+
+	let program = match parser.parse_program() {
+		Ok(program) => program,
+		Err(err) => {
+			return Err(format!("Parsing error: {}", err));
+		}
+	};
+
+	//Might be able to not clone, with some std::mem::take
+	let mut compiler = Compiler::new();
+	if let Err(err) = compiler.compile(program) {
+		Err(format!("Compilation failed:\n{}", err))
+	}else {
+		Ok(compiler.bytecode())
+	}
+}
+
+pub fn run_string(input: &str) {
+	let bytecode = match build(input) {
+		Ok(b) => b,
+		Err(err) => {
+			eprintln!("{}", err);
+			return;
+		}
+	};
+
+	let mut machine = VM::new(bytecode);
+	if let Err(err) = machine.run() {
+		eprintln!("Executing bytecode failed:\n{}", err);
+		return
+	}
+
+	if let Some(obj) = machine.last_popped_stack_elem {
+		println!("{}", obj)
+	}else {
+		println!()
+	}
+}

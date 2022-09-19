@@ -1,9 +1,6 @@
-use std::time::{Duration, SystemTime};
-use moly_lang::compiler::Compiler;
-use moly_lang::lexer::Lexer;
-use moly_lang::object::Object;
-use moly_lang::parser::Parser;
-use moly_lang::vm::VM;
+use std::time::SystemTime;
+use moly::build;
+use moly::vm::VM;
 
 const INPUT: &str = "
 let fibonacci = fn(x) {
@@ -21,30 +18,23 @@ fibonacci(35);
 ";
 
 fn main() {
-	let duration: Duration;
-	let result: Object;
-
-	let lexer = Lexer::new(INPUT);
-	let mut parser = Parser::new(lexer);
-	let program = match parser.parse_program() {
-		Ok(p) => p,
-		Err(err) => panic!("{}", err),
+	let bytecode = match build(INPUT) {
+		Ok(b) => b,
+		Err(err) => {
+			eprintln!("{}", err);
+			return;
+		}
 	};
 
-	let mut compiler = Compiler::new();
-	if let Err(err) = compiler.compile(program) {
-		panic!("compiler error: {}", err)
-	}
-
-	let mut machine = VM::new(compiler.bytecode());
+	let mut machine = VM::new(bytecode);
 
 	let start = SystemTime::now();
 	if let Err(err) = machine.run() {
 		panic!("vm error: {}", err)
 	}
 
-	duration = SystemTime::now().duration_since(start).unwrap();
-	result = machine.last_popped_stack_elem.expect("missing last popped stack element");
+	let duration = SystemTime::now().duration_since(start).unwrap();
+	let result = machine.last_popped_stack_elem.expect("missing last popped stack element");
 
 	println!("engine=vm, result={}, duration={:.2}s", result, duration.as_secs_f32())
 }

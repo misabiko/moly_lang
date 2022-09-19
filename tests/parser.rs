@@ -1,10 +1,10 @@
 use std::collections::HashMap;
-use moly_lang::{
+use moly::{
 	lexer::Lexer,
 	ast::Statement,
 	parser::Parser,
 };
-use moly_lang::ast::{Expression};
+use moly::ast::{Expression};
 
 #[test]
 fn test_let_statements() {

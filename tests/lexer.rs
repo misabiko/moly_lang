@@ -1,8 +1,8 @@
-use moly_lang::{
+use moly::{
 	lexer::Lexer,
 	token::TokenType,
 };
-use moly_lang::token::TokenLiteral;
+use moly::token::TokenLiteral;
 
 #[test]
 fn test_next_token() {

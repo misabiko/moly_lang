@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use moly_lang::compiler::symbol_table::{Symbol, SymbolTable, SymbolScope};
+use moly::compiler::symbol_table::{Symbol, SymbolTable, SymbolScope};
 
 #[test]
 fn test_define() {

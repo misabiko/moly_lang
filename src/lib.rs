@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use crate::compiler::{Bytecode, Compiler};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
@@ -58,4 +59,10 @@ pub fn run_string(input: &str) {
 	}else {
 		println!()
 	}
+}
+
+pub fn run_file(file: PathBuf) {
+	let input = std::fs::read_to_string(file).expect("failed to read file");
+
+	run_string(&input);
 }

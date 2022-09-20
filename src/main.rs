@@ -5,12 +5,11 @@ use moly::repl;
 fn main() {
 	let cli = Cli::parse();
 
-	match &cli.command {
+	match cli.command {
 		None | Some(Commands::Repl) => repl::start(),
-		Some(Commands::Run { input }) => println!("TODO: Run `{:?}`", input),
-		Some(Commands::Exec { input }) => moly::run_string(input),
+		Some(Commands::Run { input }) => moly::run_file(input),
+		Some(Commands::Exec { input }) => moly::run_string(&input),
 	}
-
 }
 
 #[derive(Parser)]

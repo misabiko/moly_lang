@@ -463,7 +463,6 @@ impl VM {
 
 		let constant = self.constants[const_index as usize].clone();
 		if let Object::Function(func) = constant {
-			//let free = self.stack.split_off(self.sp - num_free).into_iter().map(|o| o.unwrap()).collect();
 			let free = self.stack[self.sp - num_free..self.sp].iter_mut().map(|o| o.take().unwrap()).collect();
 			self.sp -= num_free;
 

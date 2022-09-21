@@ -4,50 +4,97 @@ use enum_primitive::{enum_from_primitive, enum_from_primitive_impl, enum_from_pr
 
 pub type Instructions = Vec<u8>;
 
-//TODO Document calling convention
 enum_from_primitive! {
 #[repr(u8)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Opcode {
+	/// Copies the constant to the stack
+	/// Operands:
+	/// constant_index: u16
 	Constant = 0,
+	/// Removes the last object off the stack
 	Pop,
-
+	/// Pops the last two elements adds them
 	Add,
+	/// Pops the last two elements subtracts them
 	Sub,
+	/// Pops the last two elements multiplies them
 	Mul,
+	/// Pops the last two elements divides them
 	Div,
-
+	/// Adds true to the stack
 	True,
+	/// Adds false to the stack
 	False,
-
+	/// Pops the last two elements and adds true or false if equal
 	Equal,
+	/// Pops the last two elements and adds true or false if not equal
 	NotEqual,
+	/// Pops the last two elements and adds true or false if greater than
 	GreaterThan,
-
+	/// Pops the last element and inverts it
 	Minus,
+	/// Pops the last element and negates it
 	Bang,
-
+	/// Pops the last element and jumps to the given instruction if false
+	/// Operands:
+	/// instruction_index: u16
 	JumpIfFalse,
+	/// Jumps to the given instruction
+	/// Operands:
+	/// instruction_index: u16
 	Jump,
-
+	/// Copies the global symbol to the stack
+	/// Operands:
+	/// symbol_index: u16
 	GetGlobal,
+	/// Copies the symbol to the global array
+	/// Operands:
+	/// index: u16
 	SetGlobal,
+	/// Copies the local symbol to the stack
+	/// Operands:
+	/// symbol_index: u8
 	GetLocal,
+	/// Copies the symbol to the stack, indexed after the frame
+	/// Operands:
+	/// index: u8
 	SetLocal,
+	/// Copies the builtin symbol to the stack
+	/// Operands:
+	/// symbol_index: u8
 	GetBuiltin,
+	/// Copies the free symbol to the stack
+	/// Operands:
+	/// symbol_index: u8
 	GetFree,
-
+	/// Pops the elements off the stack and make an array with them
+	/// Operands:
+	/// element_count: u16
 	Array,
+	/// Pops the elements off the stack and make an array with them
+	/// The elements alternate in key-value pairs
+	/// Operands:
+	/// element_count_times_two: u16
 	Hash,
+	/// Pops the index and container off the stack, and push the indexed value on it
 	Index,
-
+	/// Pop the called closure and its arguments from the stack
+	/// Operands:
+	/// arg_count: u8
 	Call,
+	/// Pop the last value off the stack, pops the frame, and pushes to the next
 	ReturnValue,
+	/// Pops the current frame
 	Return,
+	/// Copies the closure from the constants, then pops the free symbols from the stack, and pushes the closure back
+	/// Operands:
+	/// closure_index: u16
+	/// free_symbol_count: u8
 	Closure,
+	/// Copies the closure of the current frame, and pushes it on the stack
 	CurrentClosure,
-}
-}
+}}
 
 pub struct Definition {
 	pub name: &'static str,

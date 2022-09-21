@@ -30,7 +30,6 @@ pub fn build(input: &str) -> Result<Bytecode, String> {
 		}
 	};
 
-	//Might be able to not clone, with some std::mem::take
 	let mut compiler = Compiler::new();
 	if let Err(err) = compiler.compile(program) {
 		Err(format!("Compilation failed:\n{}", err))

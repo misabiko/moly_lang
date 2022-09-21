@@ -51,7 +51,7 @@ pub enum Opcode {
 
 pub struct Definition {
 	pub name: &'static str,
-	pub operand_widths: Vec<u8>,
+	pub operand_widths: &'static [u8],
 }
 
 pub type OperandIndex = usize;
@@ -59,52 +59,52 @@ pub type OperandIndex = usize;
 pub fn lookup(op: u8) -> Result<Definition, String> {
 	match Opcode::from_u8(op) {
 		Some(op) => match op {
-			Opcode::Constant => Ok(Definition { name: "OpConstant", operand_widths: vec![2] }),
-			Opcode::Pop => Ok(Definition { name: "OpPop", operand_widths: vec![] }),
+			Opcode::Constant => Ok(Definition { name: "OpConstant", operand_widths: &[2] }),
+			Opcode::Pop => Ok(Definition { name: "OpPop", operand_widths: &[] }),
 
-			Opcode::Add => Ok(Definition { name: "OpAdd", operand_widths: vec![] }),
-			Opcode::Sub => Ok(Definition { name: "OpSub", operand_widths: vec![] }),
-			Opcode::Mul => Ok(Definition { name: "OpMul", operand_widths: vec![] }),
-			Opcode::Div => Ok(Definition { name: "OpDiv", operand_widths: vec![] }),
+			Opcode::Add => Ok(Definition { name: "OpAdd", operand_widths: &[] }),
+			Opcode::Sub => Ok(Definition { name: "OpSub", operand_widths: &[] }),
+			Opcode::Mul => Ok(Definition { name: "OpMul", operand_widths: &[] }),
+			Opcode::Div => Ok(Definition { name: "OpDiv", operand_widths: &[] }),
 
-			Opcode::True => Ok(Definition { name: "OpTrue", operand_widths: vec![] }),
-			Opcode::False => Ok(Definition { name: "OpFalse", operand_widths: vec![] }),
+			Opcode::True => Ok(Definition { name: "OpTrue", operand_widths: &[] }),
+			Opcode::False => Ok(Definition { name: "OpFalse", operand_widths: &[] }),
 
-			Opcode::Equal => Ok(Definition { name: "OpEqual", operand_widths: vec![] }),
-			Opcode::NotEqual => Ok(Definition { name: "OpNotEqual", operand_widths: vec![] }),
-			Opcode::GreaterThan => Ok(Definition { name: "OpGreaterThan", operand_widths: vec![] }),
+			Opcode::Equal => Ok(Definition { name: "OpEqual", operand_widths: &[] }),
+			Opcode::NotEqual => Ok(Definition { name: "OpNotEqual", operand_widths: &[] }),
+			Opcode::GreaterThan => Ok(Definition { name: "OpGreaterThan", operand_widths: &[] }),
 
-			Opcode::Minus => Ok(Definition { name: "OpMinus", operand_widths: vec![] }),
-			Opcode::Bang => Ok(Definition { name: "OpBang", operand_widths: vec![] }),
+			Opcode::Minus => Ok(Definition { name: "OpMinus", operand_widths: &[] }),
+			Opcode::Bang => Ok(Definition { name: "OpBang", operand_widths: &[] }),
 
-			Opcode::JumpIfFalse => Ok(Definition { name: "OpJumpIfFalse", operand_widths: vec![2] }),
-			Opcode::Jump => Ok(Definition { name: "OpJump", operand_widths: vec![2] }),
+			Opcode::JumpIfFalse => Ok(Definition { name: "OpJumpIfFalse", operand_widths: &[2] }),
+			Opcode::Jump => Ok(Definition { name: "OpJump", operand_widths: &[2] }),
 
-			Opcode::GetGlobal => Ok(Definition { name: "OpGetGlobal", operand_widths: vec![2] }),
-			Opcode::SetGlobal => Ok(Definition { name: "OpSetGlobal", operand_widths: vec![2] }),
-			Opcode::GetLocal => Ok(Definition { name: "OpGetLocal", operand_widths: vec![1] }),
-			Opcode::SetLocal => Ok(Definition { name: "OpSetLocal", operand_widths: vec![1] }),
-			Opcode::GetBuiltin => Ok(Definition { name: "OpGetBuiltin", operand_widths: vec![1] }),
-			Opcode::GetFree => Ok(Definition { name: "OpGetFree", operand_widths: vec![1] }),
+			Opcode::GetGlobal => Ok(Definition { name: "OpGetGlobal", operand_widths: &[2] }),
+			Opcode::SetGlobal => Ok(Definition { name: "OpSetGlobal", operand_widths: &[2] }),
+			Opcode::GetLocal => Ok(Definition { name: "OpGetLocal", operand_widths: &[1] }),
+			Opcode::SetLocal => Ok(Definition { name: "OpSetLocal", operand_widths: &[1] }),
+			Opcode::GetBuiltin => Ok(Definition { name: "OpGetBuiltin", operand_widths: &[1] }),
+			Opcode::GetFree => Ok(Definition { name: "OpGetFree", operand_widths: &[1] }),
 
 			//TODO Test error message for too many elements in an array
 			//Operand width: Number of elements
-			Opcode::Array => Ok(Definition { name: "OpArray", operand_widths: vec![2] }),
+			Opcode::Array => Ok(Definition { name: "OpArray", operand_widths: &[2] }),
 			//Operand width: Number of keys + Number of values
-			Opcode::Hash => Ok(Definition { name: "OpHash", operand_widths: vec![2] }),
-			Opcode::Index => Ok(Definition { name: "OpIndex", operand_widths: vec![] }),
+			Opcode::Hash => Ok(Definition { name: "OpHash", operand_widths: &[2] }),
+			Opcode::Index => Ok(Definition { name: "OpIndex", operand_widths: &[] }),
 
-			Opcode::Call => Ok(Definition { name: "OpCall", operand_widths: vec![1] }),
-			Opcode::ReturnValue => Ok(Definition { name: "OpReturnValue", operand_widths: vec![] }),
-			Opcode::Return => Ok(Definition { name: "OpReturn", operand_widths: vec![] }),
-			Opcode::Closure => Ok(Definition { name: "OpClosure", operand_widths: vec![2, 1] }),
-			Opcode::CurrentClosure => Ok(Definition { name: "OpCurrentClosure", operand_widths: vec![] }),
+			Opcode::Call => Ok(Definition { name: "OpCall", operand_widths: &[1] }),
+			Opcode::ReturnValue => Ok(Definition { name: "OpReturnValue", operand_widths: &[] }),
+			Opcode::Return => Ok(Definition { name: "OpReturn", operand_widths: &[] }),
+			Opcode::Closure => Ok(Definition { name: "OpClosure", operand_widths: &[2, 1] }),
+			Opcode::CurrentClosure => Ok(Definition { name: "OpCurrentClosure", operand_widths: &[] }),
 		},
 		None => Err(format!("undefined opcode {}", op))
 	}
 }
 
-pub fn make(op: Opcode, operands: &[OperandIndex]) -> Instructions {
+pub fn make(op: Opcode, operands: &[u8]) -> Instructions {
 	let def = if let Ok(def) = lookup(op as u8) {
 		def
 	}else {
@@ -112,7 +112,7 @@ pub fn make(op: Opcode, operands: &[OperandIndex]) -> Instructions {
 	};
 
 	let mut instruction_len: usize = 1;
-	for w in &def.operand_widths {
+	for w in def.operand_widths {
 		instruction_len += *w as usize
 	}
 

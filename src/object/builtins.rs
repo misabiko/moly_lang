@@ -21,7 +21,7 @@ pub const BUILTINS: &[Builtins] = &[
 		},
 	},
 	Builtins {
-		name: "puts",
+		name: "print",
 		builtin: |args| {
 			for arg in args {
 				println!("{}", arg);

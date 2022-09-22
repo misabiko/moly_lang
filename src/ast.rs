@@ -51,7 +51,7 @@ pub enum Expression {
 	Boolean(bool),
 	String(String),
 	Prefix {
-		//TODO Store TokenType
+		//TODO Add Operator enum
 		operator: &'static str,
 		right: Box<Expression>,
 	},
@@ -73,7 +73,6 @@ pub enum Expression {
 		name: Option<String>,
 	},
 	Call {
-		/// Either Identifier or Function
 		function: Box<Expression>,
 		arguments: Vec<Expression>,
 	},

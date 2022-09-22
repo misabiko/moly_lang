@@ -151,7 +151,7 @@ pub fn lookup(op: u8) -> Result<Definition, String> {
 	}
 }
 
-pub fn make(op: Opcode, operands: &[u8]) -> Instructions {
+pub fn make(op: Opcode, operands: &[usize]) -> Instructions {
 	let def = if let Ok(def) = lookup(op as u8) {
 		def
 	}else {

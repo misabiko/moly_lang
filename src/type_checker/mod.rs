@@ -34,10 +34,20 @@ impl TypeChecker {
 		match stmt {
 			Statement::Expression { expr, has_semicolon } => self.check_expression(expr)
 				.map(|expr| TypedStatement::Expression { expr, has_semicolon }),
-			Statement::Let { name, value } => Ok(TypedStatement::Let {
-				name,
-				value: self.check_expression(value)?,
-			}),
+			Statement::Let { name, value } => {
+				let value = self.check_expression(value)?;
+
+				let value_type = match self.get_type_from_expression(&value) {
+					None => return Err(format!("cannot assign void type to a variable")),
+					Some(type_expr) => type_expr,
+				};
+				self.type_env.define_identifier(&name, value_type);
+
+				Ok(TypedStatement::Let {
+					name,
+					value,
+				})
+			},
 			Statement::Return(None) => Ok(TypedStatement::Return(None)),
 			Statement::Return(Some(value)) => Ok(TypedStatement::Return(Some(self.check_expression(value)?))),
 		}

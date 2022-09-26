@@ -4,7 +4,11 @@ use moly::{
 	ast::Statement,
 	parser::Parser,
 };
-use moly::ast::{Expression};
+use moly::ast::{Expression, InfixOperator, PrefixOperator};
+
+//TODO Parse DeclarativeProgram
+
+//TODO Split into parser/expression, parser/statements, etc
 
 #[test]
 fn test_let_statements() {
@@ -91,10 +95,10 @@ fn test_boolean_expression() {
 fn test_parsing_prefix_expressions() {
 	let prefix_tests = [
 		//Could throw parse error if using bang directly on integer
-		("!5;", "!", Expression::Integer(5)),
-		("-15;", "-", Expression::Integer(15)),
-		("!true;", "!", Expression::Boolean(true)),
-		("!false;", "!", Expression::Boolean(false)),
+		("!5;", PrefixOperator::Bang, Expression::Integer(5)),
+		("-15;", PrefixOperator::Minus, Expression::Integer(15)),
+		("!true;", PrefixOperator::Bang, Expression::Boolean(true)),
+		("!false;", PrefixOperator::Bang, Expression::Boolean(false)),
 	];
 
 	for (input, op, value) in prefix_tests {
@@ -113,17 +117,17 @@ fn test_parsing_prefix_expressions() {
 #[test]
 fn test_parsing_infix_expressions() {
 	let infix_tests = [
-		("5 + 5;", Expression::Integer(5), "+", Expression::Integer(5)),
-		("5 - 5;", Expression::Integer(5), "-", Expression::Integer(5)),
-		("5 * 5;", Expression::Integer(5), "*", Expression::Integer(5)),
-		("5 / 5;", Expression::Integer(5), "/", Expression::Integer(5)),
-		("5 > 5;", Expression::Integer(5), ">", Expression::Integer(5)),
-		("5 < 5;", Expression::Integer(5), "<", Expression::Integer(5)),
-		("5 == 5;", Expression::Integer(5), "==", Expression::Integer(5)),
-		("5 != 5;", Expression::Integer(5), "!=", Expression::Integer(5)),
-		("true == true", Expression::Boolean(true), "==", Expression::Boolean(true)),
-		("true != false", Expression::Boolean(true), "!=", Expression::Boolean(false)),
-		("false == false", Expression::Boolean(false), "==", Expression::Boolean(false)),
+		("5 + 5;", Expression::Integer(5), InfixOperator::Plus, Expression::Integer(5)),
+		("5 - 5;", Expression::Integer(5), InfixOperator::Minus, Expression::Integer(5)),
+		("5 * 5;", Expression::Integer(5), InfixOperator::Mul, Expression::Integer(5)),
+		("5 / 5;", Expression::Integer(5), InfixOperator::Div, Expression::Integer(5)),
+		("5 > 5;", Expression::Integer(5), InfixOperator::GreaterThan, Expression::Integer(5)),
+		("5 < 5;", Expression::Integer(5), InfixOperator::LessThan, Expression::Integer(5)),
+		("5 == 5;", Expression::Integer(5), InfixOperator::Equal, Expression::Integer(5)),
+		("5 != 5;", Expression::Integer(5), InfixOperator::Unequal, Expression::Integer(5)),
+		("true == true", Expression::Boolean(true), InfixOperator::Equal, Expression::Boolean(true)),
+		("true != false", Expression::Boolean(true), InfixOperator::Unequal, Expression::Boolean(false)),
+		("false == false", Expression::Boolean(false), InfixOperator::Equal, Expression::Boolean(false)),
 	];
 
 	for (input, left_value, op, right_value) in infix_tests {
@@ -134,7 +138,7 @@ fn test_parsing_infix_expressions() {
 				exp,
 				Expression::Infix {
 					left: Box::new(left_value),
-					operator: op.into(),
+					operator: op,
 					right: Box::new(right_value),
 				},
 				"`{}` gave wrong infix expression",
@@ -281,7 +285,7 @@ fn test_if_expression() {
 				condition,
 				Box::new(Expression::Infix {
 					left: Box::new(Expression::Identifier("x".into())),
-					operator: "<".into(),
+					operator: InfixOperator::LessThan,
 					right: Box::new(Expression::Identifier("y".into())),
 				}),
 				"wrong condition"
@@ -341,7 +345,7 @@ fn test_function_literal_parsing() {
 					*exp,
 					Expression::Infix {
 						left: Box::new(Expression::Identifier("x".into())),
-						operator: "+".into(),
+						operator: InfixOperator::Plus,
 						right: Box::new(Expression::Identifier("y".into())),
 					},
 					"wrong function body"
@@ -400,12 +404,12 @@ fn test_call_expression_parsing() {
 				Expression::Integer(1),
 				Expression::Infix {
 					left: Box::new(Expression::Integer(2)),
-					operator: "*".into(),
+					operator: InfixOperator::Mul,
 					right: Box::new(Expression::Integer(3)),
 				},
 				Expression::Infix {
 					left: Box::new(Expression::Integer(4)),
-					operator: "+".into(),
+					operator: InfixOperator::Plus,
 					right: Box::new(Expression::Integer(5)),
 				},
 			],
@@ -444,12 +448,12 @@ fn test_parsing_array_literals() {
 				Expression::Integer(1),
 				Expression::Infix {
 					left: Box::new(Expression::Integer(2)),
-					operator: "*".into(),
+					operator: InfixOperator::Mul,
 					right: Box::new(Expression::Integer(2)),
 				},
 				Expression::Infix {
 					left: Box::new(Expression::Integer(3)),
-					operator: "+".into(),
+					operator: InfixOperator::Plus,
 					right: Box::new(Expression::Integer(3)),
 				},
 			],
@@ -477,7 +481,7 @@ fn test_parsing_index_expressions() {
 			index,
 			Box::new(Expression::Infix {
 				left: Box::new(Expression::Integer(1)),
-				operator: "+".into(),
+				operator: InfixOperator::Plus,
 				right: Box::new(Expression::Integer(1)),
 			}),
 			"wrong index expression"
@@ -548,7 +552,7 @@ fn test_parsing_hash_literals_with_expressions() {
 				e,
 				Expression::Infix {
 					left: Box::new(Expression::Integer(0)),
-					operator: "+".into(),
+					operator: InfixOperator::Plus,
 					right: Box::new(Expression::Integer(1)),
 				},
 				"wrong hash value"
@@ -559,7 +563,7 @@ fn test_parsing_hash_literals_with_expressions() {
 				e,
 				Expression::Infix {
 					left: Box::new(Expression::Integer(10)),
-					operator: "-".into(),
+					operator: InfixOperator::Minus,
 					right: Box::new(Expression::Integer(8)),
 				},
 				"wrong hash value"
@@ -570,7 +574,7 @@ fn test_parsing_hash_literals_with_expressions() {
 				e,
 				Expression::Infix {
 					left: Box::new(Expression::Integer(15)),
-					operator: "/".into(),
+					operator: InfixOperator::Div,
 					right: Box::new(Expression::Integer(5)),
 				},
 				"wrong hash value"

@@ -1,6 +1,6 @@
 use std::fmt;
 use std::fmt::Formatter;
-use crate::ast::{BlockStatement, Expression, Program, Statement};
+use crate::ast::{BlockStatement, Expression, InfixOperator, PrefixOperator, Program, Statement};
 use crate::lexer::Lexer;
 use crate::token::{Token, TokenLiteral, TokenType};
 
@@ -155,11 +155,14 @@ impl Parser {
 	}
 
 	fn parse_prefix_expression(&mut self) -> PResult<Expression> {
-		let operator = if let TokenLiteral::Static(operator) = self.cur_token.literal {
-			operator
-		} else {
-			panic!("{:?} isn't operator token", self.cur_token)
-		};
+		let operator = match self.cur_token.literal {
+			TokenLiteral::Static(operator) => match operator {
+				"-" => Ok(PrefixOperator::Minus),
+				"!" => Ok(PrefixOperator::Bang),
+				_ => Err(ParserError::Generic(format!("{:?} isn't a prefix operator token", self.cur_token))),
+			}
+			_ => Err(ParserError::Generic(format!("{:?} isn't a operator token", self.cur_token))),
+		}?;
 
 		self.next_token();
 
@@ -172,15 +175,28 @@ impl Parser {
 	}
 
 	fn parse_infix_expression(&mut self, left: Expression) -> PResult<Expression> {
-		let operator = if let TokenLiteral::Static(operator) = self.cur_token.literal {
-			operator
-		} else {
-			panic!("{:?} isn't operator token", self.cur_token)
-		};
+		let operator = match self.cur_token.literal {
+			TokenLiteral::Static(operator) => match operator {
+				"+" => Ok(InfixOperator::Plus),
+				"-" => Ok(InfixOperator::Minus),
+				"*" => Ok(InfixOperator::Mul),
+				"/" => Ok(InfixOperator::Div),
+				//TODO "%" => Ok(InfixOperator::Modulo),
+
+				"==" => Ok(InfixOperator::Equal),
+				"!=" => Ok(InfixOperator::Unequal),
+				"<" => Ok(InfixOperator::LessThan),
+				">" => Ok(InfixOperator::GreaterThan),
+				//TODO "<=" => Ok(InfixOperator::LesserEqual),
+				//TODO ">=" => Ok(InfixOperator::GreaterEqual),
+				_ => Err(ParserError::Generic(format!("{:?} isn't a infix operator token", self.cur_token))),
+			}
+			_ => Err(ParserError::Generic(format!("{:?} isn't operator token", self.cur_token))),
+		}?;
 
 		let precedence = self.cur_precedence();
 		self.next_token();
-		//TODO Throw parse error instead of option
+
 		let right = self.parse_expression(precedence)?;
 
 		Ok(Expression::Infix {
@@ -205,12 +221,6 @@ impl Parser {
 
 		//TODO Should be able to check which expression can return bool (not minus, not string)
 		let condition = self.parse_expression(Precedence::Lowest)?;
-		if let Some(false) = is_bool(&condition) {
-			return Err(ParserError::ExpectedType {
-				expected: "boolean".into(),
-				found: condition.to_string(),
-			})
-		}
 
 		self.expect_peek(TokenType::LBrace)?;
 
@@ -402,37 +412,6 @@ impl Parser {
 
 	fn cur_precedence(&self) -> Precedence {
 		precedences(self.cur_token.token_type).unwrap_or(Precedence::Lowest)
-	}
-}
-
-fn is_bool(exp: &Expression) -> Option<bool> {
-	match exp {
-		//Bool
-		Expression::Boolean(_) => Some(true),
-		Expression::Prefix { operator: "!", right } => is_bool(&right),
-		Expression::Infix {
-			operator:
-			"<" |
-			">" |
-			"<=" |
-			">=" |
-			"==" |
-			"!=", .. } => Some(true),
-		//Not bool
-		Expression::Prefix { operator: "-", .. } |
-		Expression::Integer(_) |
-		Expression::Function { .. } |
-		Expression::Array(_) |
-		Expression::Hash(_) |
-		Expression::String(_) => Some(false),
-		//Maybe bool
-		//TODO Limit prefix and infix types
-		Expression::Prefix { .. } |
-		Expression::Infix { .. } |
-		Expression::Identifier(_) |
-		Expression::If { .. } |
-		Expression::Call { .. } |
-		Expression::Index { .. } => None
 	}
 }
 

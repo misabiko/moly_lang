@@ -6,7 +6,6 @@ use moly::token::TokenLiteral;
 
 #[test]
 fn test_next_token() {
-	//TODO Remove if parentheses
 	const INPUT: &str = r#"let five = 5;
 let ten = 10;
 

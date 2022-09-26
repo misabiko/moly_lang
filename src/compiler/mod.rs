@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use enum_primitive::FromPrimitive;
-use crate::ast::{Expression, Program, Statement};
+use crate::ast::{Expression, InfixOperator, PrefixOperator, Program, Statement};
 use crate::code::{Instructions, make, Opcode, OperandIndex};
 use crate::compiler::symbol_table::{SymbolScope, Symbol, SymbolTable};
 use crate::object::{Function, Object};
@@ -119,14 +119,12 @@ impl Compiler {
 				self.compile_expression(*right)?;
 
 				match operator {
-					"!" => self.emit(Opcode::Bang, &[]),
-					"-" => self.emit(Opcode::Minus, &[]),
-					//TODO Limit types
-					_ => return Err(format!("unknown operator {:?}", operator))
+					PrefixOperator::Bang => self.emit(Opcode::Bang, &[]),
+					PrefixOperator::Minus => self.emit(Opcode::Minus, &[]),
 				};
 			}
 			Expression::Infix { left, operator, right } => {
-				if operator == "<" {
+				if operator == InfixOperator::LessThan {
 					self.compile_expression(*right)?;
 
 					self.compile_expression(*left)?;
@@ -141,15 +139,14 @@ impl Compiler {
 				self.compile_expression(*right)?;
 
 				match operator {
-					"+" => self.emit(Opcode::Add, &[]),
-					"-" => self.emit(Opcode::Sub, &[]),
-					"*" => self.emit(Opcode::Mul, &[]),
-					"/" => self.emit(Opcode::Div, &[]),
-					">" => self.emit(Opcode::GreaterThan, &[]),
-					"==" => self.emit(Opcode::Equal, &[]),
-					"!=" => self.emit(Opcode::NotEqual, &[]),
-					//TODO Limit types
-					_ => return Err(format!("unknown operator {}", operator))
+					InfixOperator::Plus => self.emit(Opcode::Add, &[]),
+					InfixOperator::Minus => self.emit(Opcode::Sub, &[]),
+					InfixOperator::Mul => self.emit(Opcode::Mul, &[]),
+					InfixOperator::Div => self.emit(Opcode::Div, &[]),
+					InfixOperator::GreaterThan => self.emit(Opcode::GreaterThan, &[]),
+					InfixOperator::Equal => self.emit(Opcode::Equal, &[]),
+					InfixOperator::Unequal => self.emit(Opcode::NotEqual, &[]),
+					InfixOperator::LessThan => panic!(),
 				};
 			}
 			Expression::Identifier(name) => {

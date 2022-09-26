@@ -51,14 +51,12 @@ pub enum Expression {
 	Boolean(bool),
 	String(String),
 	Prefix {
-		//TODO Add Operator enum
-		operator: &'static str,
+		operator: PrefixOperator,
 		right: Box<Expression>,
 	},
 	Infix {
 		left: Box<Expression>,
-		//TODO Store TokenType
-		operator: &'static str,
+		operator: InfixOperator,
 		right: Box<Expression>,
 	},
 	If {
@@ -131,4 +129,54 @@ fn join_expression_vec(expressions: &[Expression]) -> String {
 		.map(|p| p.to_string())
 		.collect::<Vec<String>>()
 		.join(", ")
+}
+
+#[derive(Debug, PartialEq)]
+pub enum PrefixOperator {
+	Minus,
+	Bang,
+}
+
+impl fmt::Display for PrefixOperator {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		match self {
+			PrefixOperator::Minus => write!(f, "-"),
+			PrefixOperator::Bang => write!(f, "!"),
+		}
+	}
+}
+
+#[derive(Debug, PartialEq)]
+pub enum InfixOperator {
+	Plus,
+	Minus,
+	Mul,
+	Div,
+	//TODO Modulo,
+
+	Equal,
+	Unequal,
+	LessThan,
+	GreaterThan,
+	//TODO LesserEqual,
+	//TODO GreaterEqual,
+}
+
+impl fmt::Display for InfixOperator {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		match self {
+			InfixOperator::Plus => write!(f, "+"),
+			InfixOperator::Minus => write!(f, "-"),
+			InfixOperator::Mul => write!(f, "*"),
+			InfixOperator::Div => write!(f, "/"),
+			//InfixOperator::Modulo => write!(f, "%"),
+
+			InfixOperator::Equal => write!(f, "=="),
+			InfixOperator::Unequal => write!(f, "!="),
+			InfixOperator::LessThan => write!(f, "<"),
+			InfixOperator::GreaterThan => write!(f, ">"),
+			//InfixOperator::LesserEqual => write!(f, "<="),
+			//InfixOperator::GreaterEqual => write!(f, ">="),
+		}
+	}
 }

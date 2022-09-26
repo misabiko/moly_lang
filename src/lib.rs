@@ -20,6 +20,7 @@ pub mod type_checker;
 //TODO Explore how Elm did List with "1 or more" length
 //TODO Static string in sum type to pattern match with
 	/* type BooleanOperator = "<" | ">" | "<=" | ">=" | "==" | "!="; */
+//TODO Store line number in Result type for better stack trace
 
 pub fn build(input: &str) -> Result<Bytecode, String> {
 	let mut parser = Parser::new(Lexer::new(input));

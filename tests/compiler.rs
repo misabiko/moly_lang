@@ -6,16 +6,10 @@ use moly::compiler::{Compiler, EmittedInstruction};
 use moly::lexer::Lexer;
 use moly::parser::{Parser, ParserError};
 
-struct CompilerTestCase {
-	input: &'static str,
-	expected_constants: Vec<Object>,
-	expected_instructions: Vec<Instructions>,
-}
-
 #[test]
 fn test_integer_arithmetic() {
 	let tests = vec![
-		CompilerTestCase {
+		TestCase {
 			input: "1 + 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
@@ -25,7 +19,7 @@ fn test_integer_arithmetic() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "1; 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
@@ -35,7 +29,7 @@ fn test_integer_arithmetic() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "1 - 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
@@ -45,7 +39,7 @@ fn test_integer_arithmetic() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "1 * 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
@@ -55,7 +49,7 @@ fn test_integer_arithmetic() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "2 / 1",
 			expected_constants: vec![Object::Integer(2), Object::Integer(1)],
 			expected_instructions: vec![
@@ -65,7 +59,7 @@ fn test_integer_arithmetic() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "1 + 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
@@ -75,7 +69,7 @@ fn test_integer_arithmetic() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "-1",
 			expected_constants: vec![Object::Integer(1)],
 			expected_instructions: vec![
@@ -92,7 +86,7 @@ fn test_integer_arithmetic() {
 #[test]
 fn test_boolean_expressions() {
 	let tests = vec![
-		CompilerTestCase {
+		TestCase {
 			input: "true",
 			expected_constants: vec![],
 			expected_instructions: vec![
@@ -100,7 +94,7 @@ fn test_boolean_expressions() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "false",
 			expected_constants: vec![],
 			expected_instructions: vec![
@@ -108,7 +102,7 @@ fn test_boolean_expressions() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "1 > 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
@@ -118,7 +112,7 @@ fn test_boolean_expressions() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "1 < 2",
 			expected_constants: vec![Object::Integer(2), Object::Integer(1)],
 			expected_instructions: vec![
@@ -128,7 +122,7 @@ fn test_boolean_expressions() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "1 == 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
@@ -138,7 +132,7 @@ fn test_boolean_expressions() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "1 != 2",
 			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
 			expected_instructions: vec![
@@ -148,7 +142,7 @@ fn test_boolean_expressions() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "true == false",
 			expected_constants: vec![],
 			expected_instructions: vec![
@@ -158,7 +152,7 @@ fn test_boolean_expressions() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "true != false",
 			expected_constants: vec![],
 			expected_instructions: vec![
@@ -168,7 +162,7 @@ fn test_boolean_expressions() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "!true",
 			expected_constants: vec![],
 			expected_instructions: vec![
@@ -185,7 +179,7 @@ fn test_boolean_expressions() {
 #[test]
 fn test_conditionals() {
 	let tests = vec![
-		CompilerTestCase {
+		TestCase {
 			input: "
             if true { 10 }; 3333;
             ",
@@ -207,7 +201,7 @@ fn test_conditionals() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "
             if true { 10 } else { 20 }; 3333;
             ",
@@ -239,7 +233,7 @@ fn test_conditionals() {
 #[test]
 fn test_global_let_statements() {
 	let tests = vec![
-		CompilerTestCase {
+		TestCase {
 			input: "
 			let one = 1;
 			let two = 2;
@@ -252,7 +246,7 @@ fn test_global_let_statements() {
 				make(Opcode::SetGlobal, &[1]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "
 			let one = 1;
 			one;
@@ -265,7 +259,7 @@ fn test_global_let_statements() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "
 			let one = 1;
 			let two = one;
@@ -289,7 +283,7 @@ fn test_global_let_statements() {
 #[test]
 fn test_string_expressions() {
 	let tests = vec![
-		CompilerTestCase {
+		TestCase {
 			input: r#""monkey"#,
 			expected_constants: vec![Object::String("monkey".into())],
 			expected_instructions: vec![
@@ -297,7 +291,7 @@ fn test_string_expressions() {
 				make(Opcode::Pop, &[]),
 			]
 		},
-		CompilerTestCase {
+		TestCase {
 			input: r#""mon" + "key"#,
 			expected_constants: vec![
 				Object::String("mon".into()),
@@ -318,7 +312,7 @@ fn test_string_expressions() {
 #[test]
 fn test_array_literals() {
 	let tests = vec![
-		CompilerTestCase {
+		TestCase {
 			input: "[]",
 			expected_constants: vec![],
 			expected_instructions: vec![
@@ -326,7 +320,7 @@ fn test_array_literals() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "[1, 2, 3]",
 			expected_constants: vec![
 				Object::Integer(1),
@@ -341,7 +335,7 @@ fn test_array_literals() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "[1 + 2, 3 - 4, 5 * 6]",
 			expected_constants: vec![
 				Object::Integer(1),
@@ -373,7 +367,7 @@ fn test_array_literals() {
 #[test]
 fn test_hash_literals() {
 	let tests = vec![
-		CompilerTestCase {
+		TestCase {
 			input: "{}",
 			expected_constants: vec![],
 			expected_instructions: vec![
@@ -381,7 +375,7 @@ fn test_hash_literals() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "{1: 2, 3: 4, 5: 6}",
 			expected_constants: vec![1, 2, 3, 4, 5, 6].into_iter()
 				.map(|i| Object::Integer(i)).collect(),
@@ -396,7 +390,7 @@ fn test_hash_literals() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "{1: 2 + 3, 4: 5 * 6}",
 			expected_constants: vec![1, 2, 3, 4, 5, 6].into_iter()
 				.map(|i| Object::Integer(i)).collect(),
@@ -421,7 +415,7 @@ fn test_hash_literals() {
 #[test]
 fn test_index_expressions() {
 	let tests = vec![
-		CompilerTestCase {
+		TestCase {
 			input: "[1, 2, 3][1 + 1]",
 			expected_constants: vec![1, 2, 3, 1, 1].into_iter()
 				.map(|i| Object::Integer(i)).collect(),
@@ -437,7 +431,7 @@ fn test_index_expressions() {
 				make(Opcode::Pop, &[]),
 			]
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "{1: 2}[2 - 1]",
 			expected_constants: vec![1, 2, 2, 1].into_iter()
 				.map(|i| Object::Integer(i)).collect(),
@@ -460,7 +454,7 @@ fn test_index_expressions() {
 #[test]
 fn test_functions() {
 	let tests = vec![
-		CompilerTestCase {
+		TestCase {
 			input: "fn() { return 5 + 10 }",
 			expected_constants: vec![
 				Object::Integer(5),
@@ -481,7 +475,7 @@ fn test_functions() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "fn() { 5 + 10 }",
 			expected_constants: vec![
 				Object::Integer(5),
@@ -502,7 +496,7 @@ fn test_functions() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "fn() { 1; 2 }",
 			expected_constants: vec![
 				Object::Integer(1),
@@ -531,7 +525,7 @@ fn test_functions() {
 #[test]
 fn test_functions_without_return_value() {
 	let tests = vec![
-		CompilerTestCase {
+		TestCase {
 			input: "fn() { }",
 			expected_constants: vec![
 				Object::Function(Function {
@@ -592,7 +586,7 @@ fn test_compiler_scopes() {
 #[test]
 fn test_function_calls() {
 	let tests = vec![
-		CompilerTestCase {
+		TestCase {
 			input: "fn() { 24 }();",
 			expected_constants: vec![
 				Object::Integer(24),
@@ -611,7 +605,7 @@ fn test_function_calls() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "
             let noArg = fn() { 24 };
             noArg();
@@ -636,7 +630,7 @@ fn test_function_calls() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "
             let oneArg = fn(a) { a };
             oneArg(24);
@@ -661,7 +655,7 @@ fn test_function_calls() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "
             let manyArg = fn(a, b, c) { a; b; c };
             manyArg(24, 25, 26);
@@ -702,7 +696,7 @@ fn test_function_calls() {
 #[test]
 fn test_let_statement_scopes() {
 	let tests = vec![
-		CompilerTestCase {
+		TestCase {
 			input: "
 			let num = 55;
 			fn() { num }
@@ -725,7 +719,7 @@ fn test_let_statement_scopes() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "
             fn() {
                 let num = 55;
@@ -750,7 +744,7 @@ fn test_let_statement_scopes() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "
             fn() {
                 let a = 55;
@@ -789,7 +783,7 @@ fn test_let_statement_scopes() {
 #[test]
 fn test_builtins() {
 	let tests = vec![
-		CompilerTestCase {
+		TestCase {
 			input: "
             len([]);
             push([], 1);
@@ -807,7 +801,7 @@ fn test_builtins() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "fn() { len([]) }",
 			expected_constants: vec![
 				Object::Function(Function {
@@ -834,7 +828,7 @@ fn test_builtins() {
 #[test]
 fn test_closures() {
 	let tests = vec![
-		CompilerTestCase {
+		TestCase {
 			input: "
             fn(a) {
                 fn(b) {
@@ -868,7 +862,7 @@ fn test_closures() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "
             fn(a) {
                 fn(b) {
@@ -916,7 +910,7 @@ fn test_closures() {
 				make(Opcode::Pop, &[]),
 			],
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "
             let global = 55;
 
@@ -994,7 +988,7 @@ fn test_closures() {
 #[test]
 fn test_recursive_functions() {
 	let tests = vec![
-		CompilerTestCase {
+		TestCase {
 			input: "
             let countDown = fn(x) { countDown(x - 1); };
             countDown(1);
@@ -1024,7 +1018,7 @@ fn test_recursive_functions() {
 				make(Opcode::Pop, &[]),
 			]
 		},
-		CompilerTestCase {
+		TestCase {
 			input: "
             let wrapper = fn() {
                 let countDown = fn(x) { countDown(x - 1); };
@@ -1073,8 +1067,14 @@ fn test_recursive_functions() {
 	run_compiler_tests(tests)
 }
 
-fn run_compiler_tests(tests: Vec<CompilerTestCase>) {
-	for CompilerTestCase { input, expected_constants, expected_instructions } in tests {
+struct TestCase {
+	input: &'static str,
+	expected_constants: Vec<Object>,
+	expected_instructions: Vec<Instructions>,
+}
+
+fn run_compiler_tests(tests: Vec<TestCase>) {
+	for TestCase { input, expected_constants, expected_instructions } in tests {
 		let program = match parse(input) {
 			Ok(p) => p,
 			Err(err) => panic!("parse error: {}", err),

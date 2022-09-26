@@ -67,6 +67,7 @@ pub enum TypedExpression {
 		left: Box<TypedExpression>,
 		operator: InfixOperator,
 		right: Box<TypedExpression>,
+		type_expr: TypeExpr,
 	},
 	If {
 		condition: Box<TypedExpression>,
@@ -99,7 +100,7 @@ impl fmt::Display for TypedExpression {
 			TypedExpression::Boolean(value) => write!(f, "{}", value),
 			TypedExpression::String(value) => write!(f, "{}", value),
 			TypedExpression::Prefix { operator, right } => write!(f, "({}{})", operator, right),
-			TypedExpression::Infix { left, operator, right } => write!(f, "({} {} {})", left, operator, right),
+			TypedExpression::Infix { left, operator, right, .. } => write!(f, "({} {} {})", left, operator, right),
 			TypedExpression::If { condition, consequence, alternative, .. } => {
 				let alt_str = if let Some(alternative) = alternative {
 					format!(" else {}", alternative)

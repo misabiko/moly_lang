@@ -125,7 +125,7 @@ impl Compiler {
 					PrefixOperator::Minus => self.emit(Opcode::Minus, &[]),
 				};
 			}
-			TypedExpression::Infix { left, operator, right } => {
+			TypedExpression::Infix { left, operator, right, .. } => {
 				if operator == InfixOperator::LessThan {
 					self.compile_expression(*right)?;
 

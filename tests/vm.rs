@@ -68,10 +68,11 @@ fn test_boolean_expressions() {
 #[test]
 fn test_conditionals() {
 	let tests = vec![
-		TestCase { input: "if true { 10 }", expected: Ok(Some(Object::Integer(10))) },
+		//TODO Add missing semicolon type mismatch to type checker tests
+		TestCase { input: "if true { 10; }", expected: Ok(Some(Object::Integer(10))) },
 		TestCase { input: "if true { 10 } else { 20 }", expected: Ok(Some(Object::Integer(10))) },
 		TestCase { input: "if false { 10 } else { 20 } ", expected: Ok(Some(Object::Integer(20))) },
-		TestCase { input: "if 1 < 2 { 10 }", expected: Ok(Some(Object::Integer(10))) },
+		TestCase { input: "if 1 < 2 { 10; }", expected: Ok(Some(Object::Integer(10))) },
 		TestCase { input: "if 1 < 2 { 10 } else { 20 }", expected: Ok(Some(Object::Integer(10))) },
 		TestCase { input: "if 1 > 2 { 10 } else { 20 }", expected: Ok(Some(Object::Integer(20))) },
 	];

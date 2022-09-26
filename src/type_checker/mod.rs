@@ -1,4 +1,4 @@
-use crate::ast::{Expression, Program, Statement};
+use crate::ast::{Expression, InfixOperator, PrefixOperator, Program, Statement};
 use crate::object::builtins::get_builtins;
 use crate::type_checker::type_env::{IntegerSize, TypeEnv, TypeExpr};
 use crate::type_checker::typed_ast::{TypedExpression, TypedProgram, TypedStatement};
@@ -79,10 +79,14 @@ impl TypeChecker {
 			Expression::Infix { left, operator, right } => {
 				let left = self.check_expression(*left)?;
 				let right = self.check_expression(*right)?;
+
+				let type_expr = self.check_infix(&operator, &left, &right)?;
+
 				Ok(TypedExpression::Infix {
 					left: Box::new(left),
 					operator,
 					right: Box::new(right),
+					type_expr,
 				})
 			}
 			Expression::If { condition, consequence, alternative } => {
@@ -189,17 +193,38 @@ impl TypeChecker {
 			TypedExpression::Boolean(_) => Some(TypeExpr::Bool),
 			TypedExpression::String(_) => Some(TypeExpr::String),
 			TypedExpression::Function { .. } => Some(TypeExpr::FnLiteral),
+			TypedExpression::Prefix {
+				operator: PrefixOperator::Bang | PrefixOperator::Minus,
+				right
+			} => self.get_type_from_expression(right.as_ref()),
+			TypedExpression::Infix { type_expr, .. } => Some(type_expr.clone()),
 			expr => panic!("todo get_type_from_expression {:?}", expr)//TODO Remove rest
-			/*TypedExpression::Prefix { operator, right } => {
-
-			}
-			TypedExpression::Infix { .. } => {}
+			/*
 			TypedExpression::If { .. } => {}
 			TypedExpression::Function { .. } => {}
 			TypedExpression::Call { .. } => {}
 			TypedExpression::Array(_) => {}
 			TypedExpression::Index { .. } => {}
 			TypedExpression::Hash(_) => {}*/
+		}
+	}
+
+	fn check_infix(&self, operator: &InfixOperator, left: &TypedExpression, right: &TypedExpression) -> TCResult<TypeExpr> {
+		let left_type = self.get_type_from_expression(left);
+		match (&left_type, self.get_type_from_expression(right)) {
+			(None, _) | (_, None) => return Err(format!("cannot include void type in infix operator ({:?} and {:?})", left, right)),
+			(Some(TypeExpr::Int { .. }), Some(TypeExpr::Int { .. })) => {}
+			(left, right) => if left != &right {
+				return Err(format!("incompatible types ({:?} and {:?})", left, right))
+			}
+		}
+
+		match operator {
+			InfixOperator::LessThan |
+			InfixOperator::GreaterThan |
+			InfixOperator::Equal |
+			InfixOperator::Unequal => Ok(TypeExpr::Bool),
+			_ => Ok(left_type.unwrap())
 		}
 	}
 }

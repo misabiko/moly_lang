@@ -5,6 +5,7 @@ use moly::compiler::Compiler;
 use moly::lexer::Lexer;
 use moly::object::{Closure, Function, HashingObject, Object};
 use moly::parser::{Parser, ParserError};
+use moly::type_checker::TypeChecker;
 use moly::vm::VM;
 
 #[test]
@@ -422,7 +423,6 @@ fn test_calling_functions_with_wrong_arguments() {
 	run_vm_tests(tests)
 }
 
-//TODO Test without returns
 #[test]
 fn test_builtin_functions() {
 	let tests = vec![
@@ -439,15 +439,15 @@ fn test_builtin_functions() {
 		},
 		TestCase {input: "len([1, 2, 3])", expected: Ok(Some(Object::Integer(3)))},
 		TestCase {input: "len([])", expected: Ok(Some(Object::Integer(0)))},
-		//TODO TestCase {input: r#"print("hello", "world!")"#, expected: Ok(None)},
+		TestCase {input: r#"print("hello", "world!")"#, expected: Ok(None)},
 		TestCase {input: "first([1, 2, 3])", expected: Ok(Some(Object::Integer(1)))},
-		//TODO TestCase {input: r#"first([])"#, expected: Ok(None)},
+		TestCase {input: r#"first([])"#, expected: Ok(None)},
 		TestCase {
 			input: "first(1)",
 			expected: Ok(Some(Object::Error("argument to `first` must be Array, got Integer(1)".into())))
 		},
 		TestCase {input: "last([1, 2, 3])", expected: Ok(Some(Object::Integer(3)))},
-		//TODO TestCase {input: r#"last([])"#, expected: Ok(None)},
+		TestCase {input: r#"last([])"#, expected: Ok(None)},
 		TestCase {
 			input: "last(1)",
 			expected: Ok(Some(Object::Error("argument to `last` must be Array, got Integer(1)".into())))
@@ -456,7 +456,7 @@ fn test_builtin_functions() {
 			Object::Integer(2),
 			Object::Integer(3),
 		])))},
-		//TODO TestCase {input: r#"rest([])"#, expected: Ok(None)},
+		TestCase {input: r#"rest([])"#, expected: Ok(None)},
 		TestCase {input: "push([], 1)", expected: Ok(Some(Object::Array(vec![
 			Object::Integer(1)
 		])))},
@@ -638,6 +638,12 @@ fn run_vm_tests(tests: Vec<TestCase>) {
 		let program = match parse(input) {
 			Ok(p) => p,
 			Err(err) => panic!("parse error: {}", err),
+		};
+
+		let mut type_checker = TypeChecker::new();
+		let program = match type_checker.check(program) {
+			Ok(program) => program,
+			Err(err) => panic!("Parsing error: {}", err),
 		};
 
 		let mut compiler = Compiler::new();

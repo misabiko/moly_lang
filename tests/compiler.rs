@@ -5,6 +5,7 @@ use moly::object::{Function, Object};
 use moly::compiler::{Compiler, EmittedInstruction};
 use moly::lexer::Lexer;
 use moly::parser::{Parser, ParserError};
+use moly::type_checker::TypeChecker;
 
 #[test]
 fn test_integer_arithmetic() {
@@ -1078,6 +1079,12 @@ fn run_compiler_tests(tests: Vec<TestCase>) {
 		let program = match parse(input) {
 			Ok(p) => p,
 			Err(err) => panic!("parse error: {}", err),
+		};
+
+		let mut type_checker = TypeChecker::new();
+		let program = match type_checker.check(program) {
+			Ok(program) => program,
+			Err(err) => panic!("Parsing error: {}", err),
 		};
 
 		let mut compiler = Compiler::new();

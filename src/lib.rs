@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use crate::compiler::{Bytecode, Compiler};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
+use crate::type_checker::TypeChecker;
 use crate::vm::VM;
 
 pub mod token;
@@ -26,6 +27,14 @@ pub fn build(input: &str) -> Result<Bytecode, String> {
 	let mut parser = Parser::new(Lexer::new(input));
 
 	let program = match parser.parse_program() {
+		Ok(program) => program,
+		Err(err) => {
+			return Err(format!("Parsing error: {}", err));
+		}
+	};
+
+	let mut type_checker = TypeChecker::new();
+	let program = match type_checker.check(program) {
 		Ok(program) => program,
 		Err(err) => {
 			return Err(format!("Parsing error: {}", err));

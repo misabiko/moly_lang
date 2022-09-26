@@ -9,6 +9,7 @@ use crate::compiler::Compiler;
 use crate::compiler::symbol_table::SymbolTable;
 use crate::object::builtins::BUILTINS;
 use crate::parser::Parser;
+use crate::type_checker::TypeChecker;
 use crate::vm::{GLOBALS_SIZE, VM};
 
 const PROMPT: &'static str = ">> ";
@@ -41,6 +42,15 @@ pub fn start() {
 		let mut parser = Parser::new(Lexer::new(&buffer));
 
 		let program = match parser.parse_program() {
+			Ok(program) => program,
+			Err(err) => {
+				eprintln!("Parsing error: {}", err);
+				continue;
+			}
+		};
+
+		let mut type_checker = TypeChecker::new();
+		let program = match type_checker.check(program) {
 			Ok(program) => program,
 			Err(err) => {
 				eprintln!("Parsing error: {}", err);

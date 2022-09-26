@@ -1,13 +1,16 @@
 use crate::object::{Builtin, Object};
+use crate::type_checker::type_env::TypeExpr;
 
 pub struct Builtins {
 	pub name: &'static str,
+	pub type_expr: TypeExpr,
 	pub builtin: Builtin,
 }
 
 pub const BUILTINS: &[Builtins] = &[
 	Builtins {
 		name: "len",
+		type_expr: TypeExpr::Call,
 		builtin: |args| {
 			if args.len() != 1 {
 				return Some(Object::Error(format!("wrong number of arguments. got={}, want=1", args.len())));
@@ -22,6 +25,7 @@ pub const BUILTINS: &[Builtins] = &[
 	},
 	Builtins {
 		name: "print",
+		type_expr: TypeExpr::Call,
 		builtin: |args| {
 			for arg in args {
 				println!("{}", arg);
@@ -32,6 +36,7 @@ pub const BUILTINS: &[Builtins] = &[
 	},
 	Builtins {
 		name: "first",
+		type_expr: TypeExpr::Call,
 		builtin: |args| {
 			if args.len() != 1 {
 				return Some(Object::Error(format!("wrong number of arguments. got={}, want=1", args.len())));
@@ -46,6 +51,7 @@ pub const BUILTINS: &[Builtins] = &[
 	},
 	Builtins {
 		name: "last",
+		type_expr: TypeExpr::Call,
 		builtin: |args| {
 			if args.len() != 1 {
 				return Some(Object::Error(format!("wrong number of arguments. got={}, want=1", args.len())));
@@ -60,6 +66,7 @@ pub const BUILTINS: &[Builtins] = &[
 	},
 	Builtins {
 		name: "rest",
+		type_expr: TypeExpr::Call,
 		builtin: |args| {
 			if args.len() != 1 {
 				return Some(Object::Error(format!("wrong number of arguments. got={}, want=1", args.len())));
@@ -74,6 +81,7 @@ pub const BUILTINS: &[Builtins] = &[
 	},
 	Builtins {
 		name: "push",
+		type_expr: TypeExpr::Call,
 		builtin: |args| {
 			if args.len() != 2 {
 				return Some(Object::Error(format!("wrong number of arguments. got={}, want=2", args.len())));

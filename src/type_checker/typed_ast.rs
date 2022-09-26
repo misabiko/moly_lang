@@ -1,4 +1,5 @@
 use std::fmt;
+use crate::ast::{InfixOperator, PrefixOperator};
 use super::type_env::TypeExpr;
 
 pub type TypedProgram = TypedBlockStatement;
@@ -55,14 +56,12 @@ pub enum TypedExpression {
 	Boolean(bool),
 	String(String),
 	Prefix {
-		//TODO Add Operator enum
-		operator: &'static str,
+		operator: PrefixOperator,
 		right: Box<TypedExpression>,
 	},
 	Infix {
 		left: Box<TypedExpression>,
-		//TODO Store TokenType
-		operator: &'static str,
+		operator: InfixOperator,
 		right: Box<TypedExpression>,
 	},
 	If {

@@ -2,11 +2,12 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use enum_primitive::FromPrimitive;
-use crate::ast::{Expression, InfixOperator, PrefixOperator, Program, Statement};
+use crate::ast::{InfixOperator, PrefixOperator};
 use crate::code::{Instructions, make, Opcode, OperandIndex};
 use crate::compiler::symbol_table::{SymbolScope, Symbol, SymbolTable};
 use crate::object::{Function, Object};
 use crate::object::builtins::BUILTINS;
+use crate::type_checker::typed_ast::{TypedExpression, TypedProgram, TypedStatement};
 
 pub mod symbol_table;
 
@@ -59,7 +60,8 @@ impl Compiler {
 		}
 	}
 
-	pub fn compile(&mut self, program: Program) -> CompilerResult {
+	//TODO Either add prefix to non typed program or simplify Typed prefix
+	pub fn compile(&mut self, program: TypedProgram) -> CompilerResult {
 		for stmt in program.statements {
 			self.compile_statement(stmt)?
 		}
@@ -67,14 +69,14 @@ impl Compiler {
 		Ok(())
 	}
 
-	fn compile_statement(&mut self, stmt: Statement) -> CompilerResult {
+	fn compile_statement(&mut self, stmt: TypedStatement) -> CompilerResult {
 		match stmt {
-			Statement::Expression(exp) => {
+			TypedStatement::Expression(exp) => {
 				self.compile_expression(exp)?;
 
 				self.emit(Opcode::Pop, &[]);
 			}
-			Statement::Let { name, value } => {
+			TypedStatement::Let { name, value } => {
 				let (index, scope) = {
 					let mut table = self.symbol_table.borrow_mut();
 					let symbol = table.define(name.as_str());
@@ -89,7 +91,7 @@ impl Compiler {
 					self.emit(Opcode::SetLocal, &[index]);
 				}
 			}
-			Statement::Return(Some(exp)) => {
+			TypedStatement::Return(Some(exp)) => {
 				self.compile_expression(exp)?;
 
 				self.emit(Opcode::ReturnValue, &[]);
@@ -100,22 +102,22 @@ impl Compiler {
 		Ok(())
 	}
 
-	fn compile_expression(&mut self, exp: Expression) -> CompilerResult {
+	fn compile_expression(&mut self, exp: TypedExpression) -> CompilerResult {
 		match exp {
-			Expression::Integer(value) => {
+			TypedExpression::Integer(value) => {
 				let operand = self.add_constant(Object::Integer(value as i64));
 				self.emit(Opcode::Constant, &[operand]);
 			}
-			Expression::Boolean(value) => if value {
+			TypedExpression::Boolean(value) => if value {
 				self.emit(Opcode::True, &[]);
 			} else {
 				self.emit(Opcode::False, &[]);
 			}
-			Expression::String(value) => {
+			TypedExpression::String(value) => {
 				let operand = self.add_constant(Object::String(value));
 				self.emit(Opcode::Constant, &[operand]);
 			}
-			Expression::Prefix { operator, right } => {
+			TypedExpression::Prefix { operator, right } => {
 				self.compile_expression(*right)?;
 
 				match operator {
@@ -123,7 +125,7 @@ impl Compiler {
 					PrefixOperator::Minus => self.emit(Opcode::Minus, &[]),
 				};
 			}
-			Expression::Infix { left, operator, right } => {
+			TypedExpression::Infix { left, operator, right } => {
 				if operator == InfixOperator::LessThan {
 					self.compile_expression(*right)?;
 
@@ -149,7 +151,7 @@ impl Compiler {
 					InfixOperator::LessThan => panic!(),
 				};
 			}
-			Expression::Identifier(name) => {
+			TypedExpression::Identifier { name, .. } => {
 				let symbol = if let Some(s) = self.symbol_table.borrow_mut().resolve(&name) {
 					s
 				} else {
@@ -158,7 +160,7 @@ impl Compiler {
 
 				self.load_symbol(symbol);
 			}
-			Expression::If { condition, consequence, alternative } => {
+			TypedExpression::If { condition, consequence, alternative, .. } => {
 				self.compile_expression(*condition)?;
 
 				//Emit an OpJumpIfFalse with temp value
@@ -187,7 +189,7 @@ impl Compiler {
 				let after_alternative_pos = self.current_instructions().len();
 				self.change_operand(jump_pos, after_alternative_pos);
 			}
-			Expression::Array(elements) => {
+			TypedExpression::Array(elements) => {
 				let length = elements.len();
 				for el in elements {
 					self.compile_expression(el)?;
@@ -195,7 +197,7 @@ impl Compiler {
 
 				self.emit(Opcode::Array, &[length]);
 			}
-			Expression::Hash(mut pairs) => {
+			TypedExpression::Hash(mut pairs) => {
 				let length = pairs.len();
 				pairs.sort_by_key(|(k, _)| k.to_string());
 
@@ -206,13 +208,13 @@ impl Compiler {
 
 				self.emit(Opcode::Hash, &[length * 2]);
 			}
-			Expression::Index { left, index } => {
+			TypedExpression::Index { left, index } => {
 				self.compile_expression(*left)?;
 				self.compile_expression(*index)?;
 
 				self.emit(Opcode::Index, &[]);
 			}
-			Expression::Function { parameters, body, name } => {
+			TypedExpression::Function { parameters, body, name } => {
 				self.enter_scope();
 
 				if let Some(name) = name {
@@ -249,7 +251,7 @@ impl Compiler {
 				}));
 				self.emit(Opcode::Closure, &[fn_index, num_free_symbols]);
 			}
-			Expression::Call { function, arguments } => {
+			TypedExpression::Call { function, arguments } => {
 				self.compile_expression(*function)?;
 
 				let length = arguments.len();

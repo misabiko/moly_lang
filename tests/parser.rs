@@ -53,7 +53,7 @@ fn test_identifier_expression() {
 
 	let stmt = parse_single_statement(INPUT);
 
-	if let Statement::Expression(Expression::Identifier(ident)) = stmt {
+	if let Statement::Expression { expr: Expression::Identifier(ident), has_semicolon: _} = stmt {
 		assert_eq!(ident, "foobar");
 	} else {
 		panic!("{:?} not Expression(Identifier)", stmt)
@@ -66,8 +66,10 @@ fn test_integer_literal_expression() {
 
 	let stmt = parse_single_statement(INPUT);
 
-	if let Statement::Expression(Expression::Integer(value)) = stmt {
+	if let Statement::Expression { expr: Expression::Integer(value), has_semicolon} = stmt {
 		assert_eq!(value, 5);
+
+		assert_eq!(has_semicolon, true, "missing semicolon");
 	} else {
 		panic!("{:?} not Expression(Integer)", stmt)
 	}
@@ -83,8 +85,10 @@ fn test_boolean_expression() {
 	for (input, expected_value) in tests {
 		let stmt = parse_single_statement(input);
 
-		if let Statement::Expression(Expression::Boolean(value)) = stmt {
+		if let Statement::Expression { expr: Expression::Boolean(value), has_semicolon} = stmt {
 			assert_eq!(value, expected_value);
+
+			assert_eq!(has_semicolon, true, "missing semicolon");
 		} else {
 			panic!("{:?} not Expression(Boolean)", stmt)
 		}
@@ -104,10 +108,12 @@ fn test_parsing_prefix_expressions() {
 	for (input, op, value) in prefix_tests {
 		let stmt = parse_single_statement(input);
 
-		if let Statement::Expression(Expression::Prefix { operator, right }) = stmt {
+		if let Statement::Expression { expr: Expression::Prefix { operator, right }, has_semicolon} = stmt {
 			assert_eq!(operator, op, "wrong prefix operator");
 
 			assert_eq!(right, Box::new(value), "wrong prefix operand");
+
+			assert_eq!(has_semicolon, true, "missing semicolon");
 		} else {
 			panic!("{:?} is not Expression(Prefix)", stmt)
 		}
@@ -133,9 +139,9 @@ fn test_parsing_infix_expressions() {
 	for (input, left_value, op, right_value) in infix_tests {
 		let stmt = parse_single_statement(input);
 
-		if let Statement::Expression(exp) = stmt {
+		if let Statement::Expression { expr, has_semicolon: _ } = stmt {
 			assert_eq!(
-				exp,
+				expr,
 				Expression::Infix {
 					left: Box::new(left_value),
 					operator: op,
@@ -280,7 +286,7 @@ fn test_if_expression() {
 	for (input, has_alternative) in tests {
 		let stmt = parse_single_statement(input);
 
-		if let Statement::Expression(Expression::If { condition, consequence, alternative }) = stmt {
+		if let Statement::Expression { expr: Expression::If { condition, consequence, alternative }, has_semicolon: _ } = stmt {
 			assert_eq!(
 				condition,
 				Box::new(Expression::Infix {
@@ -297,7 +303,7 @@ fn test_if_expression() {
 
 			assert_eq!(
 				*consequence_stmt,
-				Statement::Expression(Expression::Identifier("x".into())),
+				Statement::Expression { expr: Expression::Identifier("x".into()), has_semicolon: false },
 				"wrong if consequence"
 			);
 
@@ -307,7 +313,7 @@ fn test_if_expression() {
 
 					assert_eq!(
 						*alternative_stmt,
-						Statement::Expression(Expression::Identifier("y".into())),
+						Statement::Expression { expr: Expression::Identifier("y".into()), has_semicolon: false },
 						"wrong if alternative"
 					);
 				} else {
@@ -331,7 +337,7 @@ fn test_function_literal_parsing() {
 	for input in tests {
 		let stmt = parse_single_statement(input);
 
-		if let Statement::Expression(Expression::Function { parameters, body, .. }) = stmt {
+		if let Statement::Expression { expr: Expression::Function { parameters, body, .. }, has_semicolon: _ } = stmt {
 			assert_eq!(parameters.len(), 2, "function parameters wrong, want 2. ({:?})", parameters);
 
 			assert_eq!(&parameters[0], "x");
@@ -340,9 +346,9 @@ fn test_function_literal_parsing() {
 			assert_eq!(body.statements.len(), 1, "body.statements doesn't have 1 statement. ({:?})", body.statements);
 
 			let body_stmt = body.statements.first().unwrap();
-			if let Statement::Expression(exp) = body_stmt {
+			if let Statement::Expression { expr, has_semicolon: _ } = body_stmt {
 				assert_eq!(
-					*exp,
+					*expr,
 					Expression::Infix {
 						left: Box::new(Expression::Identifier("x".into())),
 						operator: InfixOperator::Plus,
@@ -375,7 +381,7 @@ fn test_function_parameter_parsing() {
 
 	for (input, expected_params) in tests {
 		let stmt = parse_single_statement(input);
-		if let Statement::Expression(Expression::Function { parameters, .. }) = stmt {
+		if let Statement::Expression { expr: Expression::Function { parameters, .. }, has_semicolon: _ } = stmt {
 			assert_eq!(parameters.len(), expected_params.len());
 
 			for (param, expected_param) in parameters.iter().zip(expected_params.iter()) {
@@ -391,7 +397,7 @@ fn test_function_parameter_parsing() {
 fn test_call_expression_parsing() {
 	let stmt = parse_single_statement("add(1, 2 * 3, 4 + 5);");
 
-	if let Statement::Expression(Expression::Call { function, arguments }) = stmt {
+	if let Statement::Expression { expr: Expression::Call { function, arguments }, has_semicolon: _ } = stmt {
 		assert_eq!(
 			*function,
 			Expression::Identifier("add".into()),
@@ -426,7 +432,7 @@ fn test_string_literal_expression() {
 
 	let stmt = parse_single_statement(input);
 
-	if let Statement::Expression(Expression::String(value)) = stmt {
+	if let Statement::Expression { expr: Expression::String(value), has_semicolon: _ } = stmt {
 		assert_eq!(value, "hello world")
 	} else {
 		panic!("{:?} is not Statement::Expression(String)", stmt)
@@ -439,7 +445,7 @@ fn test_parsing_array_literals() {
 
 	let stmt = parse_single_statement(INPUT);
 
-	if let Statement::Expression(Expression::Array(value)) = stmt {
+	if let Statement::Expression { expr: Expression::Array(value), has_semicolon: _ } = stmt {
 		assert_eq!(value.len(), 3, "wrong array length");
 
 		assert_eq!(
@@ -470,7 +476,7 @@ fn test_parsing_index_expressions() {
 
 	let stmt = parse_single_statement(INPUT);
 
-	if let Statement::Expression(Expression::Index { left, index }) = stmt {
+	if let Statement::Expression { expr: Expression::Index { left, index }, has_semicolon: _ } = stmt {
 		assert_eq!(
 			left,
 			Box::new(Expression::Identifier("myArray".into())),
@@ -497,7 +503,7 @@ fn test_parsing_hash_literals_string_keys() {
 
 	let stmt = parse_single_statement(INPUT);
 
-	if let Statement::Expression(Expression::Hash(pairs)) = stmt {
+	if let Statement::Expression { expr: Expression::Hash(pairs), has_semicolon: _ } = stmt {
 		assert_eq!(pairs.len(), 3);
 
 		let expected = HashMap::from([
@@ -532,7 +538,7 @@ fn test_parsing_hash_literals_string_keys() {
 fn test_parsing_empty_hash_literal() {
 	let stmt = parse_single_statement("{}");
 
-	if let Statement::Expression(Expression::Hash(pairs)) = stmt {
+	if let Statement::Expression { expr: Expression::Hash(pairs), has_semicolon: _ } = stmt {
 		assert!(pairs.is_empty())
 	} else {
 		panic!("{:?} is not Statement::Expression(Hash)", stmt)
@@ -543,7 +549,7 @@ fn test_parsing_empty_hash_literal() {
 fn test_parsing_hash_literals_with_expressions() {
 	let stmt = parse_single_statement(r#"{"one": 0 + 1, "two": 10 - 8, "three": 15 / 5}"#);
 
-	if let Statement::Expression(Expression::Hash(pairs)) = stmt {
+	if let Statement::Expression { expr: Expression::Hash(pairs), has_semicolon: _ } = stmt {
 		assert_eq!(pairs.len(), 3);
 
 		let mut expected: HashMap<&'static str, Box<dyn Fn(Expression) -> ()>> = HashMap::new();

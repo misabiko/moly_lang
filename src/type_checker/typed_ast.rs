@@ -31,7 +31,10 @@ pub enum TypedStatement {
 		value: TypedExpression,
 	},
 	Return(Option<TypedExpression>),
-	Expression(TypedExpression),
+	Expression {
+		expr: TypedExpression,
+		has_semicolon: bool,
+	},
 }
 
 impl fmt::Display for TypedStatement {
@@ -40,7 +43,8 @@ impl fmt::Display for TypedStatement {
 			TypedStatement::Let { name, value } => write!(f, "let {} = {};", name, value),
 			TypedStatement::Return(Some(value)) => write!(f, "return {};", value),
 			TypedStatement::Return(None) => write!(f, "return;"),
-			TypedStatement::Expression(e) => write!(f, "{}", e),
+			TypedStatement::Expression { expr, has_semicolon }
+				=> write!(f, "{}{}", expr, if *has_semicolon { ";" } else { "" }),
 		}
 	}
 }
@@ -66,7 +70,7 @@ pub enum TypedExpression {
 	},
 	If {
 		condition: Box<TypedExpression>,
-		type_expr: TypeExpr,
+		type_expr: Option<TypeExpr>,
 		consequence: TypedBlockStatement,
 		alternative: Option<TypedBlockStatement>,
 	},

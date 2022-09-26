@@ -104,11 +104,17 @@ impl Parser {
 	fn parse_expression_statement(&mut self) -> PResult<Statement> {
 		let expression = self.parse_expression(Precedence::Lowest);
 
-		if self.peek_token_is(TokenType::Semicolon) {
+		let has_semicolon = if self.peek_token_is(TokenType::Semicolon) {
 			self.next_token();
-		}
+			true
+		}else {
+			false
+		};
 
-		Ok(Statement::Expression(expression?))
+		Ok(Statement::Expression {
+			expr: expression?,
+			has_semicolon
+		})
 	}
 
 	fn parse_expression(&mut self, precedence: Precedence) -> PResult<Expression> {

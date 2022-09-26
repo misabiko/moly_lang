@@ -13,7 +13,7 @@ fn test_boolean_expression() {
 	for (input, expected_value) in tests {
 		let stmt = type_check_single_statement(input);
 
-		if let TypedStatement::Expression(TypedExpression::Boolean(value)) = stmt {
+		if let TypedStatement::Expression { expr: TypedExpression::Boolean(value), has_semicolon: false } = stmt {
 			assert_eq!(value, expected_value);
 		} else {
 			panic!("{:?} not TypedExpression(Boolean)", stmt)

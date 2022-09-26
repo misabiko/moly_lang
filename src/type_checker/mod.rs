@@ -1,6 +1,6 @@
 use crate::ast::{Expression, Program, Statement};
 use crate::object::builtins::get_builtins;
-use crate::type_checker::type_env::TypeEnv;
+use crate::type_checker::type_env::{TypeEnv, TypeExpr};
 use crate::type_checker::typed_ast::{TypedExpression, TypedProgram, TypedStatement};
 
 pub mod typed_ast;
@@ -32,8 +32,8 @@ impl TypeChecker {
 
 	pub fn check_statement(&mut self, stmt: Statement) -> TCResult<TypedStatement> {
 		match stmt {
-			Statement::Expression(expr) => self.check_expression(expr)
-				.map(|expr| TypedStatement::Expression(expr)),
+			Statement::Expression { expr, has_semicolon } => self.check_expression(expr)
+				.map(|expr| TypedStatement::Expression { expr, has_semicolon }),
 			Statement::Let { name, value } => Ok(TypedStatement::Let {
 				name,
 				value: self.check_expression(value)?,
@@ -76,8 +76,42 @@ impl TypeChecker {
 				})
 			}
 			Expression::If { condition, consequence, alternative } => {
-				//Ok(TypedExpression::If { condition, consequence, alternative })
-				Err("if todo".into())
+				let condition = self.check_expression(*condition)?;
+				let condition_type = self.get_type_from_expression(&condition);
+				if !matches!(condition_type, Some(TypeExpr::Bool)) {
+					return Err(format!("expected `bool`, found {:?}", condition_type))
+				}
+
+				let consequence = self.check(consequence)?;
+				let consequence_type: Option<TypeExpr> = match consequence.statements.last() {
+					Some(TypedStatement::Expression { expr, has_semicolon: false }) => self.get_type_from_expression(&expr),
+					_ => None,
+				};
+
+				let alternative = match alternative {
+					Some(alternative) => Some(self.check(alternative)?),
+					None => None
+				};
+
+				match alternative.as_ref().map(|a| a.statements.last()) {
+					Some(Some(TypedStatement::Expression { expr, has_semicolon: false })) => {
+						let alternative_type = self.get_type_from_expression(&expr);
+						if consequence_type != alternative_type {
+							return Err(format!("mismatched if types {:?} vs {:?}", consequence_type, alternative_type))
+						}
+					},
+					_ => if let Some(consequence_type) = consequence_type {
+						//TODO expected `()`, found `{:?}`
+						return Err(format!("mismatched if types {:?} vs None", consequence_type))
+					}
+				};
+
+				Ok(TypedExpression::If {
+					condition: Box::new(condition),
+					type_expr: consequence_type,
+					consequence,
+					alternative,
+				})
 			}
 			Expression::Function { name, parameters, body } => {
 				let body = self.check(body)?;
@@ -119,6 +153,26 @@ impl TypeChecker {
 
 				Ok(TypedExpression::Hash(typed_pairs))
 			}
+		}
+	}
+
+	fn get_type_from_expression(&self, expr: &TypedExpression) -> Option<TypeExpr> {
+		match expr {
+			TypedExpression::Identifier { type_expr, .. } => Some(type_expr.clone()),
+			TypedExpression::Integer(_) => Some(TypeExpr::Int),
+			TypedExpression::Boolean(_) => Some(TypeExpr::Bool),
+			TypedExpression::String(_) => Some(TypeExpr::String),
+			expr => panic!("todo get_type_from_expression {:?}", expr)//TODO Remove rest
+			/*TypedExpression::Prefix { operator, right } => {
+
+			}
+			TypedExpression::Infix { .. } => {}
+			TypedExpression::If { .. } => {}
+			TypedExpression::Function { .. } => {}
+			TypedExpression::Call { .. } => {}
+			TypedExpression::Array(_) => {}
+			TypedExpression::Index { .. } => {}
+			TypedExpression::Hash(_) => {}*/
 		}
 	}
 }

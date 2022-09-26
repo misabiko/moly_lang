@@ -182,7 +182,7 @@ fn test_conditionals() {
 	let tests = vec![
 		TestCase {
 			input: "
-            if true { 10 }; 3333;
+            if true { 10; }; 3333;
             ",
 			expected_constants: vec![Object::Integer(10), Object::Integer(3333)],
 			expected_instructions: vec![

@@ -71,8 +71,8 @@ impl Compiler {
 
 	fn compile_statement(&mut self, stmt: TypedStatement) -> CompilerResult {
 		match stmt {
-			TypedStatement::Expression(exp) => {
-				self.compile_expression(exp)?;
+			TypedStatement::Expression { expr, .. } => {
+				self.compile_expression(expr)?;
 
 				self.emit(Opcode::Pop, &[]);
 			}

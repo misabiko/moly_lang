@@ -29,7 +29,10 @@ pub enum Statement {
 		value: Expression,
 	},
 	Return(Option<Expression>),
-	Expression(Expression),
+	Expression {
+		expr: Expression,
+		has_semicolon: bool
+	},
 }
 
 impl fmt::Display for Statement {
@@ -38,7 +41,8 @@ impl fmt::Display for Statement {
 			Statement::Let { name, value } => write!(f, "let {} = {};", name, value),
 			Statement::Return(Some(value)) => write!(f, "return {};", value),
 			Statement::Return(None) => write!(f, "return;"),
-			Statement::Expression(e) => write!(f, "{}", e),
+			Statement::Expression { expr, has_semicolon }
+				=> write!(f, "{}{}", expr, if *has_semicolon { ";" } else { "" }),
 		}
 	}
 }

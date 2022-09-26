@@ -795,7 +795,7 @@ fn test_builtins() {
 				make(Opcode::Array, &[0]),
 				make(Opcode::Call, &[1]),
 				make(Opcode::Pop, &[]),
-				make(Opcode::GetBuiltin, &[5]),
+				make(Opcode::GetBuiltin, &[2]),
 				make(Opcode::Array, &[0]),
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Call, &[2]),

@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 pub struct TypeBinding {
 	ident: String,
 	type_expr: TypeExpr,
@@ -12,7 +10,9 @@ pub enum TypeExpr {
 	String,
 	//Array,
 	//Hash,
-	Call,
+	Call {
+		return_type: Option<Box<TypeExpr>>,
+	},
 }
 
 pub type TypeId = u32;

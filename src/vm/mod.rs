@@ -3,7 +3,7 @@ use enum_primitive::FromPrimitive;
 use crate::code::{Instructions, Opcode, read_u16, read_u8};
 use crate::compiler::Bytecode;
 use crate::object::{Builtin, Closure, Function, HashingObject, Object};
-use crate::object::builtins::BUILTINS;
+use crate::object::builtins::get_builtins;
 use crate::vm::frame::Frame;
 
 pub mod frame;
@@ -174,7 +174,7 @@ impl VM {
 						let builtin_index = read_u8(&ins[ip..]) as usize;
 						self.current_frame().ip += 1;
 
-						let definition = &BUILTINS[builtin_index];
+						let definition = &get_builtins()[builtin_index];
 
 						self.push(Object::Builtin(definition.builtin))?;
 					}

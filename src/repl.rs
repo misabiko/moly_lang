@@ -7,7 +7,7 @@ use crate::{
 };
 use crate::compiler::Compiler;
 use crate::compiler::symbol_table::SymbolTable;
-use crate::object::builtins::BUILTINS;
+use crate::object::builtins::get_builtins;
 use crate::parser::Parser;
 use crate::type_checker::TypeChecker;
 use crate::vm::{GLOBALS_SIZE, VM};
@@ -22,7 +22,7 @@ pub fn start() {
 	let mut globals = Vec::with_capacity(GLOBALS_SIZE);
 
 	let mut table = SymbolTable::new(None);
-	for (i, v) in BUILTINS.iter().enumerate() {
+	for (i, v) in get_builtins().iter().enumerate() {
 		table.define_builtin(i as u8, v.name);
 	}
 	let mut symbol_table = Rc::new(RefCell::new(table));

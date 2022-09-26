@@ -1,5 +1,5 @@
 use crate::ast::{Expression, Program, Statement};
-use crate::object::builtins::BUILTINS;
+use crate::object::builtins::get_builtins;
 use crate::type_checker::type_env::TypeEnv;
 use crate::type_checker::typed_ast::{TypedExpression, TypedProgram, TypedStatement};
 
@@ -13,7 +13,7 @@ pub struct TypeChecker {
 impl TypeChecker {
 	pub fn new() -> Self {
 		let mut type_env = TypeEnv::new();
-		for v in BUILTINS.iter() {
+		for v in get_builtins().iter() {
 			type_env.define_identifier(v.name, v.type_expr.clone());
 		}
 

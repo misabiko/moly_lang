@@ -228,6 +228,8 @@ impl VM {
 					Opcode::Return => {
 						let base_pointer = self.pop_frame().as_ref().unwrap().base_pointer;
 						self.sp = base_pointer - 1;
+
+						self.last_popped_stack_elem = None;
 					}
 					Opcode::Closure => {
 						let const_index = read_u16(&ins[ip..]);
@@ -414,6 +416,7 @@ impl VM {
 		if let Some(result) = result {
 			self.push(result)
 		} else {
+			self.last_popped_stack_elem = None;
 			Ok(())
 		}
 	}

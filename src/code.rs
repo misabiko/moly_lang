@@ -85,7 +85,7 @@ pub enum Opcode {
 	Call,
 	/// Pop the last value off the stack, pops the frame, and pushes to the next
 	ReturnValue,
-	/// Pops the current frame
+	/// Pops the current frame and sets the last popped element to None
 	Return,
 	/// Copies the closure from the constants, then pops the free symbols from the stack, and pushes the closure back
 	/// Operands:

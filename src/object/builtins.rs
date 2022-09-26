@@ -91,7 +91,6 @@ pub const BUILTINS: &[Builtins] = &[
 	},
 ];
 
-//TODO Dissolve BUILTINS into this?
 pub fn get_builtin_by_name(name: &'static str) -> Option<&Builtin> {
 	BUILTINS.iter()
 		.find(|b| b.name == name)

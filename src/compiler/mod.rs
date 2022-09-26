@@ -223,7 +223,7 @@ impl Compiler {
 
 				let num_parameters = parameters.len() as u8;
 				for param in parameters.into_iter() {
-					self.symbol_table.borrow_mut().define(&param);
+					self.symbol_table.borrow_mut().define(&param.0);
 				}
 
 				self.compile(body)?;

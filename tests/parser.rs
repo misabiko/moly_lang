@@ -5,6 +5,7 @@ use moly::{
 	parser::Parser,
 };
 use moly::ast::{Expression, InfixOperator, PrefixOperator};
+use moly::type_checker::type_env::{IntegerSize, TypeExpr};
 
 //TODO Parse DeclarativeProgram
 
@@ -53,7 +54,7 @@ fn test_identifier_expression() {
 
 	let stmt = parse_single_statement(INPUT);
 
-	if let Statement::Expression { expr: Expression::Identifier(ident), has_semicolon: _} = stmt {
+	if let Statement::Expression { expr: Expression::Identifier(ident), has_semicolon: _ } = stmt {
 		assert_eq!(ident, "foobar");
 	} else {
 		panic!("{:?} not Expression(Identifier)", stmt)
@@ -66,7 +67,7 @@ fn test_integer_literal_expression() {
 
 	let stmt = parse_single_statement(INPUT);
 
-	if let Statement::Expression { expr: Expression::Integer(value), has_semicolon} = stmt {
+	if let Statement::Expression { expr: Expression::Integer(value), has_semicolon } = stmt {
 		assert_eq!(value, 5);
 
 		assert_eq!(has_semicolon, true, "missing semicolon");
@@ -85,7 +86,7 @@ fn test_boolean_expression() {
 	for (input, expected_value) in tests {
 		let stmt = parse_single_statement(input);
 
-		if let Statement::Expression { expr: Expression::Boolean(value), has_semicolon} = stmt {
+		if let Statement::Expression { expr: Expression::Boolean(value), has_semicolon } = stmt {
 			assert_eq!(value, expected_value);
 
 			assert_eq!(has_semicolon, true, "missing semicolon");
@@ -108,7 +109,7 @@ fn test_parsing_prefix_expressions() {
 	for (input, op, value) in prefix_tests {
 		let stmt = parse_single_statement(input);
 
-		if let Statement::Expression { expr: Expression::Prefix { operator, right }, has_semicolon} = stmt {
+		if let Statement::Expression { expr: Expression::Prefix { operator, right }, has_semicolon } = stmt {
 			assert_eq!(operator, op, "wrong prefix operator");
 
 			assert_eq!(right, Box::new(value), "wrong prefix operand");
@@ -193,7 +194,7 @@ fn test_operator_precedence_parsing() {
 		),
 		(
 			"3 + 4; -5 * 5",
-			"(3 + 4)((-5) * 5)",
+			"(3 + 4);((-5) * 5)",
 		),
 		(
 			"5 > 4 == 3 < 4",
@@ -331,7 +332,7 @@ fn test_if_expression() {
 #[test]
 fn test_function_literal_parsing() {
 	let tests = vec![
-		"fn(x, y) { x + y; }"
+		"fn(x u8, y u8) { x + y; }"
 	];
 
 	for input in tests {
@@ -340,8 +341,8 @@ fn test_function_literal_parsing() {
 		if let Statement::Expression { expr: Expression::Function { parameters, body, .. }, has_semicolon: _ } = stmt {
 			assert_eq!(parameters.len(), 2, "function parameters wrong, want 2. ({:?})", parameters);
 
-			assert_eq!(&parameters[0], "x");
-			assert_eq!(&parameters[1], "y");
+			assert_eq!(parameters[0], ("x".into(), TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }));
+			assert_eq!(parameters[1], ("y".into(), TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }));
 
 			assert_eq!(body.statements.len(), 1, "body.statements doesn't have 1 statement. ({:?})", body.statements);
 
@@ -369,13 +370,13 @@ fn test_function_literal_parsing() {
 fn test_function_parameter_parsing() {
 	let tests = vec![
 		("fn() {};", vec![]),
-		("fn(x) {};", vec![
-			"x"
+		("fn(x u8) {};", vec![
+			("x".into(), TypeExpr::Int { unsigned: true, size: IntegerSize::S8 })
 		]),
-		("fn(x, y, z) {};", vec![
-			"x",
-			"y",
-			"z",
+		("fn(x u8, y str, z i16) {};", vec![
+			("x".into(), TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
+			("y".into(), TypeExpr::String),
+			("z".into(), TypeExpr::Int { unsigned: false, size: IntegerSize::S16 }),
 		]),
 	];
 

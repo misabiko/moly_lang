@@ -1,8 +1,9 @@
 use std::fmt;
 use std::fmt::Formatter;
-use crate::ast::{BlockStatement, Expression, InfixOperator, PrefixOperator, Program, Statement};
+use crate::ast::{BlockStatement, Expression, InfixOperator, PrefixOperator, Program, Statement, TypeIdentifier};
 use crate::lexer::Lexer;
 use crate::token::{Token, TokenLiteral, TokenType};
+use crate::type_checker::type_env::{IntegerSize, TypeExpr};
 
 pub struct Parser {
 	pub lexer: Lexer,
@@ -280,7 +281,7 @@ impl Parser {
 		})
 	}
 
-	fn parse_function_parameters(&mut self) -> PResult<Vec<String>> {
+	fn parse_function_parameters(&mut self) -> PResult<Vec<(String, TypeIdentifier)>> {
 		let mut identifiers = vec![];
 
 		if self.peek_token_is(TokenType::RParen) {
@@ -291,8 +292,9 @@ impl Parser {
 		self.next_token();
 
 		let expect_str = "identifier literal isn't string";
-		identifiers.push(if let TokenLiteral::String(ident) = &self.cur_token.literal {
-			ident.clone()
+		identifiers.push(if let TokenLiteral::String(ident) = self.cur_token.literal.clone() {
+			self.next_token();
+			(ident.clone(), self.parse_type_identifier()?)
 		} else {
 			return Err(ParserError::Generic(expect_str.into()));
 		});
@@ -301,8 +303,9 @@ impl Parser {
 			self.next_token();
 			self.next_token();
 
-			identifiers.push(if let TokenLiteral::String(ident) = &self.cur_token.literal {
-				ident.clone()
+			identifiers.push(if let TokenLiteral::String(ident) = self.cur_token.literal.clone() {
+				self.next_token();
+				(ident.clone(), self.parse_type_identifier()?)
 			} else {
 				return Err(ParserError::Generic(expect_str.into()));
 			});
@@ -390,6 +393,22 @@ impl Parser {
 		self.expect_peek(TokenType::RBrace)?;
 
 		Ok(Expression::Hash(pairs))
+	}
+
+	fn parse_type_identifier(&mut self) -> PResult<TypeExpr> {
+		match &self.cur_token.token_type {
+			TokenType::U8 => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
+			TokenType::U16 => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S16 }),
+			TokenType::U32 => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S32 }),
+			TokenType::U64 => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S64 }),
+			TokenType::I8 => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S8 }),
+			TokenType::I16 => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S16 }),
+			TokenType::I32 => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S32 }),
+			TokenType::I64 => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S64 }),
+			TokenType::Bool => Ok(TypeExpr::Bool),
+			TokenType::Str => Ok(TypeExpr::String),
+			_ => Err(ParserError::Generic(format!("unrecognized type: {:?}", self.cur_token))),
+		}
 	}
 
 	fn cur_token_is(&self, t: TokenType) -> bool {

@@ -1,4 +1,5 @@
 use std::fmt;
+use crate::type_checker::type_env::TypeExpr;
 
 pub type Program = BlockStatement;
 
@@ -70,7 +71,7 @@ pub enum Expression {
 	},
 	Function {
 		/// name in Expression::Identifier
-		parameters: Vec<String>,
+		parameters: Vec<(String, TypeIdentifier)>,
 		body: BlockStatement,
 		name: Option<String>,
 	},
@@ -110,8 +111,12 @@ impl fmt::Display for Expression {
 				}else {
 					"".into()
 				};
+				let parameters = parameters.iter()
+					.map(|(i, t)| format!("{} {}", i, t))
+					.collect::<Vec<String>>()
+					.join(", ");
 
-				write!(f, "fn{}({}) {}", name, parameters.join(", "), body)
+				write!(f, "fn{}({}) {}", name, parameters, body)
 			},
 			Expression::Call { function, arguments } => write!(f, "{}({})", function, join_expression_vec(arguments)),
 			Expression::Array(elements) => write!(f, "[{}]", join_expression_vec(elements)),
@@ -184,3 +189,5 @@ impl fmt::Display for InfixOperator {
 		}
 	}
 }
+
+pub type TypeIdentifier = TypeExpr;

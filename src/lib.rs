@@ -1,3 +1,5 @@
+extern crate core;
+
 use std::path::PathBuf;
 use crate::compiler::{Bytecode, Compiler};
 use crate::lexer::Lexer;
@@ -37,7 +39,7 @@ pub fn build(input: &str) -> Result<Bytecode, String> {
 	let program = match type_checker.check(program) {
 		Ok(program) => program,
 		Err(err) => {
-			return Err(format!("Parsing error: {}", err));
+			return Err(format!("Type checking error: {}", err));
 		}
 	};
 

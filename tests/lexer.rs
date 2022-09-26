@@ -7,9 +7,13 @@ use moly::token::TokenLiteral;
 #[test]
 fn test_next_token() {
 	const INPUT: &str = r#"let five = 5;
-let ten = 10;
+let ten10 = 10;
 
-let add = fn(x, y) {
+u8 u16 u32 u64
+i8 i16 i32 i64
+bool str
+
+let add = fn(x u8, y u8) {
   x + y;
 };
 
@@ -38,18 +42,30 @@ if 5 < 10 {
 		(TokenType::Int, TokenLiteral::Integer(5)),
 		(TokenType::Semicolon, TokenLiteral::Static(";")),
 		(TokenType::Let, TokenLiteral::Static("let")),
-		(TokenType::Ident, TokenLiteral::String("ten".into())),
+		(TokenType::Ident, TokenLiteral::String("ten10".into())),
 		(TokenType::Assign, TokenLiteral::Static("=")),
 		(TokenType::Int, TokenLiteral::Integer(10)),
 		(TokenType::Semicolon, TokenLiteral::Static(";")),
+		(TokenType::U8, TokenLiteral::Static("u8")),
+		(TokenType::U16, TokenLiteral::Static("u16")),
+		(TokenType::U32, TokenLiteral::Static("u32")),
+		(TokenType::U64, TokenLiteral::Static("u64")),
+		(TokenType::I8, TokenLiteral::Static("i8")),
+		(TokenType::I16, TokenLiteral::Static("i16")),
+		(TokenType::I32, TokenLiteral::Static("i32")),
+		(TokenType::I64, TokenLiteral::Static("i64")),
+		(TokenType::Bool, TokenLiteral::Static("bool")),
+		(TokenType::Str, TokenLiteral::Static("str")),
 		(TokenType::Let, TokenLiteral::Static("let")),
 		(TokenType::Ident, TokenLiteral::String("add".into())),
 		(TokenType::Assign, TokenLiteral::Static("=")),
 		(TokenType::Function, TokenLiteral::Static("fn")),
 		(TokenType::LParen, TokenLiteral::Static("(")),
 		(TokenType::Ident, TokenLiteral::String("x".into())),
+		(TokenType::U8, TokenLiteral::Static("u8")),
 		(TokenType::Comma, TokenLiteral::Static(",")),
 		(TokenType::Ident, TokenLiteral::String("y".into())),
+		(TokenType::U8, TokenLiteral::Static("u8")),
 		(TokenType::RParen, TokenLiteral::Static(")")),
 		(TokenType::LBrace, TokenLiteral::Static("{")),
 		(TokenType::Ident, TokenLiteral::String("x".into())),

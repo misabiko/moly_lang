@@ -21,6 +21,34 @@ fn test_boolean_expression() {
 	}
 }
 
+/*#[test]
+fn test_function_parameter_parsing() {
+	let tests = vec![
+		("fn() {};", vec![]),
+		("fn(x u8) {};", vec![
+			("x", "u8")
+		]),
+		("fn(x u8, y str, z i16) {};", vec![
+			("x", "u8"),
+			("y", "str"),
+			("z", "i16"),
+		]),
+	];
+
+	for (input, expected_params) in tests {
+		let stmt = parse_single_statement(input);
+		if let Statement::Expression { expr: Expression::Function { parameters, .. }, has_semicolon: _ } = stmt {
+			assert_eq!(parameters.len(), expected_params.len());
+
+			for (param, expected_param) in parameters.iter().zip(expected_params.iter()) {
+				assert_eq!(param, expected_param)
+			}
+		} else {
+			panic!("{:?} is not Statement::Expression(Function)", stmt);
+		}
+	}
+}*/
+
 struct TestCase {
 	input: &'static str,
 }

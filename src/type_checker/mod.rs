@@ -1,6 +1,6 @@
 use crate::ast::{Expression, Program, Statement};
 use crate::object::builtins::get_builtins;
-use crate::type_checker::type_env::{TypeEnv, TypeExpr};
+use crate::type_checker::type_env::{IntegerSize, TypeEnv, TypeExpr};
 use crate::type_checker::typed_ast::{TypedExpression, TypedProgram, TypedStatement};
 
 pub mod typed_ast;
@@ -124,7 +124,19 @@ impl TypeChecker {
 				})
 			}
 			Expression::Function { name, parameters, body } => {
+				for (param, param_type) in parameters.iter() {
+					self.type_env.define_identifier(&param, param_type.clone());
+				}
+
+				if let Some(name) = &name {
+					self.type_env.define_identifier(name, TypeExpr::Call {
+						//TODO Parse fn return type
+						return_type: None
+					});
+				}
+
 				let body = self.check(body)?;
+
 				Ok(TypedExpression::Function { name, parameters, body })
 			}
 			Expression::Call { function, arguments } => {
@@ -169,9 +181,14 @@ impl TypeChecker {
 	fn get_type_from_expression(&self, expr: &TypedExpression) -> Option<TypeExpr> {
 		match expr {
 			TypedExpression::Identifier { type_expr, .. } => Some(type_expr.clone()),
-			TypedExpression::Integer(_) => Some(TypeExpr::Int),
+			//TODO Get proper int type
+			TypedExpression::Integer(_) => Some(TypeExpr::Int {
+				unsigned: false,
+				size: IntegerSize::S64,
+			}),
 			TypedExpression::Boolean(_) => Some(TypeExpr::Bool),
 			TypedExpression::String(_) => Some(TypeExpr::String),
+			TypedExpression::Function { .. } => Some(TypeExpr::FnLiteral),
 			expr => panic!("todo get_type_from_expression {:?}", expr)//TODO Remove rest
 			/*TypedExpression::Prefix { operator, right } => {
 

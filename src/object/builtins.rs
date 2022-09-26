@@ -1,5 +1,5 @@
 use crate::object::{Builtin, Object};
-use crate::type_checker::type_env::TypeExpr;
+use crate::type_checker::type_env::{IntegerSize, TypeExpr};
 
 pub struct BuiltinInfo {
 	pub name: &'static str,
@@ -13,7 +13,11 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		BuiltinInfo {
 			name: "len",
 			type_expr: TypeExpr::Call {
-				return_type: Some(Box::new(TypeExpr::Int))
+				return_type: Some(Box::new(TypeExpr::Int {
+					unsigned: true,
+					//Temporary size
+					size: IntegerSize::S64
+				}))
 			},
 			builtin: |args| {
 				if args.len() != 1 {

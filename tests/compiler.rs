@@ -633,7 +633,7 @@ fn test_function_calls() {
 		},
 		TestCase {
 			input: "
-            let oneArg = fn(a) { a };
+            let oneArg = fn(a u8) { a };
             oneArg(24);
             ",
 			expected_constants: vec![
@@ -658,7 +658,7 @@ fn test_function_calls() {
 		},
 		TestCase {
 			input: "
-            let manyArg = fn(a, b, c) { a; b; c };
+            let manyArg = fn(a u8, b u8, c u8) { a; b; c };
             manyArg(24, 25, 26);
             ",
 			expected_constants: vec![
@@ -831,8 +831,8 @@ fn test_closures() {
 	let tests = vec![
 		TestCase {
 			input: "
-            fn(a) {
-                fn(b) {
+            fn(a u8) {
+                fn(b u8) {
                     a + b
                 }
             }
@@ -865,9 +865,9 @@ fn test_closures() {
 		},
 		TestCase {
 			input: "
-            fn(a) {
-                fn(b) {
-                    fn(c) {
+            fn(a u8) {
+                fn(b u8) {
+                    fn(c u8) {
                         a + b + c
                     }
                 }
@@ -991,7 +991,7 @@ fn test_recursive_functions() {
 	let tests = vec![
 		TestCase {
 			input: "
-            let countDown = fn(x) { countDown(x - 1); };
+            let countDown = fn(x u8) { countDown(x - 1); };
             countDown(1);
             ",
 			expected_constants: vec![
@@ -1022,7 +1022,7 @@ fn test_recursive_functions() {
 		TestCase {
 			input: "
             let wrapper = fn() {
-                let countDown = fn(x) { countDown(x - 1); };
+                let countDown = fn(x u8) { countDown(x - 1); };
                 countDown(1);
             };
             wrapper();
@@ -1084,7 +1084,7 @@ fn run_compiler_tests(tests: Vec<TestCase>) {
 		let mut type_checker = TypeChecker::new();
 		let program = match type_checker.check(program) {
 			Ok(program) => program,
-			Err(err) => panic!("Parsing error: {}", err),
+			Err(err) => panic!("Type checking error: {}", err),
 		};
 
 		let mut compiler = Compiler::new();

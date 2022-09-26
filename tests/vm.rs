@@ -337,21 +337,21 @@ fn test_calling_functions_with_arguments_and_bindings() {
 	let tests = vec![
 		TestCase {
 			input: "
-			let identity = fn(a) { a; };
+			let identity = fn(a u8) { a; };
 			identity(4);
 			",
 			expected: Ok(Some(Object::Integer(4)))
 		},
 		TestCase {
 			input: "
-			let sum = fn(a, b) { a + b; };
+			let sum = fn(a u8, b u8) { a + b; };
 			sum(1, 2);
 			",
 			expected: Ok(Some(Object::Integer(3)))
 		},
 		TestCase {
 			input: "
-			let sum = fn(a, b) {
+			let sum = fn(a u8, b u8) {
 				let c = a + b;
 				c;
 			};
@@ -361,7 +361,7 @@ fn test_calling_functions_with_arguments_and_bindings() {
 		},
 		TestCase {
 			input: "
-			let sum = fn(a, b) {
+			let sum = fn(a u8, b u8) {
 				let c = a + b;
 				c;
 			};
@@ -370,7 +370,7 @@ fn test_calling_functions_with_arguments_and_bindings() {
 		},
 		TestCase {
 			input: "
-			let sum = fn(a, b) {
+			let sum = fn(a u8, b u8) {
 				let c = a + b;
 				c;
 			};
@@ -385,7 +385,7 @@ fn test_calling_functions_with_arguments_and_bindings() {
 			input: "
 			let globalNum = 10;
 
-			let sum = fn(a, b) {
+			let sum = fn(a u8, b u8) {
 				let c = a + b;
 				c + globalNum;
 			};
@@ -411,11 +411,11 @@ fn test_calling_functions_with_wrong_arguments() {
 			expected: Err(Some("wrong number of arguments: want=0, got=1".into())),
 		},
 		TestCase {
-			input:    "fn(a) { a; }();",
+			input:    "fn(a u8) { a; }();",
 			expected: Err(Some("wrong number of arguments: want=1, got=0".into())),
 		},
 		TestCase {
-			input:    "fn(a, b) { a + b; }(1);",
+			input:    "fn(a u8, b u8) { a + b; }(1);",
 			expected: Err(Some("wrong number of arguments: want=2, got=1".into())),
 		},
 	];
@@ -474,7 +474,7 @@ fn test_closures() {
 	let tests = vec![
 		TestCase {
 			input: "
-			let newClosure = fn(a) {
+			let newClosure = fn(a u8) {
 				fn() { a; };
 			};
 			let closure = newClosure(99);
@@ -484,8 +484,8 @@ fn test_closures() {
 		},
 		TestCase {
 			input: "
-			let newAdder = fn(a, b) {
-				fn(c) { a + b + c };
+			let newAdder = fn(a u8, b u8) {
+				fn(c u8) { a + b + c };
 			};
 			let adder = newAdder(1, 2);
 			adder(8);
@@ -494,9 +494,9 @@ fn test_closures() {
 		},
 		TestCase {
 			input: "
-			let newAdder = fn(a, b) {
+			let newAdder = fn(a u8, b u8) {
 				let c = a + b;
-				fn(d) { c + d };
+				fn(d u8) { c + d };
 			};
 			let adder = newAdder(1, 2);
 			adder(8);
@@ -505,11 +505,11 @@ fn test_closures() {
 		},
 		TestCase {
 			input: "
-			let newAdderOuter = fn(a, b) {
+			let newAdderOuter = fn(a u8, b u8) {
 				let c = a + b;
-				fn(d) {
+				fn(d u8) {
 					let e = d + c;
-					fn(f) { e + f; };
+					fn(f u8) { e + f; };
 				};
 			};
 			let newAdderInner = newAdderOuter(1, 2)
@@ -521,9 +521,9 @@ fn test_closures() {
 		TestCase {
 			input: "
 			let a = 1;
-			let newAdderOuter = fn(b) {
-				fn(c) {
-					fn(d) { a + b + c + d };
+			let newAdderOuter = fn(b u8) {
+				fn(c u8) {
+					fn(d u8) { a + b + c + d };
 				};
 			};
 			let newAdderInner = newAdderOuter(2)
@@ -534,7 +534,7 @@ fn test_closures() {
 		},
 		TestCase {
 			input: "
-			let newClosure = fn(a, b) {
+			let newClosure = fn(a u8, b u8) {
 				let one = fn() { a; };
 				let two = fn() { b; };
 				fn() { one() + two(); };
@@ -554,7 +554,7 @@ fn test_recursive_functions() {
 	let tests = vec![
 		TestCase {
 			input: "
-			let countDown = fn(x) {
+			let countDown = fn(x u8) {
 				if x == 0 {
 					return 0;
 				} else {
@@ -567,7 +567,7 @@ fn test_recursive_functions() {
 		},
 		TestCase {
 			input: "
-			let countDown = fn(x) {
+			let countDown = fn(x u8) {
 				if x == 0 {
 					return 0;
 				} else {
@@ -584,7 +584,7 @@ fn test_recursive_functions() {
 		TestCase {
 			input: "
 			let wrapper = fn() {
-				let countDown = fn(x) {
+				let countDown = fn(x u8) {
 					if x == 0 {
 						return 0;
 					} else {
@@ -607,7 +607,7 @@ fn test_recursive_fibonacci() {
 	let tests = vec![
 		TestCase {
 			input: "
-			let fibonacci = fn(x) {
+			let fibonacci = fn(x u8) {
 				if x == 0 {
 					return 0;
 				} else {
@@ -643,7 +643,7 @@ fn run_vm_tests(tests: Vec<TestCase>) {
 		let mut type_checker = TypeChecker::new();
 		let program = match type_checker.check(program) {
 			Ok(program) => program,
-			Err(err) => panic!("Parsing error: {}", err),
+			Err(err) => panic!("Type checking error: {}", err),
 		};
 
 		let mut compiler = Compiler::new();

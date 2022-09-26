@@ -83,6 +83,16 @@ pub enum TokenType {
 	If,
 	Else,
 	Return,
+	U8,
+	U16,
+	U32,
+	U64,
+	I8,
+	I16,
+	I32,
+	I64,
+	Bool,
+	Str,
 
 	String,
 }
@@ -126,6 +136,16 @@ impl fmt::Display for TokenType {
 			TokenType::If => "IF",
 			TokenType::Else => "ELSE",
 			TokenType::Return => "RETURN",
+			TokenType::U8 => "U8",
+			TokenType::U16 => "U16",
+			TokenType::U32 => "U32",
+			TokenType::U64 => "U64",
+			TokenType::I8 => "I8",
+			TokenType::I16 => "I16",
+			TokenType::I32 => "I32",
+			TokenType::I64 => "I64",
+			TokenType::Bool => "BOOL",
+			TokenType::Str => "STR",
 
 			TokenType::String => "STRING",
 		})
@@ -161,6 +181,46 @@ pub fn lookup_ident(keyword: String) -> Token {
 		"return" => Token {
 			token_type: TokenType::Return,
 			literal: TokenLiteral::Static("return")
+		},
+		"u8" => Token {
+			token_type: TokenType::U8,
+			literal: TokenLiteral::Static("u8")
+		},
+		"u16" => Token {
+			token_type: TokenType::U16,
+			literal: TokenLiteral::Static("u16")
+		},
+		"u32" => Token {
+			token_type: TokenType::U32,
+			literal: TokenLiteral::Static("u32")
+		},
+		"u64" => Token {
+			token_type: TokenType::U64,
+			literal: TokenLiteral::Static("u64")
+		},
+		"i8" => Token {
+			token_type: TokenType::I8,
+			literal: TokenLiteral::Static("i8")
+		},
+		"i16" => Token {
+			token_type: TokenType::I16,
+			literal: TokenLiteral::Static("i16")
+		},
+		"i32" => Token {
+			token_type: TokenType::I32,
+			literal: TokenLiteral::Static("i32")
+		},
+		"i64" => Token {
+			token_type: TokenType::I64,
+			literal: TokenLiteral::Static("i64")
+		},
+		"bool" => Token {
+			token_type: TokenType::Bool,
+			literal: TokenLiteral::Static("bool")
+		},
+		"str" => Token {
+			token_type: TokenType::Str,
+			literal: TokenLiteral::Static("str")
 		},
 		_ => Token {
 			token_type: TokenType::Ident,

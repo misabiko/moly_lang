@@ -1,5 +1,5 @@
 use std::fmt;
-use crate::ast::{InfixOperator, PrefixOperator};
+use crate::ast::{InfixOperator, PrefixOperator, TypeIdentifier};
 use super::type_env::TypeExpr;
 
 pub type TypedProgram = TypedBlockStatement;
@@ -75,8 +75,7 @@ pub enum TypedExpression {
 		alternative: Option<TypedBlockStatement>,
 	},
 	Function {
-		/// name in TypedExpression::Identifier
-		parameters: Vec<String>,
+		parameters: Vec<(String, TypeIdentifier)>,
 		body: TypedBlockStatement,
 		name: Option<String>,
 	},
@@ -116,8 +115,12 @@ impl fmt::Display for TypedExpression {
 				}else {
 					"".into()
 				};
+				let parameters = parameters.iter()
+					.map(|(i, t)| format!("{} {}", i, t))
+					.collect::<Vec<String>>()
+					.join(", ");
 
-				write!(f, "fn{}({}) {}", name, parameters.join(", "), body)
+				write!(f, "fn{}({}) {}", name, parameters, body)
 			},
 			TypedExpression::Call { function, arguments } => write!(f, "{}({})", function, join_expression_vec(arguments)),
 			TypedExpression::Array(elements) => write!(f, "[{}]", join_expression_vec(elements)),

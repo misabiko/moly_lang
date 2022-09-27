@@ -14,46 +14,36 @@ fn test_define() {
 		("f", Symbol { name: "f".into(), scope: SymbolScope::Local, index: 1}),
 	].into_iter().collect();
 
-	let global = Rc::new(RefCell::new(SymbolTable::new(None)));
-	{
-		let mut borrow = global.borrow_mut();
-		let a = borrow.define("a");
-		assert_eq!(a, &expected["a"]);
+	let mut global = SymbolTable::new(None);
+	let a = global.define("a");
+	assert_eq!(a, &expected["a"]);
 
-		let b = borrow.define("b");
-		assert_eq!(b, &expected["b"]);
-	}
+	let b = global.define("b");
+	assert_eq!(b, &expected["b"]);
+	let global = Rc::new(RefCell::new(global));
 
-	let first_local = Rc::new(RefCell::new(SymbolTable::new(Some(global.clone()))));
-	{
-		let mut borrow = first_local.borrow_mut();
-		let c = borrow.define("c");
-		assert_eq!(c, &expected["c"]);
+	let mut first_local = SymbolTable::new(Some(global.clone()));
+	let c = first_local.define("c");
+	assert_eq!(c, &expected["c"]);
 
-		let d = borrow.define("d");
-		assert_eq!(d, &expected["d"]);
-	}
+	let d = first_local.define("d");
+	assert_eq!(d, &expected["d"]);
+	let first_local = Rc::new(RefCell::new(first_local));
 
-	let second_local = Rc::new(RefCell::new(SymbolTable::new(Some(first_local.clone()))));
-	{
-		let mut borrow = second_local.borrow_mut();
-		let e = borrow.define("e");
-		assert_eq!(e, &expected["e"]);
+	let mut second_local = SymbolTable::new(Some(first_local.clone()));
+	let e = second_local.define("e");
+	assert_eq!(e, &expected["e"]);
 
-		let f = borrow.define("f");
-		assert_eq!(f, &expected["f"]);
-	}
+	let f = second_local.define("f");
+	assert_eq!(f, &expected["f"]);
 }
 
 #[test]
 fn test_resolve_global() {
-	//TODO Make mut symbol table before moving to rc
-	let global = Rc::new(RefCell::new(SymbolTable::new(None)));
-	{
-		let mut borrow = global.borrow_mut();
-		borrow.define("a");
-		borrow.define("b");
-	}
+	let mut global = SymbolTable::new(None);
+	global.define("a");
+	global.define("b");
+	let global = Rc::new(RefCell::new(global));
 
 	let expected = vec![
 		Symbol { name: "a".into(), scope: SymbolScope::Global, index: 0 },
@@ -71,19 +61,15 @@ fn test_resolve_global() {
 
 #[test]
 fn test_resolve_local() {
-	let global = Rc::new(RefCell::new(SymbolTable::new(None)));
-	{
-		let mut borrow = global.borrow_mut();
-		borrow.define("a");
-		borrow.define("b");
-	}
+	let mut global = SymbolTable::new(None);
+	global.define("a");
+	global.define("b");
+	let global = Rc::new(RefCell::new(global));
 
-	let local = Rc::new(RefCell::new(SymbolTable::new(Some(global.clone()))));
-	{
-		let mut borrow = local.borrow_mut();
-		borrow.define("c");
-		borrow.define("d");
-	}
+	let mut local = SymbolTable::new(Some(global.clone()));
+	local.define("c");
+	local.define("d");
+	let local = Rc::new(RefCell::new(local));
 
 	let expected = vec![
 		Symbol { name: "a".into(), scope: SymbolScope::Global, index: 0 },
@@ -103,26 +89,20 @@ fn test_resolve_local() {
 
 #[test]
 fn test_resolve_nested_local() {
-	let global = Rc::new(RefCell::new(SymbolTable::new(None)));
-	{
-		let mut borrow = global.borrow_mut();
-		borrow.define("a");
-		borrow.define("b");
-	}
+	let mut global = SymbolTable::new(None);
+	global.define("a");
+	global.define("b");
+	let global = Rc::new(RefCell::new(global));
 
-	let first_local = Rc::new(RefCell::new(SymbolTable::new(Some(global.clone()))));
-	{
-		let mut borrow = first_local.borrow_mut();
-		borrow.define("c");
-		borrow.define("d");
-	}
+	let mut first_local = SymbolTable::new(Some(global.clone()));
+	first_local.define("c");
+	first_local.define("d");
+	let first_local = Rc::new(RefCell::new(first_local));
 
-	let second_local = Rc::new(RefCell::new(SymbolTable::new(Some(first_local.clone()))));
-	{
-		let mut borrow = second_local.borrow_mut();
-		borrow.define("e");
-		borrow.define("f");
-	}
+	let mut second_local = SymbolTable::new(Some(first_local.clone()));
+	second_local.define("e");
+	second_local.define("f");
+	let second_local = Rc::new(RefCell::new(second_local));
 
 	let expected = vec![
 		(first_local, vec![
@@ -183,26 +163,20 @@ fn test_define_resolve_builtins() {
 
 #[test]
 fn test_resolve_free() {
-	let global = Rc::new(RefCell::new(SymbolTable::new(None)));
-	{
-		let mut borrow = global.borrow_mut();
-		borrow.define("a");
-		borrow.define("b");
-	}
+	let mut global = SymbolTable::new(None);
+	global.define("a");
+	global.define("b");
+	let global = Rc::new(RefCell::new(global));
 
-	let first_local = Rc::new(RefCell::new(SymbolTable::new(Some(global.clone()))));
-	{
-		let mut borrow = first_local.borrow_mut();
-		borrow.define("c");
-		borrow.define("d");
-	}
+	let mut first_local = SymbolTable::new(Some(global.clone()));
+	first_local.define("c");
+	first_local.define("d");
+	let first_local = Rc::new(RefCell::new(first_local));
 
-	let second_local = Rc::new(RefCell::new(SymbolTable::new(Some(first_local.clone()))));
-	{
-		let mut borrow = second_local.borrow_mut();
-		borrow.define("e");
-		borrow.define("f");
-	}
+	let mut second_local = SymbolTable::new(Some(first_local.clone()));
+	second_local.define("e");
+	second_local.define("f");
+	let second_local = Rc::new(RefCell::new(second_local));
 
 	let expected = vec![
 		(
@@ -252,24 +226,18 @@ fn test_resolve_free() {
 
 #[test]
 fn test_resolve_unresolvable_free() {
-	let global = Rc::new(RefCell::new(SymbolTable::new(None)));
-	{
-		let mut borrow = global.borrow_mut();
-		borrow.define("a");
-	}
+	let mut global = SymbolTable::new(None);
+	global.define("a");
+	let global = Rc::new(RefCell::new(global));
 
-	let first_local = Rc::new(RefCell::new(SymbolTable::new(Some(global.clone()))));
-	{
-		let mut borrow = first_local.borrow_mut();
-		borrow.define("c");
-	}
+	let mut first_local = SymbolTable::new(Some(global.clone()));
+	first_local.define("c");
+	let first_local = Rc::new(RefCell::new(first_local));
 
-	let second_local = Rc::new(RefCell::new(SymbolTable::new(Some(first_local.clone()))));
-	{
-		let mut borrow = second_local.borrow_mut();
-		borrow.define("e");
-		borrow.define("f");
-	}
+	let mut second_local = SymbolTable::new(Some(first_local.clone()));
+	second_local.define("e");
+	second_local.define("f");
+	let second_local = Rc::new(RefCell::new(second_local));
 
 	let expected = vec![
 		Symbol { name: "a".into(), scope: SymbolScope::Global, index: 0 },

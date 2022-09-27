@@ -15,8 +15,9 @@ pub enum TypeExpr {
 	String,
 	//Array,
 	//Hash,
-	//TODO Add return_type
-	FnLiteral,
+	FnLiteral {
+		return_type: Option<Box<TypeExpr>>,
+	},
 	Call {
 		return_type: Option<Box<TypeExpr>>,
 	},
@@ -35,7 +36,15 @@ impl fmt::Display for TypeExpr {
 			TypeExpr::Int { unsigned: false, size: IntegerSize::S64 } => write!(f, "i64"),
 			TypeExpr::Bool => write!(f, "bool"),
 			TypeExpr::String => write!(f, "str"),
-			TypeExpr::FnLiteral => write!(f, "fn(){{}}"),
+			TypeExpr::FnLiteral { return_type } => {
+				let return_type = if let Some(r) = return_type {
+					format!(" {}", r)
+				}else {
+					"".into()
+				};
+
+				write!(f, "fn() {} {{}}", return_type)
+			},
 			TypeExpr::Call { return_type: None } => write!(f, "() -> void"),
 			TypeExpr::Call { return_type: Some(return_type) } => write!(f, "() -> {}", return_type.as_ref()),
 		}

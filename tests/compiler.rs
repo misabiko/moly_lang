@@ -12,7 +12,7 @@ fn test_integer_arithmetic() {
 	let tests = vec![
 		TestCase {
 			input: "1 + 2",
-			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_constants: vec![Object::U8(1), Object::U8(2)],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
@@ -22,7 +22,7 @@ fn test_integer_arithmetic() {
 		},
 		TestCase {
 			input: "1; 2",
-			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_constants: vec![Object::U8(1), Object::U8(2)],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Pop, &[]),
@@ -32,7 +32,7 @@ fn test_integer_arithmetic() {
 		},
 		TestCase {
 			input: "1 - 2",
-			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_constants: vec![Object::U8(1), Object::U8(2)],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
@@ -42,7 +42,7 @@ fn test_integer_arithmetic() {
 		},
 		TestCase {
 			input: "1 * 2",
-			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_constants: vec![Object::U8(1), Object::U8(2)],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
@@ -52,7 +52,7 @@ fn test_integer_arithmetic() {
 		},
 		TestCase {
 			input: "2 / 1",
-			expected_constants: vec![Object::Integer(2), Object::Integer(1)],
+			expected_constants: vec![Object::U8(2), Object::U8(1)],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
@@ -62,7 +62,7 @@ fn test_integer_arithmetic() {
 		},
 		TestCase {
 			input: "1 + 2",
-			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_constants: vec![Object::U8(1), Object::U8(2)],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
@@ -72,7 +72,7 @@ fn test_integer_arithmetic() {
 		},
 		TestCase {
 			input: "-1",
-			expected_constants: vec![Object::Integer(1)],
+			expected_constants: vec![Object::U8(1)],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Minus, &[]),
@@ -105,7 +105,7 @@ fn test_boolean_expressions() {
 		},
 		TestCase {
 			input: "1 > 2",
-			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_constants: vec![Object::U8(1), Object::U8(2)],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
@@ -115,7 +115,7 @@ fn test_boolean_expressions() {
 		},
 		TestCase {
 			input: "1 < 2",
-			expected_constants: vec![Object::Integer(2), Object::Integer(1)],
+			expected_constants: vec![Object::U8(2), Object::U8(1)],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
@@ -125,7 +125,7 @@ fn test_boolean_expressions() {
 		},
 		TestCase {
 			input: "1 == 2",
-			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_constants: vec![Object::U8(1), Object::U8(2)],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
@@ -135,7 +135,7 @@ fn test_boolean_expressions() {
 		},
 		TestCase {
 			input: "1 != 2",
-			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_constants: vec![Object::U8(1), Object::U8(2)],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
@@ -184,7 +184,7 @@ fn test_conditionals() {
 			input: "
             if true { 10; }; 3333;
             ",
-			expected_constants: vec![Object::Integer(10), Object::Integer(3333)],
+			expected_constants: vec![Object::U8(10), Object::U16(3333)],
 			expected_instructions: vec![
 				// 0000
 				make(Opcode::True, &[]),
@@ -206,7 +206,7 @@ fn test_conditionals() {
 			input: "
             if true { 10 } else { 20 }; 3333;
             ",
-			expected_constants: vec![Object::Integer(10), Object::Integer(20), Object::Integer(3333)],
+			expected_constants: vec![Object::U8(10), Object::U8(20), Object::U16(3333)],
 			expected_instructions: vec![
 				// 0000
 				make(Opcode::True, &[]),
@@ -239,7 +239,7 @@ fn test_global_let_statements() {
 			let one = 1;
 			let two = 2;
 			",
-			expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+			expected_constants: vec![Object::U8(1), Object::U8(2)],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::SetGlobal, &[0]),
@@ -252,7 +252,7 @@ fn test_global_let_statements() {
 			let one = 1;
 			one;
 			",
-			expected_constants: vec![Object::Integer(1)],
+			expected_constants: vec![Object::U8(1)],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::SetGlobal, &[0]),
@@ -266,7 +266,7 @@ fn test_global_let_statements() {
 			let two = one;
 			two;
 			",
-			expected_constants: vec![Object::Integer(1)],
+			expected_constants: vec![Object::U8(1)],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::SetGlobal, &[0]),
@@ -324,9 +324,9 @@ fn test_array_literals() {
 		TestCase {
 			input: "[1, 2, 3]",
 			expected_constants: vec![
-				Object::Integer(1),
-				Object::Integer(2),
-				Object::Integer(3),
+				Object::U8(1),
+				Object::U8(2),
+				Object::U8(3),
 			],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
@@ -339,12 +339,12 @@ fn test_array_literals() {
 		TestCase {
 			input: "[1 + 2, 3 - 4, 5 * 6]",
 			expected_constants: vec![
-				Object::Integer(1),
-				Object::Integer(2),
-				Object::Integer(3),
-				Object::Integer(4),
-				Object::Integer(5),
-				Object::Integer(6),
+				Object::U8(1),
+				Object::U8(2),
+				Object::U8(3),
+				Object::U8(4),
+				Object::U8(5),
+				Object::U8(6),
 			],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
@@ -379,7 +379,7 @@ fn test_hash_literals() {
 		TestCase {
 			input: "{1: 2, 3: 4, 5: 6}",
 			expected_constants: vec![1, 2, 3, 4, 5, 6].into_iter()
-				.map(|i| Object::Integer(i)).collect(),
+				.map(|i| Object::U8(i)).collect(),
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
@@ -394,7 +394,7 @@ fn test_hash_literals() {
 		TestCase {
 			input: "{1: 2 + 3, 4: 5 * 6}",
 			expected_constants: vec![1, 2, 3, 4, 5, 6].into_iter()
-				.map(|i| Object::Integer(i)).collect(),
+				.map(|i| Object::U8(i)).collect(),
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
@@ -419,7 +419,7 @@ fn test_index_expressions() {
 		TestCase {
 			input: "[1, 2, 3][1 + 1]",
 			expected_constants: vec![1, 2, 3, 1, 1].into_iter()
-				.map(|i| Object::Integer(i)).collect(),
+				.map(|i| Object::U8(i)).collect(),
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
@@ -435,7 +435,7 @@ fn test_index_expressions() {
 		TestCase {
 			input: "{1: 2}[2 - 1]",
 			expected_constants: vec![1, 2, 2, 1].into_iter()
-				.map(|i| Object::Integer(i)).collect(),
+				.map(|i| Object::U8(i)).collect(),
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
@@ -456,10 +456,10 @@ fn test_index_expressions() {
 fn test_functions() {
 	let tests = vec![
 		TestCase {
-			input: "fn() { return 5 + 10 }",
+			input: "fn() i64 { return 5 + 10 }",
 			expected_constants: vec![
-				Object::Integer(5),
-				Object::Integer(10),
+				Object::U8(5),
+				Object::U8(10),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
 						make(Opcode::Constant, &[0]),
@@ -477,10 +477,10 @@ fn test_functions() {
 			],
 		},
 		TestCase {
-			input: "fn() { 5 + 10 }",
+			input: "fn() i64 { 5 + 10 }",
 			expected_constants: vec![
-				Object::Integer(5),
-				Object::Integer(10),
+				Object::U8(5),
+				Object::U8(10),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
 						make(Opcode::Constant, &[0]),
@@ -498,10 +498,10 @@ fn test_functions() {
 			],
 		},
 		TestCase {
-			input: "fn() { 1; 2 }",
+			input: "fn() u8 { 1; 2 }",
 			expected_constants: vec![
-				Object::Integer(1),
-				Object::Integer(2),
+				Object::U8(1),
+				Object::U8(2),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
 						make(Opcode::Constant, &[0]),
@@ -588,9 +588,9 @@ fn test_compiler_scopes() {
 fn test_function_calls() {
 	let tests = vec![
 		TestCase {
-			input: "fn() { 24 }();",
+			input: "fn() u8 { 24 }();",
 			expected_constants: vec![
-				Object::Integer(24),
+				Object::U8(24),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
 						make(Opcode::Constant, &[0]), // The literal "24"
@@ -608,11 +608,11 @@ fn test_function_calls() {
 		},
 		TestCase {
 			input: "
-            let noArg = fn() { 24 };
+            let noArg = fn() u8 { 24 };
             noArg();
             ",
 			expected_constants: vec![
-				Object::Integer(24),
+				Object::U8(24),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
 						make(Opcode::Constant, &[0]), // The literal "24"
@@ -633,7 +633,7 @@ fn test_function_calls() {
 		},
 		TestCase {
 			input: "
-            let oneArg = fn(a u8) { a };
+            let oneArg = fn(a u8) u8 { a };
             oneArg(24);
             ",
 			expected_constants: vec![
@@ -645,7 +645,7 @@ fn test_function_calls() {
 					num_locals: 1,
 					num_parameters: 1,
 				}),
-				Object::Integer(24),
+				Object::U8(24),
 			],
 			expected_instructions: vec![
 				make(Opcode::Closure, &[0, 0]),
@@ -658,7 +658,7 @@ fn test_function_calls() {
 		},
 		TestCase {
 			input: "
-            let manyArg = fn(a u8, b u8, c u8) { a; b; c };
+            let manyArg = fn(a u8, b u8, c u8) u8 { a; b; c };
             manyArg(24, 25, 26);
             ",
 			expected_constants: vec![
@@ -674,9 +674,9 @@ fn test_function_calls() {
 					num_locals: 3,
 					num_parameters: 3,
 				}),
-				Object::Integer(24),
-				Object::Integer(25),
-				Object::Integer(26),
+				Object::U8(24),
+				Object::U8(25),
+				Object::U8(26),
 			],
 			expected_instructions: vec![
 				make(Opcode::Closure, &[0, 0]),
@@ -700,10 +700,10 @@ fn test_let_statement_scopes() {
 		TestCase {
 			input: "
 			let num = 55;
-			fn() { num }
+			fn() u8 { num }
 			",
 			expected_constants: vec![
-				Object::Integer(55),
+				Object::U8(55),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
 						make(Opcode::GetGlobal, &[0]),
@@ -722,13 +722,13 @@ fn test_let_statement_scopes() {
 		},
 		TestCase {
 			input: "
-            fn() {
+            fn() u8 {
                 let num = 55;
                 num
             }
             ",
 			expected_constants: vec![
-				Object::Integer(55),
+				Object::U8(55),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
 						make(Opcode::Constant, &[0]),
@@ -747,15 +747,15 @@ fn test_let_statement_scopes() {
 		},
 		TestCase {
 			input: "
-            fn() {
+            fn() i64 {
                 let a = 55;
                 let b = 77;
                 a + b
             }
             ",
 			expected_constants: vec![
-				Object::Integer(55),
-				Object::Integer(77),
+				Object::U8(55),
+				Object::U8(77),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
 						make(Opcode::Constant, &[0]),
@@ -789,7 +789,7 @@ fn test_builtins() {
             len([]);
             push([], 1);
             ",
-			expected_constants: vec![Object::Integer(1)],
+			expected_constants: vec![Object::U8(1)],
 			expected_instructions: vec![
 				make(Opcode::GetBuiltin, &[0]),
 				make(Opcode::Array, &[0]),
@@ -803,7 +803,7 @@ fn test_builtins() {
 			],
 		},
 		TestCase {
-			input: "fn() { len([]) }",
+			input: "fn() u64 { len([]) }",
 			expected_constants: vec![
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
@@ -829,10 +829,11 @@ fn test_builtins() {
 #[test]
 fn test_closures() {
 	let tests = vec![
+		//TODO Temporary callable syntax
 		TestCase {
 			input: "
-            fn(a u8) {
-                fn(b u8) {
+            fn(a u8) fn() i64 {
+                fn(b u8) i64 {
                     a + b
                 }
             }
@@ -865,9 +866,9 @@ fn test_closures() {
 		},
 		TestCase {
 			input: "
-            fn(a u8) {
-                fn(b u8) {
-                    fn(c u8) {
+            fn(a u8) fn() fn() i64 {
+                fn(b u8) fn() i64 {
+                    fn(c u8) i64 {
                         a + b + c
                     }
                 }
@@ -915,10 +916,10 @@ fn test_closures() {
 			input: "
             let global = 55;
 
-            fn() {
+            fn() fn() fn() {
                 let a = 66;
 
-                fn() {
+                fn() fn() {
                     let b = 77;
 
                     fn() {
@@ -930,10 +931,10 @@ fn test_closures() {
             }
             ",
 			expected_constants: vec![
-				Object::Integer(55),
-				Object::Integer(66),
-				Object::Integer(77),
-				Object::Integer(88),
+				Object::U8(55),
+				Object::U8(66),
+				Object::U8(77),
+				Object::U8(88),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
 						make(Opcode::Constant, &[3]),
@@ -995,7 +996,7 @@ fn test_recursive_functions() {
             countDown(1);
             ",
 			expected_constants: vec![
-				Object::Integer(1),
+				Object::U8(1),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
 						make(Opcode::CurrentClosure, &[]),
@@ -1008,7 +1009,7 @@ fn test_recursive_functions() {
 					num_locals: 1,
 					num_parameters: 1,
 				}),
-				Object::Integer(1),
+				Object::U8(1),
 			],
 			expected_instructions: vec![
 				make(Opcode::Closure, &[1, 0]),
@@ -1028,7 +1029,7 @@ fn test_recursive_functions() {
             wrapper();
             ",
 			expected_constants: vec![
-				Object::Integer(1),
+				Object::U8(1),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
 						make(Opcode::CurrentClosure, &[]),
@@ -1041,7 +1042,7 @@ fn test_recursive_functions() {
 					num_locals: 1,
 					num_parameters: 1,
 				}),
-				Object::Integer(1),
+				Object::U8(1),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
 						make(Opcode::Closure, &[1, 0]),

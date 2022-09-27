@@ -104,8 +104,36 @@ impl Compiler {
 
 	fn compile_expression(&mut self, exp: TypedExpression) -> CompilerResult {
 		match exp {
-			TypedExpression::Integer(value) => {
-				let operand = self.add_constant(Object::Integer(value as i64));
+			TypedExpression::U8(value) => {
+				let operand = self.add_constant(Object::U8(value));
+				self.emit(Opcode::Constant, &[operand]);
+			}
+			TypedExpression::U16(value) => {
+				let operand = self.add_constant(Object::U16(value));
+				self.emit(Opcode::Constant, &[operand]);
+			}
+			TypedExpression::U32(value) => {
+				let operand = self.add_constant(Object::U32(value));
+				self.emit(Opcode::Constant, &[operand]);
+			}
+			TypedExpression::U64(value) => {
+				let operand = self.add_constant(Object::U64(value));
+				self.emit(Opcode::Constant, &[operand]);
+			}
+			TypedExpression::I8(value) => {
+				let operand = self.add_constant(Object::I8(value));
+				self.emit(Opcode::Constant, &[operand]);
+			}
+			TypedExpression::I16(value) => {
+				let operand = self.add_constant(Object::I16(value));
+				self.emit(Opcode::Constant, &[operand]);
+			}
+			TypedExpression::I32(value) => {
+				let operand = self.add_constant(Object::I32(value));
+				self.emit(Opcode::Constant, &[operand]);
+			}
+			TypedExpression::I64(value) => {
+				let operand = self.add_constant(Object::I64(value));
 				self.emit(Opcode::Constant, &[operand]);
 			}
 			TypedExpression::Boolean(value) => if value {
@@ -214,7 +242,7 @@ impl Compiler {
 
 				self.emit(Opcode::Index, &[]);
 			}
-			TypedExpression::Function { parameters, body, name } => {
+			TypedExpression::Function { parameters, body, name, .. } => {
 				self.enter_scope();
 
 				if let Some(name) = name {
@@ -251,7 +279,7 @@ impl Compiler {
 				}));
 				self.emit(Opcode::Closure, &[fn_index, num_free_symbols]);
 			}
-			TypedExpression::Call { function, arguments } => {
+			TypedExpression::Call { function, arguments, .. } => {
 				self.compile_expression(*function)?;
 
 				let length = arguments.len();

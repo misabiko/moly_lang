@@ -56,8 +56,20 @@ impl TypeChecker {
 	pub fn check_expression(&mut self, expr: Expression) -> TCResult<TypedExpression> {
 		match expr {
 			Expression::Boolean(value) => Ok(TypedExpression::Boolean(value)),
-			//TODO Add different integer sizes
-			Expression::Integer(value) => Ok(TypedExpression::Integer(value)),
+			Expression::Integer(value) => {
+				let unsigned = value >= 0;
+				match (unsigned, value) {
+					(true, value) if value < u8::MAX as isize => Ok(TypedExpression::U8(value as u8)),
+					(true, value) if value < u16::MAX as isize => Ok(TypedExpression::U16(value as u16)),
+					(true, value) if value < u32::MAX as isize => Ok(TypedExpression::U32(value as u32)),
+					(true, value) if value < u64::MAX as isize => Ok(TypedExpression::U64(value as u64)),
+					(false, value) if value.abs() < i8::MAX as isize => Ok(TypedExpression::I8(value as i8)),
+					(false, value) if value.abs() < i16::MAX as isize => Ok(TypedExpression::I16(value as i16)),
+					(false, value) if value.abs() < i32::MAX as isize => Ok(TypedExpression::I32(value as i32)),
+					(false, value) if value.abs() < i64::MAX as isize => Ok(TypedExpression::I64(value as i64)),
+					_ => Err(format!("unsupported integer size {}", value)),
+				}
+			},
 			Expression::String(value) => Ok(TypedExpression::String(value)),
 			Expression::Identifier(name) => {
 				let type_expr = self.type_env.get_identifier_type(name.as_str())
@@ -127,21 +139,31 @@ impl TypeChecker {
 					alternative,
 				})
 			}
-			Expression::Function { name, parameters, body } => {
+			Expression::Function { name, parameters, body, return_type } => {
 				for (param, param_type) in parameters.iter() {
 					self.type_env.define_identifier(&param, param_type.clone());
 				}
 
 				if let Some(name) = &name {
 					self.type_env.define_identifier(name, TypeExpr::Call {
-						//TODO Parse fn return type
-						return_type: None
+						return_type: return_type.clone().map(|t| Box::new(t)),
 					});
 				}
 
 				let body = self.check(body)?;
 
-				Ok(TypedExpression::Function { name, parameters, body })
+				let body_return_type = match body.statements.last() {
+					Some(TypedStatement::Expression { expr, has_semicolon: false})
+						=> self.get_type_from_expression(&expr),
+					Some(TypedStatement::Return(Some(expr)))
+						=> self.get_type_from_expression(&expr),
+					_ => None,
+				};
+				if return_type != body_return_type {
+					return Err(format!("function body return type {:?} doesn't match declared return type {:?}", body_return_type, return_type))
+				}
+
+				Ok(TypedExpression::Function { name, parameters, body, return_type })
 			}
 			Expression::Call { function, arguments } => {
 				let function = self.check_expression(*function)?;
@@ -149,9 +171,19 @@ impl TypeChecker {
 					.map(|arg| self.check_expression(arg))
 					.collect::<TCResult<Vec<TypedExpression>>>()?;
 
+				let return_type = match self.get_type_from_expression(&function) {
+					Some(called_type) => match called_type {
+						TypeExpr::Call { return_type } => return_type.map(|t| *t),
+						TypeExpr::FnLiteral { return_type } => return_type.map(|t| *t),
+						t => return Err(format!("type {:?} not callable", t))
+					},
+					None => return Err("cannot call void type".into()),
+				};
+
 				Ok(TypedExpression::Call {
 					function: Box::new(function),
 					arguments,
+					return_type,
 				})
 			}
 			Expression::Array(elements) => {
@@ -185,24 +217,33 @@ impl TypeChecker {
 	fn get_type_from_expression(&self, expr: &TypedExpression) -> Option<TypeExpr> {
 		match expr {
 			TypedExpression::Identifier { type_expr, .. } => Some(type_expr.clone()),
-			//TODO Get proper int type
-			TypedExpression::Integer(_) => Some(TypeExpr::Int {
-				unsigned: false,
-				size: IntegerSize::S64,
-			}),
+			TypedExpression::U8(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
+			TypedExpression::U16(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S16 }),
+			TypedExpression::U32(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S32 }),
+			TypedExpression::U64(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S64 }),
+			TypedExpression::I8(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S8 }),
+			TypedExpression::I16(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S16 }),
+			TypedExpression::I32(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S32 }),
+			TypedExpression::I64(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S64 }),
 			TypedExpression::Boolean(_) => Some(TypeExpr::Bool),
 			TypedExpression::String(_) => Some(TypeExpr::String),
-			TypedExpression::Function { .. } => Some(TypeExpr::FnLiteral),
+			TypedExpression::Function { return_type, .. } => Some(TypeExpr::FnLiteral {
+				return_type: return_type.clone().map(|t| Box::new(t))
+			}),
 			TypedExpression::Prefix {
 				operator: PrefixOperator::Bang | PrefixOperator::Minus,
 				right
 			} => self.get_type_from_expression(right.as_ref()),
+			//TODO Temporary while infix still returns i64
+			TypedExpression::Infix { type_expr: TypeExpr::Int { .. }, .. } => Some(TypeExpr::Int {
+				unsigned: false,
+				size: IntegerSize::S64
+			}),
 			TypedExpression::Infix { type_expr, .. } => Some(type_expr.clone()),
+			TypedExpression::If { type_expr, .. } => type_expr.clone(),
+			TypedExpression::Call { return_type, .. } => return_type.clone(),
 			expr => panic!("todo get_type_from_expression {:?}", expr)//TODO Remove rest
 			/*
-			TypedExpression::If { .. } => {}
-			TypedExpression::Function { .. } => {}
-			TypedExpression::Call { .. } => {}
 			TypedExpression::Array(_) => {}
 			TypedExpression::Index { .. } => {}
 			TypedExpression::Hash(_) => {}*/

@@ -3,7 +3,7 @@ use moly::build;
 use moly::vm::VM;
 
 const INPUT: &str = "
-let fibonacci = fn(x u8) {
+let fibonacci = fn(x u8) u64 {
   if x == 0 {
     0
   } else {

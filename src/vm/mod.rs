@@ -254,15 +254,17 @@ impl VM {
 		let right = self.pop().cloned();
 		let left = self.pop().cloned();
 
-		match (&left, &right) {
-			(Some(Object::Integer(left)), Some(Object::Integer(right)))
-			=> self.execute_binary_integer_operation(op, *left, *right)?,
-			(Some(Object::String(left)), Some(Object::String(right)))
-			=> self.execute_binary_string_operation(op, left, right)?,
-			_ => return Err(format!("unsupported types for binary operation: {:?} and {:?}", left, right))
+		if let (Some(left), Some(right)) = (&left, &right) {
+			if let (Some(Object::I64(left)), Some(Object::I64(right))) = (cast_i64(&left), cast_i64(&right)) {
+				return self.execute_binary_integer_operation(op, left, right)
+			}
 		}
 
-		Ok(())
+		match (&left, &right) {
+			(Some(Object::String(left)), Some(Object::String(right)))
+			=> self.execute_binary_string_operation(op, left, right),
+			_ => Err(format!("unsupported types for binary operation: {:?} and {:?}", left, right))
+		}
 	}
 
 	fn execute_binary_integer_operation(&mut self, op: Opcode, left: i64, right: i64) -> VMResult {
@@ -274,7 +276,8 @@ impl VM {
 			_ => return Err(format!("unknown integer operator: {:?}", op))
 		};
 
-		self.push(Object::Integer(result))
+		//Temporarily cast to i64
+		self.push(Object::I64(result))
 	}
 
 	fn execute_binary_string_operation(&mut self, op: Opcode, left: &str, right: &str) -> VMResult {
@@ -289,8 +292,24 @@ impl VM {
 		let left = self.pop().cloned().unwrap();
 		let right = self.pop().cloned().unwrap();
 
-		if let (Object::Integer(left), Object::Integer(right)) = (&left, &right) {
-			return self.execute_integer_comparison(op, *left, *right);
+		match (&left, &right) {
+			(Object::U8(left), Object::U8(right))
+				=> return self.execute_integer_comparison(op, *left as i64, *right as i64),
+			(Object::U16(left), Object::U16(right))
+			=> return self.execute_integer_comparison(op, *left as i64, *right as i64),
+			(Object::U32(left), Object::U32(right))
+			=> return self.execute_integer_comparison(op, *left as i64, *right as i64),
+			(Object::U64(left), Object::U64(right))
+			=> return self.execute_integer_comparison(op, *left as i64, *right as i64),
+			(Object::I8(left), Object::I8(right))
+			=> return self.execute_integer_comparison(op, *left as i64, *right as i64),
+			(Object::I16(left), Object::I16(right))
+			=> return self.execute_integer_comparison(op, *left as i64, *right as i64),
+			(Object::I32(left), Object::I32(right))
+			=> return self.execute_integer_comparison(op, *left as i64, *right as i64),
+			(Object::I64(left), Object::I64(right))
+			=> return self.execute_integer_comparison(op, *left, *right),
+			_ => {}
 		}
 
 		match op {
@@ -322,11 +341,42 @@ impl VM {
 	fn execute_minus_operator(&mut self) -> VMResult {
 		let operand = self.pop().unwrap();
 
-		if let Object::Integer(value) = operand {
-			let value = *value;
-			self.push(Object::Integer(-value))
-		} else {
-			Err(format!("unsupported type for negation: {:?}", operand))
+		match operand {
+			Object::U8(value) => {
+				let value = *value;
+				self.push(Object::I8(-(value as i8)))
+			}
+			Object::U16(value) => {
+				let value = *value;
+				self.push(Object::I16(-(value as i16)))
+			}
+			Object::U32(value) => {
+				let value = *value;
+				self.push(Object::I32(-(value as i32)))
+			}
+			Object::U64(value) => {
+				let value = *value;
+				self.push(Object::I64(-(value as i64)))
+			}
+			Object::I8(value) => {
+				let value = *value;
+				self.push(Object::I8(-value))
+			}
+			Object::I16(value) => {
+				let value = *value;
+				self.push(Object::I16(-value))
+			}
+			Object::I32(value) => {
+				let value = *value;
+				self.push(Object::I32(-value))
+			}
+			Object::I64(value) => {
+				let value = *value;
+				self.push(Object::I64(-value))
+			}
+			_ => {
+				Err(format!("unsupported type for negation: {:?}", operand))
+			}
 		}
 	}
 
@@ -354,10 +404,24 @@ impl VM {
 
 	fn execute_index_expression(&mut self, left: Object, index: Object) -> VMResult {
 		match (left, index) {
-			(Object::Array(elements), Object::Integer(index))
-			=> self.execute_array_index(elements, index),
+			(Object::Array(elements), Object::U8(index))
+				=> self.execute_array_index(elements, index as i64),
+			(Object::Array(elements), Object::U16(index))
+				=> self.execute_array_index(elements, index as i64),
+			(Object::Array(elements), Object::U32(index))
+				=> self.execute_array_index(elements, index as i64),
+			(Object::Array(elements), Object::U64(index))
+				=> self.execute_array_index(elements, index as i64),
+			(Object::Array(elements), Object::I8(index))
+				=> self.execute_array_index(elements, index as i64),
+			(Object::Array(elements), Object::I16(index))
+				=> self.execute_array_index(elements, index as i64),
+			(Object::Array(elements), Object::I32(index))
+				=> self.execute_array_index(elements, index as i64),
+			(Object::Array(elements), Object::I64(index))
+				=> self.execute_array_index(elements, index),
 			(Object::Hash(pairs), index)
-			=> self.execute_hash_index(pairs, index),
+				=> self.execute_hash_index(pairs, index),
 			(left, index) => Err(format!("index operator not supported: {:?}[{:?}]", left, index))
 		}
 	}
@@ -477,3 +541,17 @@ impl VM {
 }
 
 type VMResult = Result<(), String>;
+
+fn cast_i64(obj: &Object) -> Option<Object> {
+	match obj {
+		Object::U8(value) => Some(Object::I64(*value as i64)),
+		Object::U16(value) => Some(Object::I64(*value as i64)),
+		Object::U32(value) => Some(Object::I64(*value as i64)),
+		Object::U64(value) => Some(Object::I64(*value as i64)),
+		Object::I8(value) => Some(Object::I64(*value as i64)),
+		Object::I16(value) => Some(Object::I64(*value as i64)),
+		Object::I32(value) => Some(Object::I64(*value as i64)),
+		Object::I64(value) => Some(Object::I64(*value)),
+		_ => None,
+	}
+}

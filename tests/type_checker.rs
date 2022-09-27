@@ -49,6 +49,10 @@ fn test_function_parameter_parsing() {
 	}
 }*/
 
+//TODO if
+//TODO prefix
+//TODO infix
+
 struct TestCase {
 	input: &'static str,
 }

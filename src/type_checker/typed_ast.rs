@@ -1,5 +1,5 @@
 use std::fmt;
-use crate::ast::{InfixOperator, PrefixOperator, TypeIdentifier};
+use crate::ast::{InfixOperator, PrefixOperator};
 use super::type_env::TypeExpr;
 
 pub type TypedProgram = TypedBlockStatement;
@@ -55,8 +55,14 @@ pub enum TypedExpression {
 		name: String,
 		type_expr: TypeExpr,
 	},
-	//TODO Negative usize will overflow, need to handle max integer size properly
-	Integer(isize),
+	U8(u8),
+	U16(u16),
+	U32(u32),
+	U64(u64),
+	I8(i8),
+	I16(i16),
+	I32(i32),
+	I64(i64),
 	Boolean(bool),
 	String(String),
 	Prefix {
@@ -76,13 +82,15 @@ pub enum TypedExpression {
 		alternative: Option<TypedBlockStatement>,
 	},
 	Function {
-		parameters: Vec<(String, TypeIdentifier)>,
+		parameters: Vec<(String, TypeExpr)>,
 		body: TypedBlockStatement,
 		name: Option<String>,
+		return_type: Option<TypeExpr>,
 	},
 	Call {
 		function: Box<TypedExpression>,
 		arguments: Vec<TypedExpression>,
+		return_type: Option<TypeExpr>,
 	},
 	Array(Vec<TypedExpression>),
 	Index {
@@ -96,7 +104,14 @@ impl fmt::Display for TypedExpression {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match self {
 			TypedExpression::Identifier {name, .. } => write!(f, "{}", name),
-			TypedExpression::Integer(value) => write!(f, "{}", value),
+			TypedExpression::U8(value) => write!(f, "{}", value),
+			TypedExpression::U16(value) => write!(f, "{}", value),
+			TypedExpression::U32(value) => write!(f, "{}", value),
+			TypedExpression::U64(value) => write!(f, "{}", value),
+			TypedExpression::I8(value) => write!(f, "{}", value),
+			TypedExpression::I16(value) => write!(f, "{}", value),
+			TypedExpression::I32(value) => write!(f, "{}", value),
+			TypedExpression::I64(value) => write!(f, "{}", value),
 			TypedExpression::Boolean(value) => write!(f, "{}", value),
 			TypedExpression::String(value) => write!(f, "{}", value),
 			TypedExpression::Prefix { operator, right } => write!(f, "({}{})", operator, right),
@@ -110,7 +125,7 @@ impl fmt::Display for TypedExpression {
 
 				write!(f, "if {} {}{})", condition, consequence, alt_str)
 			},
-			TypedExpression::Function { parameters, body, name } => {
+			TypedExpression::Function { parameters, body, name, return_type } => {
 				let name = if let Some(name) = name {
 					format!("<{}>", name)
 				}else {
@@ -120,10 +135,15 @@ impl fmt::Display for TypedExpression {
 					.map(|(i, t)| format!("{} {}", i, t))
 					.collect::<Vec<String>>()
 					.join(", ");
+				let return_type = if let Some(r) = return_type {
+					format!(" {}", r)
+				}else {
+					"".into()
+				};
 
-				write!(f, "fn{}({}) {}", name, parameters, body)
+				write!(f, "fn{}({}) {} {}", name, parameters, return_type, body)
 			},
-			TypedExpression::Call { function, arguments } => write!(f, "{}({})", function, join_expression_vec(arguments)),
+			TypedExpression::Call { function, arguments, .. } => write!(f, "{}({})", function, join_expression_vec(arguments)),
 			TypedExpression::Array(elements) => write!(f, "[{}]", join_expression_vec(elements)),
 			TypedExpression::Index { left, index } => write!(f, "({}[{}])", left, index),
 			TypedExpression::Hash(pairs) => {

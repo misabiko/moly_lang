@@ -1,6 +1,6 @@
 use std::fmt;
 use std::fmt::Formatter;
-use crate::ast::{BlockStatement, Expression, InfixOperator, PrefixOperator, Program, Statement, TypeIdentifier};
+use crate::ast::{BlockStatement, Expression, InfixOperator, PrefixOperator, Program, Statement};
 use crate::lexer::Lexer;
 use crate::token::{Token, TokenLiteral, TokenType};
 use crate::type_checker::type_env::{IntegerSize, TypeExpr};
@@ -226,7 +226,6 @@ impl Parser {
 	fn parse_if_expression(&mut self) -> PResult<Expression> {
 		self.next_token();
 
-		//TODO Should be able to check which expression can return bool (not minus, not string)
 		let condition = self.parse_expression(Precedence::Lowest)?;
 
 		self.expect_peek(TokenType::LBrace)?;
@@ -270,6 +269,13 @@ impl Parser {
 
 		let parameters = self.parse_function_parameters()?;
 
+		let return_type = if !self.peek_token_is(TokenType::LBrace) {
+			let return_type = Some(self.parse_type_identifier()?);
+			return_type
+		}else {
+			None
+		};
+
 		self.expect_peek(TokenType::LBrace)?;
 
 		let body = self.parse_block_statement()?;
@@ -278,10 +284,11 @@ impl Parser {
 			parameters,
 			body,
 			name: None,
+			return_type,
 		})
 	}
 
-	fn parse_function_parameters(&mut self) -> PResult<Vec<(String, TypeIdentifier)>> {
+	fn parse_function_parameters(&mut self) -> PResult<Vec<(String, TypeExpr)>> {
 		let mut identifiers = vec![];
 
 		if self.peek_token_is(TokenType::RParen) {
@@ -293,7 +300,6 @@ impl Parser {
 
 		let expect_str = "identifier literal isn't string";
 		identifiers.push(if let TokenLiteral::String(ident) = self.cur_token.literal.clone() {
-			self.next_token();
 			(ident.clone(), self.parse_type_identifier()?)
 		} else {
 			return Err(ParserError::Generic(expect_str.into()));
@@ -304,7 +310,6 @@ impl Parser {
 			self.next_token();
 
 			identifiers.push(if let TokenLiteral::String(ident) = self.cur_token.literal.clone() {
-				self.next_token();
 				(ident.clone(), self.parse_type_identifier()?)
 			} else {
 				return Err(ParserError::Generic(expect_str.into()));
@@ -396,7 +401,24 @@ impl Parser {
 	}
 
 	fn parse_type_identifier(&mut self) -> PResult<TypeExpr> {
+		self.next_token();
+
 		match &self.cur_token.token_type {
+			TokenType::Function => {
+				self.expect_peek(TokenType::LParen)?;
+				self.expect_peek(TokenType::RParen)?;
+
+				let return_type = if !self.peek_token_is(TokenType::LBrace) {
+					let return_type = Some(self.parse_type_identifier()?);
+					return_type
+				}else {
+					None
+				};
+
+				Ok(TypeExpr::FnLiteral {
+					return_type: return_type.map(|t| Box::new(t)),
+				})
+			}
 			TokenType::U8 => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
 			TokenType::U16 => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S16 }),
 			TokenType::U32 => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S32 }),

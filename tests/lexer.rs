@@ -13,8 +13,8 @@ u8 u16 u32 u64
 i8 i16 i32 i64
 bool str
 
-let add = fn(x u8, y u8) {
-  x + y;
+let add = fn(x u8, y u8) u8 {
+  x + y
 };
 
 let result = add(five, ten);
@@ -67,11 +67,11 @@ if 5 < 10 {
 		(TokenType::Ident, TokenLiteral::String("y".into())),
 		(TokenType::U8, TokenLiteral::Static("u8")),
 		(TokenType::RParen, TokenLiteral::Static(")")),
+		(TokenType::U8, TokenLiteral::Static("u8")),
 		(TokenType::LBrace, TokenLiteral::Static("{")),
 		(TokenType::Ident, TokenLiteral::String("x".into())),
 		(TokenType::Plus, TokenLiteral::Static("+")),
 		(TokenType::Ident, TokenLiteral::String("y".into())),
-		(TokenType::Semicolon, TokenLiteral::Static(";")),
 		(TokenType::RBrace, TokenLiteral::Static("}")),
 		(TokenType::Semicolon, TokenLiteral::Static(";")),
 		(TokenType::Let, TokenLiteral::Static("let")),

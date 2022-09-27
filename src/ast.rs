@@ -71,9 +71,10 @@ pub enum Expression {
 	},
 	Function {
 		/// name in Expression::Identifier
-		parameters: Vec<(String, TypeIdentifier)>,
+		parameters: Vec<(String, TypeExpr)>,
 		body: BlockStatement,
 		name: Option<String>,
+		return_type: Option<TypeExpr>,
 	},
 	Call {
 		function: Box<Expression>,
@@ -105,7 +106,7 @@ impl fmt::Display for Expression {
 
 				write!(f, "if {} {}{})", condition, consequence, alt_str)
 			},
-			Expression::Function { parameters, body, name } => {
+			Expression::Function { parameters, body, name, return_type } => {
 				let name = if let Some(name) = name {
 					format!("<{}>", name)
 				}else {
@@ -115,8 +116,13 @@ impl fmt::Display for Expression {
 					.map(|(i, t)| format!("{} {}", i, t))
 					.collect::<Vec<String>>()
 					.join(", ");
+				let return_type = if let Some(r) = return_type {
+					format!(" {}", r)
+				}else {
+					"".into()
+				};
 
-				write!(f, "fn{}({}) {}", name, parameters, body)
+				write!(f, "fn{}({}) {} {}", name, parameters, return_type, body)
 			},
 			Expression::Call { function, arguments } => write!(f, "{}({})", function, join_expression_vec(arguments)),
 			Expression::Array(elements) => write!(f, "[{}]", join_expression_vec(elements)),
@@ -189,5 +195,3 @@ impl fmt::Display for InfixOperator {
 		}
 	}
 }
-
-pub type TypeIdentifier = TypeExpr;

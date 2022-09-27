@@ -332,17 +332,22 @@ fn test_if_expression() {
 #[test]
 fn test_function_literal_parsing() {
 	let tests = vec![
-		"fn(x u8, y u8) { x + y; }"
+		("fn(x u8, y u8) { x + y; }", None),
+		("fn(x u8, y u8) u8 { x + y }", Some(TypeExpr::Int {unsigned: true, size: IntegerSize::S8})),
 	];
 
-	for input in tests {
+	for (input, expected_return) in tests {
 		let stmt = parse_single_statement(input);
 
-		if let Statement::Expression { expr: Expression::Function { parameters, body, .. }, has_semicolon: _ } = stmt {
+		if let Statement::Expression { expr: Expression::Function { name, parameters, body, return_type }, has_semicolon: _ } = stmt {
+			assert_eq!(name, None, "shouldn't have a name");
+
 			assert_eq!(parameters.len(), 2, "function parameters wrong, want 2. ({:?})", parameters);
 
 			assert_eq!(parameters[0], ("x".into(), TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }));
 			assert_eq!(parameters[1], ("y".into(), TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }));
+
+			assert_eq!(return_type, expected_return, "wrong return type");
 
 			assert_eq!(body.statements.len(), 1, "body.statements doesn't have 1 statement. ({:?})", body.statements);
 

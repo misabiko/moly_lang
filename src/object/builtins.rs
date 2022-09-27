@@ -25,8 +25,8 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 				}
 
 				Some(match &args[0] {
-					Object::Array(elements) => Object::Integer(elements.len() as i64),
-					Object::String(value) => Object::Integer(value.len() as i64),
+					Object::Array(elements) => Object::U64(elements.len() as u64),
+					Object::String(value) => Object::U64(value.len() as u64),
 					arg => Object::Error(format!("argument to `len` not supported, got {:?}", arg)),
 				})
 			},

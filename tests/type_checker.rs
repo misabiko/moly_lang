@@ -1,7 +1,9 @@
+use moly::ast::IntExpr;
 use moly::lexer::Lexer;
 use moly::parser::{Parser};
 use moly::type_checker::TypeChecker;
-use moly::type_checker::typed_ast::{TypedExpression, TypedProgram, TypedStatement};
+use moly::type_checker::typed_ast::{TypedBlockStatement, TypedExpression, TypedProgram, TypedStatement};
+use moly::type_checker::type_env::{TypeExpr, IntegerSize};
 
 #[test]
 fn test_boolean_expression() {
@@ -21,23 +23,19 @@ fn test_boolean_expression() {
 	}
 }
 
-/*#[test]
+#[test]
 fn test_function_parameter_parsing() {
 	let tests = vec![
-		("fn() {};", vec![]),
-		("fn(x u8) {};", vec![
-			("x", "u8")
-		]),
 		("fn(x u8, y str, z i16) {};", vec![
-			("x", "u8"),
-			("y", "str"),
-			("z", "i16"),
+			("x".into(), TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
+			("y".into(), TypeExpr::String),
+			("z".into(), TypeExpr::Int { unsigned: false, size: IntegerSize::S16 }),
 		]),
 	];
 
 	for (input, expected_params) in tests {
-		let stmt = parse_single_statement(input);
-		if let Statement::Expression { expr: Expression::Function { parameters, .. }, has_semicolon: _ } = stmt {
+		let stmt = type_check_single_statement(input);
+		if let TypedStatement::Expression { expr: TypedExpression::Function { parameters, .. }, has_semicolon: _ } = stmt {
 			assert_eq!(parameters.len(), expected_params.len());
 
 			for (param, expected_param) in parameters.iter().zip(expected_params.iter()) {
@@ -47,14 +45,77 @@ fn test_function_parameter_parsing() {
 			panic!("{:?} is not Statement::Expression(Function)", stmt);
 		}
 	}
-}*/
+}
 
-//TODO if
-//TODO prefix
-//TODO infix
+#[test]
+fn test_if_expression() {
+	let tests = vec![
+		("if 2 < 4 { 4; }", None),
+		//TODO Expected void ("if 2 < 4 { 4 }", None),
+		("if 2 < 4 { 2 } else { 4 }", Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 })),
+	];
 
-struct TestCase {
-	input: &'static str,
+	for (input, expected_type) in tests {
+		let stmt = type_check_single_statement(input);
+
+		if let TypedStatement::Expression { expr: TypedExpression::If {type_expr, ..}, has_semicolon: _ } = stmt {
+			assert_eq!(type_expr, expected_type);
+		} else {
+			panic!("{:?} not TypedExpression(Boolean)", stmt)
+		}
+	}
+}
+
+#[test]
+fn test_scoped_type_bindings() {
+	let tests = vec![
+		("
+			let a = 10;
+			let func = fn(a str) str {
+				a
+			};
+			a;
+		", TypedBlockStatement {
+			statements: vec![
+				TypedStatement::Let {
+					name: "a".into(),
+					value: TypedExpression::Integer(IntExpr::U8(10)),
+				},
+				TypedStatement::Let {
+					name: "func".into(),
+					value: TypedExpression::Function {
+						name: Some("func".into()),
+						parameters: vec![("a".into(), TypeExpr::String)],
+						return_type: Some(TypeExpr::String),
+						body: TypedBlockStatement {
+							statements: vec![
+								TypedStatement::Expression {
+									expr: TypedExpression::Identifier {
+										name: "a".into(),
+										type_expr: TypeExpr::String,
+									},
+									has_semicolon: false,
+								}
+							]
+						}
+					}
+				},
+				TypedStatement::Expression {
+					expr: TypedExpression::Identifier {
+						name: "a".into(),
+						type_expr: TypeExpr::Int { unsigned: true, size: IntegerSize::S8 },
+					},
+					has_semicolon: true,
+				}
+			]
+		}),
+	];
+
+	for (input, expected_type) in tests {
+		let p = type_check(input);
+
+		assert_eq!(p, expected_type);
+	}
 }
 
 fn type_check(input: &str) -> TypedProgram {

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use moly::ast::Program;
-use moly::code::{concat_instructions, instruction_to_string, make, Opcode};
+use moly::code::{concat_instructions, make, Opcode};
 use moly::compiler::Compiler;
 use moly::lexer::Lexer;
 use moly::object::{Closure, Function, HashingObject, Object};
@@ -660,7 +660,7 @@ fn run_vm_tests(tests: Vec<TestCase>) {
 		}
 
 		let bytecode = compiler.bytecode();
-		println!("{}", instruction_to_string(&bytecode.instructions));
+		/*println!("{}", instruction_to_string(&bytecode.instructions));
 
 		for (i, constant) in bytecode.constants.iter().enumerate() {
 			println!("CONSTANT {} {:p} ({:?}):", i, constant, constant);
@@ -670,7 +670,7 @@ fn run_vm_tests(tests: Vec<TestCase>) {
 				Object::U8(i) => println!(" Value: {}\n", i),
 				_ => {}
 			}
-		}
+		}*/
 
 		let mut vm = VM::new(bytecode);
 		let vm_result = vm.run();

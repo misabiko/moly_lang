@@ -3,18 +3,18 @@ use moly::build;
 use moly::vm::VM;
 
 const INPUT: &str = "
-let fibonacci = fn(x u8) u64 {
-  if x == 0 {
-    0
+let fibonacci = fn(x u64) u64 {
+  if x == 0u64 {
+    0u64
   } else {
-    if x == 1 {
-      return 1;
+    if x == 1u64 {
+      1u64
     } else {
-      fibonacci(x - 1) + fibonacci(x - 2);
+      fibonacci(x - 1u64) + fibonacci(x - 2u64)
     }
   }
 };
-fibonacci(35);
+fibonacci(35u64);
 ";
 
 fn main() {

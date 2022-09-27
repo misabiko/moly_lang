@@ -515,7 +515,7 @@ const fn precedences(token_type: TokenType) -> Option<Precedence> {
 
 type PResult<T> = Result<T, ParserError>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ParserError {
 	ExpectedType {
 		expected: String,

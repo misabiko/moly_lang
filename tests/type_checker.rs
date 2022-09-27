@@ -1,6 +1,6 @@
 use moly::ast::IntExpr;
 use moly::lexer::Lexer;
-use moly::parser::{Parser};
+use moly::parser::{Parser, ParserError};
 use moly::type_checker::TypeChecker;
 use moly::type_checker::typed_ast::{TypedBlockStatement, TypedExpression, TypedProgram, TypedStatement};
 use moly::type_checker::type_env::{TypeExpr, IntegerSize};
@@ -13,7 +13,7 @@ fn test_boolean_expression() {
 	];
 
 	for (input, expected_value) in tests {
-		let stmt = type_check_single_statement(input);
+		let stmt = type_check_single_statement(input).unwrap();
 
 		if let TypedStatement::Expression { expr: TypedExpression::Boolean(value), has_semicolon: false } = stmt {
 			assert_eq!(value, expected_value);
@@ -34,7 +34,7 @@ fn test_function_parameter_parsing() {
 	];
 
 	for (input, expected_params) in tests {
-		let stmt = type_check_single_statement(input);
+		let stmt = type_check_single_statement(input).unwrap();
 		if let TypedStatement::Expression { expr: TypedExpression::Function { parameters, .. }, has_semicolon: _ } = stmt {
 			assert_eq!(parameters.len(), expected_params.len());
 
@@ -50,18 +50,22 @@ fn test_function_parameter_parsing() {
 #[test]
 fn test_if_expression() {
 	let tests = vec![
-		("if 2 < 4 { 4; }", None),
-		//TODO Expected void ("if 2 < 4 { 4 }", None),
-		("if 2 < 4 { 2 } else { 4 }", Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 })),
+		("if 2 < 4 { 4; }", Ok(None)),
+		("if 2 < 4 { 4 }", Err(Error::TypeCheck("mismatched if types Int { unsigned: true, size: S8 } vs None".into()))),
+		("if 2 < 4 { 2 } else { 4 }", Ok(Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }))),
 	];
 
 	for (input, expected_type) in tests {
 		let stmt = type_check_single_statement(input);
-
-		if let TypedStatement::Expression { expr: TypedExpression::If {type_expr, ..}, has_semicolon: _ } = stmt {
-			assert_eq!(type_expr, expected_type);
-		} else {
-			panic!("{:?} not TypedExpression(Boolean)", stmt)
+		match expected_type {
+			Ok(expected_type) => {
+				if let Ok(TypedStatement::Expression { expr: TypedExpression::If {type_expr, ..}, has_semicolon: _ }) = stmt {
+					assert_eq!(type_expr, expected_type);
+				} else {
+					panic!("{:?} not TypedExpression(Boolean)", stmt)
+				}
+			}
+			Err(expected_error) => assert_eq!(stmt.expect_err("stmt didn't return error"), expected_error),
 		}
 	}
 }
@@ -112,31 +116,35 @@ fn test_scoped_type_bindings() {
 	];
 
 	for (input, expected_type) in tests {
-		let p = type_check(input);
+		let p = type_check(input).unwrap();
 
 		assert_eq!(p, expected_type);
 	}
 }
 
-fn type_check(input: &str) -> TypedProgram {
+fn type_check(input: &str) -> Result<TypedProgram, Error> {
 	let program = match Parser::new(Lexer::new(input)).parse_program() {
 		Ok(p) => p,
-		Err(err) => panic!("parse error: {}", err),
+		Err(err) => return Err(Error::Parse(err)),
 	};
 
 	let mut type_checker = TypeChecker::new();
 	match type_checker.check(program) {
-		Ok(program) => program,
-		Err(err) => {
-			panic!("type check error: {:?}", err)
-		}
+		Ok(program) => Ok(program),
+		Err(err) => return Err(Error::TypeCheck(err)),
 	}
 }
 
-fn type_check_single_statement(input: &str) -> TypedStatement {
-	let program = type_check(input);
+fn type_check_single_statement(input: &str) -> Result<TypedStatement, Error> {
+	let program = type_check(input)?;
 
 	assert_eq!(program.statements.len(), 1, "program.statements does not contain 1 statement");
 
-	program.statements.into_iter().next().unwrap()
+	Ok(program.statements.into_iter().next().unwrap())
+}
+
+#[derive(Debug, PartialEq)]
+enum Error {
+	Parse(ParserError),
+	TypeCheck(String),
 }

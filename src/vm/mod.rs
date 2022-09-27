@@ -610,17 +610,3 @@ impl VM {
 }
 
 type VMResult = Result<(), String>;
-
-fn cast_i64(obj: &Object) -> Option<Object> {
-	match obj {
-		Object::U8(value) => Some(Object::I64(*value as i64)),
-		Object::U16(value) => Some(Object::I64(*value as i64)),
-		Object::U32(value) => Some(Object::I64(*value as i64)),
-		Object::U64(value) => Some(Object::I64(*value as i64)),
-		Object::I8(value) => Some(Object::I64(*value as i64)),
-		Object::I16(value) => Some(Object::I64(*value as i64)),
-		Object::I32(value) => Some(Object::I64(*value as i64)),
-		Object::I64(value) => Some(Object::I64(*value)),
-		_ => None,
-	}
-}

@@ -1,4 +1,4 @@
-use crate::ast::{Expression, InfixOperator, PrefixOperator, Program, Statement};
+use crate::ast::{Expression, InfixOperator, IntExpr, PrefixOperator, Program, Statement};
 use crate::object::builtins::get_builtins;
 use crate::type_checker::type_env::{IntegerSize, TypeEnv, TypeExpr};
 use crate::type_checker::typed_ast::{TypedExpression, TypedProgram, TypedStatement};
@@ -56,20 +56,7 @@ impl TypeChecker {
 	pub fn check_expression(&mut self, expr: Expression) -> TCResult<TypedExpression> {
 		match expr {
 			Expression::Boolean(value) => Ok(TypedExpression::Boolean(value)),
-			Expression::Integer(value) => {
-				let unsigned = value >= 0;
-				match (unsigned, value) {
-					(true, value) if value < u8::MAX as isize => Ok(TypedExpression::U8(value as u8)),
-					(true, value) if value < u16::MAX as isize => Ok(TypedExpression::U16(value as u16)),
-					(true, value) if value < u32::MAX as isize => Ok(TypedExpression::U32(value as u32)),
-					(true, value) if value < u64::MAX as isize => Ok(TypedExpression::U64(value as u64)),
-					(false, value) if value.abs() < i8::MAX as isize => Ok(TypedExpression::I8(value as i8)),
-					(false, value) if value.abs() < i16::MAX as isize => Ok(TypedExpression::I16(value as i16)),
-					(false, value) if value.abs() < i32::MAX as isize => Ok(TypedExpression::I32(value as i32)),
-					(false, value) if value.abs() < i64::MAX as isize => Ok(TypedExpression::I64(value as i64)),
-					_ => Err(format!("unsupported integer size {}", value)),
-				}
-			},
+			Expression::Integer(value) => Ok(TypedExpression::Integer(value)),
 			Expression::String(value) => Ok(TypedExpression::String(value)),
 			Expression::Identifier(name) => {
 				let type_expr = self.type_env.get_identifier_type(name.as_str())
@@ -217,28 +204,32 @@ impl TypeChecker {
 	fn get_type_from_expression(&self, expr: &TypedExpression) -> Option<TypeExpr> {
 		match expr {
 			TypedExpression::Identifier { type_expr, .. } => Some(type_expr.clone()),
-			TypedExpression::U8(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
-			TypedExpression::U16(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S16 }),
-			TypedExpression::U32(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S32 }),
-			TypedExpression::U64(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S64 }),
-			TypedExpression::I8(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S8 }),
-			TypedExpression::I16(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S16 }),
-			TypedExpression::I32(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S32 }),
-			TypedExpression::I64(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S64 }),
+			TypedExpression::Integer(v) => match v {
+				IntExpr::U8(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
+				IntExpr::U16(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S16 }),
+				IntExpr::U32(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S32 }),
+				IntExpr::U64(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S64 }),
+				IntExpr::I8(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S8 }),
+				IntExpr::I16(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S16 }),
+				IntExpr::I32(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S32 }),
+				IntExpr::I64(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S64 }),
+			},
 			TypedExpression::Boolean(_) => Some(TypeExpr::Bool),
 			TypedExpression::String(_) => Some(TypeExpr::String),
 			TypedExpression::Function { return_type, .. } => Some(TypeExpr::FnLiteral {
 				return_type: return_type.clone().map(|t| Box::new(t))
 			}),
 			TypedExpression::Prefix {
-				operator: PrefixOperator::Bang | PrefixOperator::Minus,
+				operator: PrefixOperator::Minus,
+				right
+			} => match self.get_type_from_expression(right.as_ref()) {
+				Some(TypeExpr::Int { unsigned: true, size }) => Some(TypeExpr::Int { unsigned: false, size }),
+				t => t,
+			},
+			TypedExpression::Prefix {
+				operator: PrefixOperator::Bang,
 				right
 			} => self.get_type_from_expression(right.as_ref()),
-			//TODO Temporary while infix still returns i64
-			/*TypedExpression::Infix { type_expr: TypeExpr::Int { .. }, .. } => Some(TypeExpr::Int {
-				unsigned: false,
-				size: IntegerSize::S64
-			}),*/
 			TypedExpression::Infix { type_expr, .. } => Some(type_expr.clone()),
 			TypedExpression::If { type_expr, .. } => type_expr.clone(),
 			TypedExpression::Call { return_type, .. } => return_type.clone(),
@@ -252,7 +243,8 @@ impl TypeChecker {
 
 	fn check_infix(&self, operator: &InfixOperator, left: &TypedExpression, right: &TypedExpression) -> TCResult<TypeExpr> {
 		let left_type = self.get_type_from_expression(left);
-		match (&left_type, self.get_type_from_expression(right)) {
+		let right_type = self.get_type_from_expression(right);
+		match (&left_type, right_type) {
 			(None, _) | (_, None) => return Err(format!("cannot include void type in infix operator ({:?} and {:?})", left, right)),
 			//(Some(TypeExpr::Int { .. }), Some(TypeExpr::Int { .. })) => {}
 			(left, right) => if left != &right {

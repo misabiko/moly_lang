@@ -1,5 +1,5 @@
 use std::fmt;
-use crate::ast::{InfixOperator, PrefixOperator};
+use crate::ast::{InfixOperator, IntExpr, PrefixOperator};
 use super::type_env::TypeExpr;
 
 pub type TypedProgram = TypedBlockStatement;
@@ -55,14 +55,7 @@ pub enum TypedExpression {
 		name: String,
 		type_expr: TypeExpr,
 	},
-	U8(u8),
-	U16(u16),
-	U32(u32),
-	U64(u64),
-	I8(i8),
-	I16(i16),
-	I32(i32),
-	I64(i64),
+	Integer(IntExpr),
 	Boolean(bool),
 	String(String),
 	Prefix {
@@ -104,14 +97,7 @@ impl fmt::Display for TypedExpression {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match self {
 			TypedExpression::Identifier {name, .. } => write!(f, "{}", name),
-			TypedExpression::U8(value) => write!(f, "{}", value),
-			TypedExpression::U16(value) => write!(f, "{}", value),
-			TypedExpression::U32(value) => write!(f, "{}", value),
-			TypedExpression::U64(value) => write!(f, "{}", value),
-			TypedExpression::I8(value) => write!(f, "{}", value),
-			TypedExpression::I16(value) => write!(f, "{}", value),
-			TypedExpression::I32(value) => write!(f, "{}", value),
-			TypedExpression::I64(value) => write!(f, "{}", value),
+			TypedExpression::Integer(value) => write!(f, "{}", value),
 			TypedExpression::Boolean(value) => write!(f, "{}", value),
 			TypedExpression::String(value) => write!(f, "{}", value),
 			TypedExpression::Prefix { operator, right } => write!(f, "({}{})", operator, right),

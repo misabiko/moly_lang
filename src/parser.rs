@@ -1,8 +1,8 @@
 use std::fmt;
 use std::fmt::Formatter;
-use crate::ast::{BlockStatement, Expression, InfixOperator, PrefixOperator, Program, Statement};
+use crate::ast::{BlockStatement, Expression, InfixOperator, IntExpr, PrefixOperator, Program, Statement};
 use crate::lexer::Lexer;
-use crate::token::{Token, TokenLiteral, TokenType};
+use crate::token::{IntType, Token, TokenLiteral, TokenType};
 use crate::type_checker::type_env::{IntegerSize, TypeExpr};
 
 pub struct Parser {
@@ -14,7 +14,7 @@ pub struct Parser {
 
 impl Parser {
 	pub fn new(lexer: Lexer) -> Self {
-		let default_token = Token { token_type: TokenType::Illegal, literal: TokenLiteral::Static("") };
+		let default_token = Token { token_type: TokenType::Illegal, literal: TokenLiteral::Static(""), after_whitespace: false };
 		let mut parser = Parser {
 			lexer,
 
@@ -108,23 +108,46 @@ impl Parser {
 		let has_semicolon = if self.peek_token_is(TokenType::Semicolon) {
 			self.next_token();
 			true
-		}else {
+		} else {
 			false
 		};
 
 		Ok(Statement::Expression {
 			expr: expression?,
-			has_semicolon
+			has_semicolon,
 		})
 	}
 
 	fn parse_expression(&mut self, precedence: Precedence) -> PResult<Expression> {
+
 		let mut left_exp = match &self.cur_token {
 			//TODO Consume Token instead of cloning
-			Token { token_type: TokenType::Ident, literal: TokenLiteral::String(ident) }
+			Token { token_type: TokenType::Ident, literal: TokenLiteral::String(ident), .. }
 			=> Ok(Expression::Identifier(ident.clone())),
-			Token { token_type: TokenType::Int, literal: TokenLiteral::Integer(value) }
-			=> Ok(Expression::Integer(*value as isize)),
+			Token { token_type: TokenType::Int, literal: TokenLiteral::Integer(value), .. } => {
+				let value = *value;
+				if let TokenType::IntegerType(int_type) = self.peek_token.token_type {
+					self.next_token();
+					match int_type {
+						IntType::U8 => Ok(Expression::Integer(IntExpr::U8(value as u8))),
+						IntType::U16 => Ok(Expression::Integer(IntExpr::U16(value as u16))),
+						IntType::U32 => Ok(Expression::Integer(IntExpr::U32(value as u32))),
+						IntType::U64 => Ok(Expression::Integer(IntExpr::U64(value as u64))),
+						IntType::I8 => Ok(Expression::Integer(IntExpr::I8(value as i8))),
+						IntType::I16 => Ok(Expression::Integer(IntExpr::I16(value as i16))),
+						IntType::I32 => Ok(Expression::Integer(IntExpr::I32(value as i32))),
+						IntType::I64 => Ok(Expression::Integer(IntExpr::I64(value as i64))),
+					}
+				} else {
+					match value {
+						value if value < u8::MAX as usize => Ok(Expression::Integer(IntExpr::U8(value as u8))),
+						value if value < u16::MAX as usize => Ok(Expression::Integer(IntExpr::U16(value as u16))),
+						value if value < u32::MAX as usize => Ok(Expression::Integer(IntExpr::U32(value as u32))),
+						value if value < u64::MAX as usize => Ok(Expression::Integer(IntExpr::U64(value as u64))),
+						_ => Err(ParserError::Generic(format!("unsupported integer size {}", value))),
+					}
+				}
+			}
 			Token { token_type: TokenType::True, .. } => Ok(Expression::Boolean(true)),
 			Token { token_type: TokenType::False, .. } => Ok(Expression::Boolean(false)),
 			Token { token_type: TokenType::Bang, .. } |
@@ -140,16 +163,16 @@ impl Parser {
 
 		while !self.peek_token_is(TokenType::Semicolon) && precedence < self.peek_precedence() {
 			let infix = match self.peek_token {
-				Token { token_type: TokenType::Plus, literal: TokenLiteral::Static(_) } |
-				Token { token_type: TokenType::Minus, literal: TokenLiteral::Static(_) } |
-				Token { token_type: TokenType::Slash, literal: TokenLiteral::Static(_) } |
-				Token { token_type: TokenType::Asterisk, literal: TokenLiteral::Static(_) } |
-				Token { token_type: TokenType::Eq, literal: TokenLiteral::Static(_) } |
-				Token { token_type: TokenType::NotEq, literal: TokenLiteral::Static(_) } |
-				Token { token_type: TokenType::LT, literal: TokenLiteral::Static(_) } |
-				Token { token_type: TokenType::GT, literal: TokenLiteral::Static(_) } => Parser::parse_infix_expression,
-				Token { token_type: TokenType::LParen, literal: TokenLiteral::Static(_) } => Parser::parse_call_expression,
-				Token { token_type: TokenType::LBracket, literal: TokenLiteral::Static(_) } => Parser::parse_index_expression,
+				Token { token_type: TokenType::Plus, literal: TokenLiteral::Static(_), .. } |
+				Token { token_type: TokenType::Minus, literal: TokenLiteral::Static(_), .. } |
+				Token { token_type: TokenType::Slash, literal: TokenLiteral::Static(_), .. } |
+				Token { token_type: TokenType::Asterisk, literal: TokenLiteral::Static(_), .. } |
+				Token { token_type: TokenType::Eq, literal: TokenLiteral::Static(_), .. } |
+				Token { token_type: TokenType::NotEq, literal: TokenLiteral::Static(_), .. } |
+				Token { token_type: TokenType::LT, literal: TokenLiteral::Static(_), .. } |
+				Token { token_type: TokenType::GT, literal: TokenLiteral::Static(_), .. } => Parser::parse_infix_expression,
+				Token { token_type: TokenType::LParen, literal: TokenLiteral::Static(_), .. } => Parser::parse_call_expression,
+				Token { token_type: TokenType::LBracket, literal: TokenLiteral::Static(_), .. } => Parser::parse_index_expression,
 				_ => return Ok(left_exp)
 			};
 
@@ -272,7 +295,7 @@ impl Parser {
 		let return_type = if !self.peek_token_is(TokenType::LBrace) {
 			let return_type = Some(self.parse_type_identifier()?);
 			return_type
-		}else {
+		} else {
 			None
 		};
 
@@ -411,7 +434,7 @@ impl Parser {
 				let return_type = if !self.peek_token_is(TokenType::LBrace) {
 					let return_type = Some(self.parse_type_identifier()?);
 					return_type
-				}else {
+				} else {
 					None
 				};
 
@@ -419,14 +442,14 @@ impl Parser {
 					return_type: return_type.map(|t| Box::new(t)),
 				})
 			}
-			TokenType::U8 => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
-			TokenType::U16 => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S16 }),
-			TokenType::U32 => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S32 }),
-			TokenType::U64 => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S64 }),
-			TokenType::I8 => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S8 }),
-			TokenType::I16 => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S16 }),
-			TokenType::I32 => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S32 }),
-			TokenType::I64 => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S64 }),
+			TokenType::IntegerType(IntType::U8) => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
+			TokenType::IntegerType(IntType::U16) => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S16 }),
+			TokenType::IntegerType(IntType::U32) => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S32 }),
+			TokenType::IntegerType(IntType::U64) => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S64 }),
+			TokenType::IntegerType(IntType::I8) => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S8 }),
+			TokenType::IntegerType(IntType::I16) => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S16 }),
+			TokenType::IntegerType(IntType::I32) => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S32 }),
+			TokenType::IntegerType(IntType::I64) => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S64 }),
 			TokenType::Bool => Ok(TypeExpr::Bool),
 			TokenType::Str => Ok(TypeExpr::String),
 			_ => Err(ParserError::Generic(format!("unrecognized type: {:?}", self.cur_token))),

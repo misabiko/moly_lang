@@ -8,6 +8,7 @@ pub struct TypeBinding {
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeExpr {
 	Int {
+		//TODO If unsigned field unused, dissolve into enum?
 		unsigned: bool,
 		size: IntegerSize,
 	},

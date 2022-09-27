@@ -51,8 +51,7 @@ impl fmt::Display for Statement {
 #[derive(Debug, PartialEq)]
 pub enum Expression {
 	Identifier(String),
-	//TODO Negative usize will overflow, need to handle max integer size properly
-	Integer(isize),
+	Integer(IntExpr),
 	Boolean(bool),
 	String(String),
 	Prefix {
@@ -92,7 +91,14 @@ impl fmt::Display for Expression {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match self {
 			Expression::Identifier(value) => write!(f, "{}", value),
-			Expression::Integer(value) => write!(f, "{}", value),
+			Expression::Integer(IntExpr::U8(value)) => write!(f, "{}", value),
+			Expression::Integer(IntExpr::U16(value)) => write!(f, "{}", value),
+			Expression::Integer(IntExpr::U32(value)) => write!(f, "{}", value),
+			Expression::Integer(IntExpr::U64(value)) => write!(f, "{}", value),
+			Expression::Integer(IntExpr::I8(value)) => write!(f, "{}", value),
+			Expression::Integer(IntExpr::I16(value)) => write!(f, "{}", value),
+			Expression::Integer(IntExpr::I32(value)) => write!(f, "{}", value),
+			Expression::Integer(IntExpr::I64(value)) => write!(f, "{}", value),
 			Expression::Boolean(value) => write!(f, "{}", value),
 			Expression::String(value) => write!(f, "{}", value),
 			Expression::Prefix { operator, right } => write!(f, "({}{})", operator, right),
@@ -192,6 +198,33 @@ impl fmt::Display for InfixOperator {
 			InfixOperator::GreaterThan => write!(f, ">"),
 			//InfixOperator::LesserEqual => write!(f, "<="),
 			//InfixOperator::GreaterEqual => write!(f, ">="),
+		}
+	}
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum IntExpr {
+	U8(u8),
+	U16(u16),
+	U32(u32),
+	U64(u64),
+	I8(i8),
+	I16(i16),
+	I32(i32),
+	I64(i64),
+}
+
+impl fmt::Display for IntExpr {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		match self {
+			IntExpr::U8(v) => write!(f, "{}", v),
+			IntExpr::U16(v) => write!(f, "{}", v),
+			IntExpr::U32(v) => write!(f, "{}", v),
+			IntExpr::U64(v) => write!(f, "{}", v),
+			IntExpr::I8(v) => write!(f, "{}", v),
+			IntExpr::I16(v) => write!(f, "{}", v),
+			IntExpr::I32(v) => write!(f, "{}", v),
+			IntExpr::I64(v) => write!(f, "{}", v),
 		}
 	}
 }

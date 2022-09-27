@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use moly::ast::Program;
-use moly::code::{concat_instructions, make, Opcode};
+use moly::code::{concat_instructions, instruction_to_string, make, Opcode};
 use moly::compiler::Compiler;
 use moly::lexer::Lexer;
 use moly::object::{Closure, Function, HashingObject, Object};
@@ -14,8 +14,7 @@ fn test_integer_arithmetic() {
 		TestCase { input: "1", expected: Ok(Some(Object::U8(1))) },
 		TestCase { input: "2", expected: Ok(Some(Object::U8(2))) },
 		TestCase { input: "1 + 2", expected: Ok(Some(Object::U8(3))) },
-		//TODO Add limited casting
-		TestCase { input: "1 - 2", expected: Ok(Some(Object::I8(-1))) },
+		TestCase { input: "1i8 - 2i8", expected: Ok(Some(Object::I8(-1))) },
 		TestCase { input: "1 * 2", expected: Ok(Some(Object::U8(2))) },
 		TestCase { input: "4 / 2", expected: Ok(Some(Object::U8(2))) },
 		TestCase { input: "50 / 2 * 2 + 10 - 5", expected: Ok(Some(Object::U8(55))) },
@@ -26,8 +25,8 @@ fn test_integer_arithmetic() {
 		TestCase { input: "5 * (2 + 10)", expected: Ok(Some(Object::U8(60))) },
 		TestCase { input: "-5", expected: Ok(Some(Object::I8(-5))) },
 		TestCase { input: "-10", expected: Ok(Some(Object::I8(-10))) },
-		TestCase { input: "-50 + 100 + -50", expected: Ok(Some(Object::U8(0))) },
-		TestCase { input: "(5 + 10 * 2 + 15 / 3) * 2 + -10", expected: Ok(Some(Object::U8(50))) },
+		TestCase { input: "-50 + 100i8 + -50", expected: Ok(Some(Object::I8(0))) },
+		TestCase { input: "(5i8 + 10i8 * 2i8 + 15i8 / 3i8) * 2i8 + -10", expected: Ok(Some(Object::I8(50))) },
 	];
 
 	run_vm_tests(tests);
@@ -617,19 +616,19 @@ fn test_recursive_fibonacci() {
 		TestCase {
 			input: "
 			let fibonacci = fn(x u64) u64 {
-				if x == 0 {
-					0
+				if x == 0u64 {
+					0u64
 				} else {
-					if x == 1 {
-						1
+					if x == 1u64 {
+						1u64
 					} else {
-						fibonacci(x - 1) + fibonacci(x - 2);
+						fibonacci(x - 1u64) + fibonacci(x - 2u64)
 					}
 				}
 			};
-			fibonacci(15);
+			fibonacci(15u64);
 			",
-			expected: Ok(Some(Object::U16(610))),
+			expected: Ok(Some(Object::U64(610))),
 		}
 	];
 
@@ -661,7 +660,7 @@ fn run_vm_tests(tests: Vec<TestCase>) {
 		}
 
 		let bytecode = compiler.bytecode();
-		/*println!("{}", instruction_to_string(&bytecode.instructions));
+		println!("{}", instruction_to_string(&bytecode.instructions));
 
 		for (i, constant) in bytecode.constants.iter().enumerate() {
 			println!("CONSTANT {} {:p} ({:?}):", i, constant, constant);
@@ -671,7 +670,7 @@ fn run_vm_tests(tests: Vec<TestCase>) {
 				Object::U8(i) => println!(" Value: {}\n", i),
 				_ => {}
 			}
-		}*/
+		}
 
 		let mut vm = VM::new(bytecode);
 		let vm_result = vm.run();

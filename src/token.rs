@@ -1,10 +1,11 @@
 use core::fmt;
 use core::fmt::Formatter;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token {
 	pub token_type: TokenType,
 	pub literal: TokenLiteral,
+	pub after_whitespace: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -41,7 +42,7 @@ impl TokenLiteral {
 	}
 }
 
-#[derive(Eq, PartialEq, Debug, Copy, Clone)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum TokenType {
 	Illegal,
 	EOF,
@@ -83,14 +84,7 @@ pub enum TokenType {
 	If,
 	Else,
 	Return,
-	U8,
-	U16,
-	U32,
-	U64,
-	I8,
-	I16,
-	I32,
-	I64,
+	IntegerType(IntType),
 	Bool,
 	Str,
 
@@ -136,14 +130,14 @@ impl fmt::Display for TokenType {
 			TokenType::If => "IF",
 			TokenType::Else => "ELSE",
 			TokenType::Return => "RETURN",
-			TokenType::U8 => "U8",
-			TokenType::U16 => "U16",
-			TokenType::U32 => "U32",
-			TokenType::U64 => "U64",
-			TokenType::I8 => "I8",
-			TokenType::I16 => "I16",
-			TokenType::I32 => "I32",
-			TokenType::I64 => "I64",
+			TokenType::IntegerType(IntType::U8) => "U8",
+			TokenType::IntegerType(IntType::U16) => "U16",
+			TokenType::IntegerType(IntType::U32) => "U32",
+			TokenType::IntegerType(IntType::U64) => "U64",
+			TokenType::IntegerType(IntType::I8) => "I8",
+			TokenType::IntegerType(IntType::I16) => "I16",
+			TokenType::IntegerType(IntType::I32) => "I32",
+			TokenType::IntegerType(IntType::I64) => "I64",
 			TokenType::Bool => "BOOL",
 			TokenType::Str => "STR",
 
@@ -152,79 +146,109 @@ impl fmt::Display for TokenType {
 	}
 }
 
-pub fn lookup_ident(keyword: String) -> Token {
+pub fn lookup_ident(keyword: String, after_whitespace: bool) -> Token {
 	match keyword.as_str() {
 		"fn" => Token {
 			token_type: TokenType::Function,
-			literal: TokenLiteral::Static("fn")
+			literal: TokenLiteral::Static("fn"),
+			after_whitespace,
 		},
 		"let" => Token {
 			token_type: TokenType::Let,
-			literal: TokenLiteral::Static("let")
+			literal: TokenLiteral::Static("let"),
+			after_whitespace,
 		},
 		"true" => Token {
 			token_type: TokenType::True,
-			literal: TokenLiteral::Static("true")
+			literal: TokenLiteral::Static("true"),
+			after_whitespace,
 		},
 		"false" => Token {
 			token_type: TokenType::False,
-			literal: TokenLiteral::Static("false")
+			literal: TokenLiteral::Static("false"),
+			after_whitespace,
 		},
 		"if" => Token {
 			token_type: TokenType::If,
-			literal: TokenLiteral::Static("if")
+			literal: TokenLiteral::Static("if"),
+			after_whitespace,
 		},
 		"else" => Token {
 			token_type: TokenType::Else,
-			literal: TokenLiteral::Static("else")
+			literal: TokenLiteral::Static("else"),
+			after_whitespace,
 		},
 		"return" => Token {
 			token_type: TokenType::Return,
-			literal: TokenLiteral::Static("return")
+			literal: TokenLiteral::Static("return"),
+			after_whitespace,
 		},
 		"u8" => Token {
-			token_type: TokenType::U8,
-			literal: TokenLiteral::Static("u8")
+			token_type: TokenType::IntegerType(IntType::U8),
+			literal: TokenLiteral::Static("u8"),
+			after_whitespace,
 		},
 		"u16" => Token {
-			token_type: TokenType::U16,
-			literal: TokenLiteral::Static("u16")
+			token_type: TokenType::IntegerType(IntType::U16),
+			literal: TokenLiteral::Static("u16"),
+			after_whitespace,
 		},
 		"u32" => Token {
-			token_type: TokenType::U32,
-			literal: TokenLiteral::Static("u32")
+			token_type: TokenType::IntegerType(IntType::U32),
+			literal: TokenLiteral::Static("u32"),
+			after_whitespace,
 		},
 		"u64" => Token {
-			token_type: TokenType::U64,
-			literal: TokenLiteral::Static("u64")
+			token_type: TokenType::IntegerType(IntType::U64),
+			literal: TokenLiteral::Static("u64"),
+			after_whitespace,
 		},
 		"i8" => Token {
-			token_type: TokenType::I8,
-			literal: TokenLiteral::Static("i8")
+			token_type: TokenType::IntegerType(IntType::I8),
+			literal: TokenLiteral::Static("i8"),
+			after_whitespace,
 		},
 		"i16" => Token {
-			token_type: TokenType::I16,
-			literal: TokenLiteral::Static("i16")
+			token_type: TokenType::IntegerType(IntType::I16),
+			literal: TokenLiteral::Static("i16"),
+			after_whitespace,
 		},
 		"i32" => Token {
-			token_type: TokenType::I32,
-			literal: TokenLiteral::Static("i32")
+			token_type: TokenType::IntegerType(IntType::I32),
+			literal: TokenLiteral::Static("i32"),
+			after_whitespace,
 		},
 		"i64" => Token {
-			token_type: TokenType::I64,
-			literal: TokenLiteral::Static("i64")
+			token_type: TokenType::IntegerType(IntType::I64),
+			literal: TokenLiteral::Static("i64"),
+			after_whitespace,
 		},
 		"bool" => Token {
 			token_type: TokenType::Bool,
-			literal: TokenLiteral::Static("bool")
+			literal: TokenLiteral::Static("bool"),
+			after_whitespace,
 		},
 		"str" => Token {
 			token_type: TokenType::Str,
-			literal: TokenLiteral::Static("str")
+			literal: TokenLiteral::Static("str"),
+			after_whitespace,
 		},
 		_ => Token {
 			token_type: TokenType::Ident,
-			literal: TokenLiteral::String(keyword)
+			literal: TokenLiteral::String(keyword),
+			after_whitespace,
 		},
 	}
+}
+
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub enum IntType {
+	U8,
+	U16,
+	U32,
+	U64,
+	I8,
+	I16,
+	I32,
+	I64,
 }

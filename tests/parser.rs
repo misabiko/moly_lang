@@ -4,7 +4,7 @@ use moly::{
 	ast::Statement,
 	parser::Parser,
 };
-use moly::ast::{Expression, InfixOperator, PrefixOperator};
+use moly::ast::{Expression, InfixOperator, IntExpr, PrefixOperator};
 use moly::type_checker::type_env::{IntegerSize, TypeExpr};
 
 //TODO Parse DeclarativeProgram
@@ -14,7 +14,7 @@ use moly::type_checker::type_env::{IntegerSize, TypeExpr};
 #[test]
 fn test_let_statements() {
 	let tests = vec![
-		("let x = 5;", "x", Expression::Integer(5)),
+		("let x = 5;", "x", Expression::Integer(IntExpr::U8(5))),
 		("let y = true;", "y", Expression::Boolean(true)),
 		("let foobar = y;", "foobar", Expression::Identifier("y".into())),
 	];
@@ -34,7 +34,7 @@ fn test_let_statements() {
 #[test]
 fn test_return_statements() {
 	let tests = vec![
-		("return 5;", Expression::Integer(5)),
+		("return 5;", Expression::Integer(IntExpr::U8(5))),
 		("return true;", Expression::Boolean(true)),
 		("return foobar;", Expression::Identifier("foobar".into())),
 	];
@@ -63,16 +63,28 @@ fn test_identifier_expression() {
 
 #[test]
 fn test_integer_literal_expression() {
-	const INPUT: &str = "5;";
+	let tests = vec![
+		("5;", IntExpr::U8(5)),
+		("5u8;", IntExpr::U8(5)),
+		("5u16;", IntExpr::U16(5)),
+		("5u32;", IntExpr::U32(5)),
+		("5u64;", IntExpr::U64(5)),
+		("5i8;", IntExpr::I8(5)),
+		("5i16;", IntExpr::I16(5)),
+		("5i32;", IntExpr::I32(5)),
+		("5i64;", IntExpr::I64(5)),
+	];
 
-	let stmt = parse_single_statement(INPUT);
+	for (input, expected) in tests {
+		let stmt = parse_single_statement(input);
 
-	if let Statement::Expression { expr: Expression::Integer(value), has_semicolon } = stmt {
-		assert_eq!(value, 5);
+		if let Statement::Expression { expr: Expression::Integer(value), has_semicolon } = stmt {
+			assert_eq!(value, expected);
 
-		assert_eq!(has_semicolon, true, "missing semicolon");
-	} else {
-		panic!("{:?} not Expression(Integer)", stmt)
+			assert_eq!(has_semicolon, true, "missing semicolon");
+		} else {
+			panic!("{:?} not Expression(Integer)", stmt)
+		}
 	}
 }
 
@@ -100,8 +112,8 @@ fn test_boolean_expression() {
 fn test_parsing_prefix_expressions() {
 	let prefix_tests = [
 		//Could throw parse error if using bang directly on integer
-		("!5;", PrefixOperator::Bang, Expression::Integer(5)),
-		("-15;", PrefixOperator::Minus, Expression::Integer(15)),
+		("!5;", PrefixOperator::Bang, Expression::Integer(IntExpr::U8(5))),
+		("-15;", PrefixOperator::Minus, Expression::Integer(IntExpr::U8(15))),
 		("!true;", PrefixOperator::Bang, Expression::Boolean(true)),
 		("!false;", PrefixOperator::Bang, Expression::Boolean(false)),
 	];
@@ -124,14 +136,14 @@ fn test_parsing_prefix_expressions() {
 #[test]
 fn test_parsing_infix_expressions() {
 	let infix_tests = [
-		("5 + 5;", Expression::Integer(5), InfixOperator::Plus, Expression::Integer(5)),
-		("5 - 5;", Expression::Integer(5), InfixOperator::Minus, Expression::Integer(5)),
-		("5 * 5;", Expression::Integer(5), InfixOperator::Mul, Expression::Integer(5)),
-		("5 / 5;", Expression::Integer(5), InfixOperator::Div, Expression::Integer(5)),
-		("5 > 5;", Expression::Integer(5), InfixOperator::GreaterThan, Expression::Integer(5)),
-		("5 < 5;", Expression::Integer(5), InfixOperator::LessThan, Expression::Integer(5)),
-		("5 == 5;", Expression::Integer(5), InfixOperator::Equal, Expression::Integer(5)),
-		("5 != 5;", Expression::Integer(5), InfixOperator::Unequal, Expression::Integer(5)),
+		("5 + 5;", Expression::Integer(IntExpr::U8(5)), InfixOperator::Plus, Expression::Integer(IntExpr::U8(5))),
+		("5 - 5;", Expression::Integer(IntExpr::U8(5)), InfixOperator::Minus, Expression::Integer(IntExpr::U8(5))),
+		("5 * 5;", Expression::Integer(IntExpr::U8(5)), InfixOperator::Mul, Expression::Integer(IntExpr::U8(5))),
+		("5 / 5;", Expression::Integer(IntExpr::U8(5)), InfixOperator::Div, Expression::Integer(IntExpr::U8(5))),
+		("5 > 5;", Expression::Integer(IntExpr::U8(5)), InfixOperator::GreaterThan, Expression::Integer(IntExpr::U8(5))),
+		("5 < 5;", Expression::Integer(IntExpr::U8(5)), InfixOperator::LessThan, Expression::Integer(IntExpr::U8(5))),
+		("5 == 5;", Expression::Integer(IntExpr::U8(5)), InfixOperator::Equal, Expression::Integer(IntExpr::U8(5))),
+		("5 != 5;", Expression::Integer(IntExpr::U8(5)), InfixOperator::Unequal, Expression::Integer(IntExpr::U8(5))),
 		("true == true", Expression::Boolean(true), InfixOperator::Equal, Expression::Boolean(true)),
 		("true != false", Expression::Boolean(true), InfixOperator::Unequal, Expression::Boolean(false)),
 		("false == false", Expression::Boolean(false), InfixOperator::Equal, Expression::Boolean(false)),
@@ -413,16 +425,16 @@ fn test_call_expression_parsing() {
 		assert_eq!(
 			*arguments,
 			[
-				Expression::Integer(1),
+				Expression::Integer(IntExpr::U8(1)),
 				Expression::Infix {
-					left: Box::new(Expression::Integer(2)),
+					left: Box::new(Expression::Integer(IntExpr::U8(2))),
 					operator: InfixOperator::Mul,
-					right: Box::new(Expression::Integer(3)),
+					right: Box::new(Expression::Integer(IntExpr::U8(3))),
 				},
 				Expression::Infix {
-					left: Box::new(Expression::Integer(4)),
+					left: Box::new(Expression::Integer(IntExpr::U8(4))),
 					operator: InfixOperator::Plus,
-					right: Box::new(Expression::Integer(5)),
+					right: Box::new(Expression::Integer(IntExpr::U8(5))),
 				},
 			],
 			"wrong function arguments"
@@ -457,16 +469,16 @@ fn test_parsing_array_literals() {
 		assert_eq!(
 			value,
 			[
-				Expression::Integer(1),
+				Expression::Integer(IntExpr::U8(1)),
 				Expression::Infix {
-					left: Box::new(Expression::Integer(2)),
+					left: Box::new(Expression::Integer(IntExpr::U8(2))),
 					operator: InfixOperator::Mul,
-					right: Box::new(Expression::Integer(2)),
+					right: Box::new(Expression::Integer(IntExpr::U8(2))),
 				},
 				Expression::Infix {
-					left: Box::new(Expression::Integer(3)),
+					left: Box::new(Expression::Integer(IntExpr::U8(3))),
 					operator: InfixOperator::Plus,
-					right: Box::new(Expression::Integer(3)),
+					right: Box::new(Expression::Integer(IntExpr::U8(3))),
 				},
 			],
 			"wrong array elements"
@@ -492,9 +504,9 @@ fn test_parsing_index_expressions() {
 		assert_eq!(
 			index,
 			Box::new(Expression::Infix {
-				left: Box::new(Expression::Integer(1)),
+				left: Box::new(Expression::Integer(IntExpr::U8(1))),
 				operator: InfixOperator::Plus,
-				right: Box::new(Expression::Integer(1)),
+				right: Box::new(Expression::Integer(IntExpr::U8(1))),
 			}),
 			"wrong index expression"
 		);
@@ -513,9 +525,9 @@ fn test_parsing_hash_literals_string_keys() {
 		assert_eq!(pairs.len(), 3);
 
 		let expected = HashMap::from([
-			("one", Expression::Integer(1)),
-			("two", Expression::Integer(2)),
-			("three", Expression::Integer(3)),
+			("one", Expression::Integer(IntExpr::U8(1))),
+			("two", Expression::Integer(IntExpr::U8(2))),
+			("three", Expression::Integer(IntExpr::U8(3))),
 		]);
 
 		for (key, value) in pairs {
@@ -563,9 +575,9 @@ fn test_parsing_hash_literals_with_expressions() {
 			assert_eq!(
 				e,
 				Expression::Infix {
-					left: Box::new(Expression::Integer(0)),
+					left: Box::new(Expression::Integer(IntExpr::U8(0))),
 					operator: InfixOperator::Plus,
-					right: Box::new(Expression::Integer(1)),
+					right: Box::new(Expression::Integer(IntExpr::U8(1))),
 				},
 				"wrong hash value"
 			)
@@ -574,9 +586,9 @@ fn test_parsing_hash_literals_with_expressions() {
 			assert_eq!(
 				e,
 				Expression::Infix {
-					left: Box::new(Expression::Integer(10)),
+					left: Box::new(Expression::Integer(IntExpr::U8(10))),
 					operator: InfixOperator::Minus,
-					right: Box::new(Expression::Integer(8)),
+					right: Box::new(Expression::Integer(IntExpr::U8(8))),
 				},
 				"wrong hash value"
 			)
@@ -585,9 +597,9 @@ fn test_parsing_hash_literals_with_expressions() {
 			assert_eq!(
 				e,
 				Expression::Infix {
-					left: Box::new(Expression::Integer(15)),
+					left: Box::new(Expression::Integer(IntExpr::U8(15))),
 					operator: InfixOperator::Div,
-					right: Box::new(Expression::Integer(5)),
+					right: Box::new(Expression::Integer(IntExpr::U8(5))),
 				},
 				"wrong hash value"
 			)

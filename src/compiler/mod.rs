@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use enum_primitive::FromPrimitive;
-use crate::ast::{InfixOperator, PrefixOperator};
+use crate::ast::{InfixOperator, IntExpr, PrefixOperator};
 use crate::code::{Instructions, make, Opcode, OperandIndex};
 use crate::compiler::symbol_table::{SymbolScope, Symbol, SymbolTable};
 use crate::object::{Function, Object};
@@ -104,36 +104,17 @@ impl Compiler {
 
 	fn compile_expression(&mut self, exp: TypedExpression) -> CompilerResult {
 		match exp {
-			TypedExpression::U8(value) => {
-				let operand = self.add_constant(Object::U8(value));
-				self.emit(Opcode::Constant, &[operand]);
-			}
-			TypedExpression::U16(value) => {
-				let operand = self.add_constant(Object::U16(value));
-				self.emit(Opcode::Constant, &[operand]);
-			}
-			TypedExpression::U32(value) => {
-				let operand = self.add_constant(Object::U32(value));
-				self.emit(Opcode::Constant, &[operand]);
-			}
-			TypedExpression::U64(value) => {
-				let operand = self.add_constant(Object::U64(value));
-				self.emit(Opcode::Constant, &[operand]);
-			}
-			TypedExpression::I8(value) => {
-				let operand = self.add_constant(Object::I8(value));
-				self.emit(Opcode::Constant, &[operand]);
-			}
-			TypedExpression::I16(value) => {
-				let operand = self.add_constant(Object::I16(value));
-				self.emit(Opcode::Constant, &[operand]);
-			}
-			TypedExpression::I32(value) => {
-				let operand = self.add_constant(Object::I32(value));
-				self.emit(Opcode::Constant, &[operand]);
-			}
-			TypedExpression::I64(value) => {
-				let operand = self.add_constant(Object::I64(value));
+			TypedExpression::Integer(value) => {
+				let operand = match value {
+					IntExpr::U8(v) => self.add_constant(Object::U8(v)),
+					IntExpr::U16(v) => self.add_constant(Object::U16(v)),
+					IntExpr::U32(v) => self.add_constant(Object::U32(v)),
+					IntExpr::U64(v) => self.add_constant(Object::U64(v)),
+					IntExpr::I8(v) => self.add_constant(Object::I8(v)),
+					IntExpr::I16(v) => self.add_constant(Object::I16(v)),
+					IntExpr::I32(v) => self.add_constant(Object::I32(v)),
+					IntExpr::I64(v) => self.add_constant(Object::I64(v)),
+				};
 				self.emit(Opcode::Constant, &[operand]);
 			}
 			TypedExpression::Boolean(value) => if value {

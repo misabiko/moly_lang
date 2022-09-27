@@ -8,26 +8,26 @@ use moly::parser::{Parser, ParserError};
 use moly::type_checker::TypeChecker;
 use moly::vm::VM;
 
-//TODO (probably type_checker side) Produce proper int type from arith
 #[test]
 fn test_integer_arithmetic() {
 	let tests = vec![
 		TestCase { input: "1", expected: Ok(Some(Object::U8(1))) },
 		TestCase { input: "2", expected: Ok(Some(Object::U8(2))) },
-		TestCase { input: "1 + 2", expected: Ok(Some(Object::I64(3))) },
-		TestCase { input: "1 - 2", expected: Ok(Some(Object::I64(-1))) },
-		TestCase { input: "1 * 2", expected: Ok(Some(Object::I64(2))) },
-		TestCase { input: "4 / 2", expected: Ok(Some(Object::I64(2))) },
-		TestCase { input: "50 / 2 * 2 + 10 - 5", expected: Ok(Some(Object::I64(55))) },
-		TestCase { input: "5 + 5 + 5 + 5 - 10", expected: Ok(Some(Object::I64(10))) },
-		TestCase { input: "2 * 2 * 2 * 2 * 2", expected: Ok(Some(Object::I64(32))) },
-		TestCase { input: "5 * 2 + 10", expected: Ok(Some(Object::I64(20))) },
-		TestCase { input: "5 + 2 * 10", expected: Ok(Some(Object::I64(25))) },
-		TestCase { input: "5 * (2 + 10)", expected: Ok(Some(Object::I64(60))) },
+		TestCase { input: "1 + 2", expected: Ok(Some(Object::U8(3))) },
+		//TODO Add limited casting
+		TestCase { input: "1 - 2", expected: Ok(Some(Object::I8(-1))) },
+		TestCase { input: "1 * 2", expected: Ok(Some(Object::U8(2))) },
+		TestCase { input: "4 / 2", expected: Ok(Some(Object::U8(2))) },
+		TestCase { input: "50 / 2 * 2 + 10 - 5", expected: Ok(Some(Object::U8(55))) },
+		TestCase { input: "5 + 5 + 5 + 5 - 10", expected: Ok(Some(Object::U8(10))) },
+		TestCase { input: "2 * 2 * 2 * 2 * 2", expected: Ok(Some(Object::U8(32))) },
+		TestCase { input: "5 * 2 + 10", expected: Ok(Some(Object::U8(20))) },
+		TestCase { input: "5 + 2 * 10", expected: Ok(Some(Object::U8(25))) },
+		TestCase { input: "5 * (2 + 10)", expected: Ok(Some(Object::U8(60))) },
 		TestCase { input: "-5", expected: Ok(Some(Object::I8(-5))) },
 		TestCase { input: "-10", expected: Ok(Some(Object::I8(-10))) },
-		TestCase { input: "-50 + 100 + -50", expected: Ok(Some(Object::I64(0))) },
-		TestCase { input: "(5 + 10 * 2 + 15 / 3) * 2 + -10", expected: Ok(Some(Object::I64(50))) },
+		TestCase { input: "-50 + 100 + -50", expected: Ok(Some(Object::U8(0))) },
+		TestCase { input: "(5 + 10 * 2 + 15 / 3) * 2 + -10", expected: Ok(Some(Object::U8(50))) },
 	];
 
 	run_vm_tests(tests);
@@ -85,8 +85,8 @@ fn test_conditionals() {
 fn test_global_let_statements() {
 	let tests = vec![
 		TestCase { input: "let one = 1; one", expected: Ok(Some(Object::U8(1))) },
-		TestCase { input: "let one = 1; let two = 2; one + two", expected: Ok(Some(Object::I64(3))) },
-		TestCase { input: "let one = 1; let two = one + one; one + two", expected: Ok(Some(Object::I64(3))) },
+		TestCase { input: "let one = 1; let two = 2; one + two", expected: Ok(Some(Object::U8(3))) },
+		TestCase { input: "let one = 1; let two = one + one; one + two", expected: Ok(Some(Object::U8(3))) },
 	];
 
 	run_vm_tests(tests)
@@ -113,9 +113,9 @@ fn test_array_literals() {
 			Object::U8(3),
 		]))) },
 		TestCase { input: "[1 + 2, 3 * 4, 5 + 6]", expected: Ok(Some(Object::Array(vec![
-			Object::I64(3),
-			Object::I64(12),
-			Object::I64(11),
+			Object::U8(3),
+			Object::U8(12),
+			Object::U8(11),
 		]))) },
 	];
 
@@ -137,8 +137,8 @@ fn test_hash_literals() {
 		TestCase {
 			input: "{1 + 1: 2 * 2, 3 + 3: 4 * 4}",
 			expected: Ok(Some(Object::Hash(HashMap::from([
-				(HashingObject::I64(2), (HashingObject::I64(2), Object::I64(4))),
-				(HashingObject::I64(6), (HashingObject::I64(6), Object::I64(16))),
+				(HashingObject::U8(2), (HashingObject::U8(2), Object::U8(4))),
+				(HashingObject::U8(6), (HashingObject::U8(6), Object::U8(16))),
 			]))))
 		},
 	];
@@ -170,10 +170,10 @@ fn test_calling_functions_without_arguments() {
 	let tests = vec![
 		TestCase {
 			input: "
-			let fivePlusTen = fn() i64 { 5 + 10 };
+			let fivePlusTen = fn() u8 { 5 + 10 };
 			fivePlusTen();
 			",
-			expected: Ok(Some(Object::I64(15))),
+			expected: Ok(Some(Object::U8(15))),
 		},
 		TestCase {
 			input: "
@@ -181,16 +181,16 @@ fn test_calling_functions_without_arguments() {
 			let two = fn() u8 { 2 };
 			one() + two()
 			",
-			expected: Ok(Some(Object::I64(3))),
+			expected: Ok(Some(Object::U8(3))),
 		},
 		TestCase {
 			input: "
 			let a = fn() u8 { 1 };
-			let b = fn() i64 { a() + 1 };
-			let c = fn() i64 { b() + 1 };
+			let b = fn() u8 { a() + 1 };
+			let c = fn() u8 { b() + 1 };
 			c();
 			",
-			expected: Ok(Some(Object::I64(3))),
+			expected: Ok(Some(Object::U8(3))),
 		},
 	];
 
@@ -293,18 +293,18 @@ fn test_calling_functions_with_bindings() {
 		},
 		TestCase {
 			input: "
-			let oneAndTwo = fn() i64 { let one = 1; let two = 2; one + two };
+			let oneAndTwo = fn() u8 { let one = 1; let two = 2; one + two };
 			oneAndTwo();
 			",
-			expected: Ok(Some(Object::I64(3))),
+			expected: Ok(Some(Object::U8(3))),
 		},
 		TestCase {
 			input: "
-			let oneAndTwo = fn() i64 { let one = 1; let two = 2; one + two };
-			let threeAndFour = fn() i64 { let three = 3; let four = 4; three + four };
+			let oneAndTwo = fn() u8 { let one = 1; let two = 2; one + two };
+			let threeAndFour = fn() u8 { let three = 3; let four = 4; three + four };
 			oneAndTwo() + threeAndFour();
 			",
-			expected: Ok(Some(Object::I64(10))),
+			expected: Ok(Some(Object::U8(10))),
 		},
 		TestCase {
 			input: "
@@ -312,22 +312,22 @@ fn test_calling_functions_with_bindings() {
 			let secondFoobar = fn() u8 { let foobar = 100; foobar };
 			firstFoobar() + secondFoobar();
 			",
-			expected: Ok(Some(Object::I64(150))),
+			expected: Ok(Some(Object::U8(150))),
 		},
 		TestCase {
 			input: "
 			let globalSeed = 50;
-			let minusOne = fn() i64 {
+			let minusOne = fn() u8 {
 				let num = 1;
 				globalSeed - num
 			}
-			let minusTwo = fn() i64 {
+			let minusTwo = fn() u8 {
 				let num = 2;
 				globalSeed - num
 			}
 			minusOne() + minusTwo();
 			",
-			expected: Ok(Some(Object::I64(97))),
+			expected: Ok(Some(Object::U8(97))),
 		},
 	];
 
@@ -346,59 +346,59 @@ fn test_calling_functions_with_arguments_and_bindings() {
 		},
 		TestCase {
 			input: "
-			let sum = fn(a u8, b u8) i64 { a + b };
+			let sum = fn(a u8, b u8) u8 { a + b };
 			sum(1, 2);
 			",
-			expected: Ok(Some(Object::I64(3)))
+			expected: Ok(Some(Object::U8(3)))
 		},
 		TestCase {
 			input: "
-			let sum = fn(a u8, b u8) i64 {
+			let sum = fn(a u8, b u8) u8 {
 				let c = a + b;
 				c
 			};
 			sum(1, 2);
 			",
-			expected: Ok(Some(Object::I64(3)))
+			expected: Ok(Some(Object::U8(3)))
 		},
 		TestCase {
 			input: "
-			let sum = fn(a u8, b u8) i64 {
+			let sum = fn(a u8, b u8) u8 {
 				let c = a + b;
 				c
 			};
 			sum(1, 2) + sum(3, 4);",
-			expected: Ok(Some(Object::I64(10)))
+			expected: Ok(Some(Object::U8(10)))
 		},
 		TestCase {
 			input: "
-			let sum = fn(a u8, b u8) i64 {
+			let sum = fn(a u8, b u8) u8 {
 				let c = a + b;
 				c
 			};
-			let outer = fn() i64 {
+			let outer = fn() u8 {
 				sum(1, 2) + sum(3, 4)
 			};
 			outer();
 			",
-			expected: Ok(Some(Object::I64(10)))
+			expected: Ok(Some(Object::U8(10)))
 		},
 		TestCase {
 			input: "
 			let globalNum = 10;
 
-			let sum = fn(a u8, b u8) i64 {
+			let sum = fn(a u8, b u8) u8 {
 				let c = a + b;
 				c + globalNum
 			};
 
-			let outer = fn() i64 {
+			let outer = fn() u8 {
 				sum(1, 2) + sum(3, 4) + globalNum
 			};
 
 			outer() + globalNum;
 			",
-			expected: Ok(Some(Object::I64(50)))
+			expected: Ok(Some(Object::U8(50)))
 		},
 	];
 
@@ -486,65 +486,65 @@ fn test_closures() {
 		},
 		TestCase {
 			input: "
-			let newAdder = fn(a u8, b u8) fn() i64 {
-				fn(c u8) i64 { a + b + c }
+			let newAdder = fn(a u8, b u8) fn() u8 {
+				fn(c u8) u8 { a + b + c }
 			};
 			let adder = newAdder(1, 2);
 			adder(8);
 			",
-			expected: Ok(Some(Object::I64(11)))
+			expected: Ok(Some(Object::U8(11)))
 		},
 		TestCase {
 			input: "
-			let newAdder = fn(a u8, b u8) fn() i64 {
+			let newAdder = fn(a u8, b u8) fn() u8 {
 				let c = a + b;
-				fn(d u8) i64 { c + d }
+				fn(d u8) u8 { c + d }
 			};
 			let adder = newAdder(1, 2);
 			adder(8);
 			",
-			expected: Ok(Some(Object::I64(11)))
+			expected: Ok(Some(Object::U8(11)))
 		},
 		TestCase {
 			input: "
-			let newAdderOuter = fn(a u8, b u8) fn() fn() i64 {
+			let newAdderOuter = fn(a u8, b u8) fn() fn() u8 {
 				let c = a + b;
-				fn(d u8) fn() i64 {
+				fn(d u8) fn() u8 {
 					let e = d + c;
-					fn(f u8) i64 { e + f }
+					fn(f u8) u8 { e + f }
 				}
 			};
 			let newAdderInner = newAdderOuter(1, 2);
 			let adder = newAdderInner(3);
 			adder(8);
 			",
-			expected: Ok(Some(Object::I64(14)))
+			expected: Ok(Some(Object::U8(14)))
 		},
 		TestCase {
 			input: "
 			let a = 1;
-			let newAdderOuter = fn(b u8) fn() fn() i64 {
-				fn(c u8) fn() i64 {
-					fn(d u8) i64 { a + b + c + d }
+			let newAdderOuter = fn(b u8) fn() fn() u8 {
+				fn(c u8) fn() u8 {
+					fn(d u8) u8 { a + b + c + d }
 				}
 			};
 			let newAdderInner = newAdderOuter(2);
 			let adder = newAdderInner(3);
 			adder(8);
 			",
-			expected: Ok(Some(Object::I64(14)))
+			expected: Ok(Some(Object::U8(14)))
 		},
 		TestCase {
 			input: "
-			let newClosure = fn(a u8, b u8) fn() i64 {
+			let newClosure = fn(a u8, b u8) fn() u8 {
 				let one = fn() u8 { a };
 				let two = fn() u8 { b };
-				fn() i64 { one() + two() }
+				fn() u8 { one() + two() }
 			};
 			let closure = newClosure(9, 90);
 			closure();
 			",
-			expected: Ok(Some(Object::I64(99)))
+			expected: Ok(Some(Object::U8(99)))
 		},
 	];
 
@@ -572,7 +572,7 @@ fn test_recursive_functions() {
 			};
 			countDown(1);
 			",
-			expected: Ok(Some(Object::I64(0)))
+			expected: Ok(Some(Object::U8(0)))
 		},
 		TestCase {
 			input: "
@@ -616,12 +616,12 @@ fn test_recursive_fibonacci() {
 	let tests = vec![
 		TestCase {
 			input: "
-			let fibonacci = fn(x u8) u8 {
+			let fibonacci = fn(x u64) u64 {
 				if x == 0 {
-					return 0;
+					0
 				} else {
 					if x == 1 {
-						return 1;
+						1
 					} else {
 						fibonacci(x - 1) + fibonacci(x - 2);
 					}

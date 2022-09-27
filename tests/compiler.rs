@@ -456,7 +456,7 @@ fn test_index_expressions() {
 fn test_functions() {
 	let tests = vec![
 		TestCase {
-			input: "fn() i64 { return 5 + 10 }",
+			input: "fn() u8 { return 5 + 10 }",
 			expected_constants: vec![
 				Object::U8(5),
 				Object::U8(10),
@@ -477,7 +477,7 @@ fn test_functions() {
 			],
 		},
 		TestCase {
-			input: "fn() i64 { 5 + 10 }",
+			input: "fn() u8 { 5 + 10 }",
 			expected_constants: vec![
 				Object::U8(5),
 				Object::U8(10),
@@ -747,7 +747,7 @@ fn test_let_statement_scopes() {
 		},
 		TestCase {
 			input: "
-            fn() i64 {
+            fn() u8 {
                 let a = 55;
                 let b = 77;
                 a + b
@@ -832,8 +832,8 @@ fn test_closures() {
 		//TODO Temporary callable syntax
 		TestCase {
 			input: "
-            fn(a u8) fn() i64 {
-                fn(b u8) i64 {
+            fn(a u8) fn() u8 {
+                fn(b u8) u8 {
                     a + b
                 }
             }
@@ -866,9 +866,9 @@ fn test_closures() {
 		},
 		TestCase {
 			input: "
-            fn(a u8) fn() fn() i64 {
-                fn(b u8) fn() i64 {
-                    fn(c u8) i64 {
+            fn(a u8) fn() fn() u8 {
+                fn(b u8) fn() u8 {
+                    fn(c u8) u8 {
                         a + b + c
                     }
                 }

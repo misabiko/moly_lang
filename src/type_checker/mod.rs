@@ -235,10 +235,10 @@ impl TypeChecker {
 				right
 			} => self.get_type_from_expression(right.as_ref()),
 			//TODO Temporary while infix still returns i64
-			TypedExpression::Infix { type_expr: TypeExpr::Int { .. }, .. } => Some(TypeExpr::Int {
+			/*TypedExpression::Infix { type_expr: TypeExpr::Int { .. }, .. } => Some(TypeExpr::Int {
 				unsigned: false,
 				size: IntegerSize::S64
-			}),
+			}),*/
 			TypedExpression::Infix { type_expr, .. } => Some(type_expr.clone()),
 			TypedExpression::If { type_expr, .. } => type_expr.clone(),
 			TypedExpression::Call { return_type, .. } => return_type.clone(),
@@ -254,7 +254,7 @@ impl TypeChecker {
 		let left_type = self.get_type_from_expression(left);
 		match (&left_type, self.get_type_from_expression(right)) {
 			(None, _) | (_, None) => return Err(format!("cannot include void type in infix operator ({:?} and {:?})", left, right)),
-			(Some(TypeExpr::Int { .. }), Some(TypeExpr::Int { .. })) => {}
+			//(Some(TypeExpr::Int { .. }), Some(TypeExpr::Int { .. })) => {}
 			(left, right) => if left != &right {
 				return Err(format!("incompatible types ({:?} and {:?})", left, right))
 			}

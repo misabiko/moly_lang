@@ -254,30 +254,99 @@ impl VM {
 		let right = self.pop().cloned();
 		let left = self.pop().cloned();
 
-		if let (Some(left), Some(right)) = (&left, &right) {
-			if let (Some(Object::I64(left)), Some(Object::I64(right))) = (cast_i64(&left), cast_i64(&right)) {
-				return self.execute_binary_integer_operation(op, left, right)
-			}
-		}
-
 		match (&left, &right) {
+			(Some(Object::U8(left)), Some(Object::U8(right))) => {
+				let result = match op {
+					Opcode::Add => left + right,
+					Opcode::Sub => left - right,
+					Opcode::Mul => left * right,
+					Opcode::Div => left / right,
+					_ => return Err(format!("unknown integer operator: {:?}", op))
+				};
+
+				self.push(Object::U8(result))
+			}
+			(Some(Object::U16(left)), Some(Object::U16(right))) => {
+				let result = match op {
+					Opcode::Add => left + right,
+					Opcode::Sub => left - right,
+					Opcode::Mul => left * right,
+					Opcode::Div => left / right,
+					_ => return Err(format!("unknown integer operator: {:?}", op))
+				};
+
+				self.push(Object::U16(result))
+			}
+			(Some(Object::U32(left)), Some(Object::U32(right))) => {
+				let result = match op {
+					Opcode::Add => left + right,
+					Opcode::Sub => left - right,
+					Opcode::Mul => left * right,
+					Opcode::Div => left / right,
+					_ => return Err(format!("unknown integer operator: {:?}", op))
+				};
+
+				self.push(Object::U32(result))
+			}
+			(Some(Object::U64(left)), Some(Object::U64(right))) => {
+				let result = match op {
+					Opcode::Add => left + right,
+					Opcode::Sub => left - right,
+					Opcode::Mul => left * right,
+					Opcode::Div => left / right,
+					_ => return Err(format!("unknown integer operator: {:?}", op))
+				};
+
+				self.push(Object::U64(result))
+			}
+			(Some(Object::I8(left)), Some(Object::I8(right))) => {
+				let result = match op {
+					Opcode::Add => left + right,
+					Opcode::Sub => left - right,
+					Opcode::Mul => left * right,
+					Opcode::Div => left / right,
+					_ => return Err(format!("unknown integer operator: {:?}", op))
+				};
+
+				self.push(Object::I8(result))
+			}
+			(Some(Object::I16(left)), Some(Object::I16(right))) => {
+				let result = match op {
+					Opcode::Add => left + right,
+					Opcode::Sub => left - right,
+					Opcode::Mul => left * right,
+					Opcode::Div => left / right,
+					_ => return Err(format!("unknown integer operator: {:?}", op))
+				};
+
+				self.push(Object::I16(result))
+			}
+			(Some(Object::I32(left)), Some(Object::I32(right))) => {
+				let result = match op {
+					Opcode::Add => left + right,
+					Opcode::Sub => left - right,
+					Opcode::Mul => left * right,
+					Opcode::Div => left / right,
+					_ => return Err(format!("unknown integer operator: {:?}", op))
+				};
+
+				self.push(Object::I32(result))
+			}
+			(Some(Object::I64(left)), Some(Object::I64(right))) => {
+				let result = match op {
+					Opcode::Add => left + right,
+					Opcode::Sub => left - right,
+					Opcode::Mul => left * right,
+					Opcode::Div => left / right,
+					_ => return Err(format!("unknown integer operator: {:?}", op))
+				};
+
+				self.push(Object::I64(result))
+			}
 			(Some(Object::String(left)), Some(Object::String(right)))
 			=> self.execute_binary_string_operation(op, left, right),
 			_ => Err(format!("unsupported types for binary operation: {:?} and {:?}", left, right))
 		}
-	}
-
-	fn execute_binary_integer_operation(&mut self, op: Opcode, left: i64, right: i64) -> VMResult {
-		let result = match op {
-			Opcode::Add => left + right,
-			Opcode::Sub => left - right,
-			Opcode::Mul => left * right,
-			Opcode::Div => left / right,
-			_ => return Err(format!("unknown integer operator: {:?}", op))
-		};
-
-		//Temporarily cast to i64
-		self.push(Object::I64(result))
 	}
 
 	fn execute_binary_string_operation(&mut self, op: Opcode, left: &str, right: &str) -> VMResult {

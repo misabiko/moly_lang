@@ -27,11 +27,12 @@ impl TypeChecker {
 		let statements = program.statements.into_iter()
 			.map(|stmt| self.check_statement(stmt))
 			.collect::<TCResult<Vec<TypedStatement>>>()?;
+
 		let return_type = statements.last().map(|stmt| match stmt {
 			TypedStatement::Let { .. } => TypeExpr::Void,
 			TypedStatement::Return(None) => TypeExpr::Void,
 			TypedStatement::Expression { has_semicolon: true, .. } => TypeExpr::Void,
-			TypedStatement::Return(Some(e)) => get_type(e),
+			TypedStatement::Return(Some(e)) => TypeExpr::Return(Box::new(get_type(e))),
 			TypedStatement::Expression { expr, .. } => get_type(expr),
 		}).unwrap_or(TypeExpr::Void);
 
@@ -125,28 +126,40 @@ impl TypeChecker {
 				}
 
 				let consequence = self.check(consequence)?;
-				let consequence_type = consequence.return_type.clone();
+				let cons_type = consequence.return_type.clone();
 
 				let alternative = match alternative {
 					Some(alternative) => Some(self.check(alternative)?),
 					None => None
 				};
+				let alt_type = alternative.as_ref().map(|a| &a.return_type);
 
-				match alternative.as_ref().map(|a| &a.return_type) {
-					None | Some(TypeExpr::Void) => if !matches!(consequence_type, TypeExpr::Void) {
+				//Checking if branches match
+				match (&cons_type, alt_type) {
+					//TODO Test that mismatching return in both branches get caught in outer scope
+					(TypeExpr::Return(_), _) |
+					(_, Some(TypeExpr::Return(_))) |
+					(TypeExpr::Void, None) => {}
+					(cons_type, None | Some(TypeExpr::Void)) => {
 						//TODO expected `()`, found `{:?}`
-						return Err(TypeCheckError::Generic(format!("mismatched if types {:?} vs None", consequence_type)));
+						return Err(TypeCheckError::Generic(format!("mismatched if types {:?} vs None", cons_type)));
 					}
-					Some(t) => {
-						if &consequence_type != t {
-							return Err(TypeCheckError::Generic(format!("mismatched if types {:?} vs {:?}", consequence_type, t)));
+					(cons_type, Some(t)) => {
+						if cons_type != t {
+							return Err(TypeCheckError::Generic(format!("mismatched if types {:?} vs {:?}", cons_type, t)));
 						}
 					}
-				};
+				}
+
+				let type_expr = match (&cons_type, alt_type) {
+					(TypeExpr::Return(cons_type), Some(TypeExpr::Return(_))) => cons_type,
+					(TypeExpr::Return(_), Some(alt_type)) => alt_type,
+					(cons_type, _) => cons_type,
+				}.clone();
 
 				Ok(TypedExpression::If {
 					condition: Box::new(condition),
-					type_expr: consequence_type,
+					type_expr,
 					consequence,
 					alternative,
 				})
@@ -165,7 +178,10 @@ impl TypeChecker {
 
 				let body = self.check(body)?;
 
-				let body_return_type = &body.return_type;
+				let body_return_type = match &body.return_type {
+					TypeExpr::Return(returned_type) => returned_type.as_ref(),
+					t => t,
+				};
 				if &return_type != body_return_type {
 					return Err(TypeCheckError::Generic(format!(
 						"function body return type {:?} doesn't match declared return type {:?}",

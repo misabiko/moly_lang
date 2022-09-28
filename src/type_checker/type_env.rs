@@ -19,6 +19,8 @@ pub enum TypeExpr {
 		parameter_types: Vec<TypeExpr>,
 		return_type: Box<TypeExpr>,
 	},
+	/// Equivalent to Rust's never
+	Return(Box<TypeExpr>),
 	//TODO Remove TypeExpr::Any once builtin have been removed
 	Any,
 }
@@ -44,10 +46,11 @@ impl fmt::Display for TypeExpr {
 					.join(", ");
 
 				write!(f, "fn({}) {} {{}}", parameter_types, return_type)
-			},
+			}
 			TypeExpr::Array(element_type) => write!(f, "[{}]", element_type),
-			TypeExpr::Hash=> write!(f, "{{:}}"),
-			TypeExpr::Any=> write!(f, "ANY"),
+			TypeExpr::Hash => write!(f, "{{:}}"),
+			TypeExpr::Return(returned_type) => write!(f, "return {}", returned_type),
+			TypeExpr::Any => write!(f, "ANY"),
 		}
 	}
 }
@@ -67,7 +70,7 @@ impl TypeEnv {
 		}
 	}
 
-	pub fn get_identifier_type(&self, ident: &str) -> Option<&TypeExpr>{
+	pub fn get_identifier_type(&self, ident: &str) -> Option<&TypeExpr> {
 		self.bindings.iter()
 			.rfind(|b| b.ident == ident)
 			.map(|b| &b.type_expr)

@@ -202,6 +202,62 @@ fn test_call_arg_type_mismatch() {
 	}
 }
 
+#[test]
+fn test_return_statements() {
+	let tests = vec![
+		("return true;", TypedBlockStatement {
+			statements: vec![
+				TypedStatement::Return(Some(TypedExpression::Boolean(true))),
+			],
+			return_type: TypeExpr::Bool,
+		}),
+		/*TODO Add (replace hashes with) block literal ("{return true;}", TypedBlockStatement {
+			statements: vec![
+				TypedStatement::Return(Some(TypedExpression::Boolean(true))),
+			],
+			return_type: TypeExpr::Bool,
+		}),*/
+			//TODO Warn about redundant if true/false {}
+		("
+			if true {
+				return true;
+			}else {
+				0
+			}
+		", TypedBlockStatement {
+			statements: vec![
+				TypedStatement::Expression {
+					expr: TypedExpression::If {
+						condition: Box::new(TypedExpression::Boolean(true)),
+						type_expr: TypeExpr::Int(IntType::U8),
+						consequence: TypedBlockStatement {
+							statements: vec![
+								TypedStatement::Return(Some(TypedExpression::Boolean(true)))
+							],
+							return_type: TypeExpr::Return(Box::new(TypeExpr::Bool)),
+						},
+						alternative: Some(TypedBlockStatement {
+							statements: vec![TypedStatement::Expression {
+								expr: TypedExpression::Integer(IntExpr::U8(0)),
+								has_semicolon: false
+							}],
+							return_type: TypeExpr::Int(IntType::U8)
+						})
+					},
+					has_semicolon: false,
+				},
+			],
+			return_type: TypeExpr::Int(IntType::U8),
+		}),
+	];
+
+	for (input, expected_type) in tests {
+		let p = type_check(input).unwrap();
+
+		assert_eq!(p, expected_type);
+	}
+}
+
 fn type_check(input: &str) -> Result<TypedProgram, MolyError> {
 	let program = match Parser::new(Lexer::new(input)).parse_program() {
 		Ok(p) => p,

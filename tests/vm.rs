@@ -516,19 +516,12 @@ fn test_closures() {
 
 #[test]
 fn test_recursive_functions() {
-	//TODO Handle redundant return in top-level conditional fn(x u8) u8 {
-	// 				if x == 0 {
-	// 					return 0;
-	// 				} else {
-	// 					x
-	// 				}
-	// 			}
 	let tests = vec![
 		TestCase {
 			input: "
 			let countDown = fn(x u8) u8 {
 				if x == 0 {
-					0
+					return 0;
 				} else {
 					countDown(x - 1)
 				}
@@ -541,7 +534,7 @@ fn test_recursive_functions() {
 			input: "
 			let countDown = fn(x u8) u8 {
 				if x == 0 {
-					0
+					return 0;
 				} else {
 					countDown(x - 1)
 				}
@@ -558,7 +551,7 @@ fn test_recursive_functions() {
 			let wrapper = fn() {
 				let countDown = fn(x u8) u8 {
 					if x == 0 {
-						0
+						return 0;
 					} else {
 						countDown(x - 1)
 					}
@@ -581,7 +574,7 @@ fn test_recursive_fibonacci() {
 			input: "
 			let fibonacci = fn(x u64) u64 {
 				if x == 0u64 {
-					0u64
+					return 0u64;
 				} else {
 					if x == 1u64 {
 						1u64

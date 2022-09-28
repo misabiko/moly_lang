@@ -56,10 +56,8 @@ fn test_boolean_expressions() {
 		TestCase { input: "(1 > 2) == false", expected: Ok(Some(Object::Boolean(true))) },
 		TestCase { input: "!true", expected: Ok(Some(Object::Boolean(false))) },
 		TestCase { input: "!false", expected: Ok(Some(Object::Boolean(true))) },
-		//TODO Test error VMTestCase { input: "!5", expected: Ok(Some(Object::Boolean(false))) },
 		TestCase { input: "!!true", expected: Ok(Some(Object::Boolean(true))) },
 		TestCase { input: "!!false", expected: Ok(Some(Object::Boolean(false))) },
-		//TODO Test error VMTestCase { input: "!!5", expected: Ok(Some(Object::Boolean(true))) },
 	];
 
 	run_vm_tests(tests)

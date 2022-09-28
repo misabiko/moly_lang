@@ -3,8 +3,8 @@ extern crate core;
 use std::path::PathBuf;
 use crate::compiler::{Bytecode, Compiler};
 use crate::lexer::Lexer;
-use crate::parser::Parser;
-use crate::type_checker::TypeChecker;
+use crate::parser::{Parser, ParserError};
+use crate::type_checker::{TypeChecker, TypeCheckError};
 use crate::vm::VM;
 
 pub mod token;
@@ -39,7 +39,7 @@ pub fn build(input: &str) -> Result<Bytecode, String> {
 	let program = match type_checker.check(program) {
 		Ok(program) => program,
 		Err(err) => {
-			return Err(format!("Type checking error: {}", err));
+			return Err(format!("Type checking error: {:?}", err));
 		}
 	};
 
@@ -77,4 +77,10 @@ pub fn run_file(file: PathBuf) {
 	let input = std::fs::read_to_string(file).expect("failed to read file");
 
 	run_string(&input);
+}
+
+#[derive(Debug, PartialEq)]
+pub enum MolyError {
+	Parse(ParserError),
+	TypeCheck(TypeCheckError),
 }

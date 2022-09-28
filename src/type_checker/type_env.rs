@@ -22,6 +22,7 @@ pub enum TypeExpr {
 	Call {
 		return_type: Option<Box<TypeExpr>>,
 	},
+	//TODO Add void as a TypeExpr?
 }
 
 impl fmt::Display for TypeExpr {

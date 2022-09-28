@@ -53,7 +53,7 @@ pub fn start() {
 		let program = match type_checker.check(program) {
 			Ok(program) => program,
 			Err(err) => {
-				eprintln!("Type checking error: {}", err);
+				eprintln!("Type checking error: {:?}", err);
 				continue;
 			}
 		};

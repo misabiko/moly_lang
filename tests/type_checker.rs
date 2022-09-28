@@ -1,7 +1,8 @@
-use moly::ast::IntExpr;
+use moly::ast::{IntExpr, PrefixOperator};
 use moly::lexer::Lexer;
-use moly::parser::{Parser, ParserError};
-use moly::type_checker::TypeChecker;
+use moly::MolyError;
+use moly::parser::Parser;
+use moly::type_checker::{TypeChecker, TypeCheckError};
 use moly::type_checker::typed_ast::{TypedBlockStatement, TypedExpression, TypedProgram, TypedStatement};
 use moly::type_checker::type_env::{TypeExpr, IntegerSize};
 
@@ -51,7 +52,7 @@ fn test_function_parameter_parsing() {
 fn test_if_expression() {
 	let tests = vec![
 		("if 2 < 4 { 4; }", Ok(None)),
-		("if 2 < 4 { 4 }", Err(Error::TypeCheck("mismatched if types Int { unsigned: true, size: S8 } vs None".into()))),
+		("if 2 < 4 { 4 }", Err(MolyError::TypeCheck(TypeCheckError::Generic("mismatched if types Int { unsigned: true, size: S8 } vs None".into())))),
 		("if 2 < 4 { 2 } else { 4 }", Ok(Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }))),
 	];
 
@@ -122,29 +123,44 @@ fn test_scoped_type_bindings() {
 	}
 }
 
-fn type_check(input: &str) -> Result<TypedProgram, Error> {
+#[test]
+fn test_prefix() {
+	let tests = vec![
+		("!5", MolyError::TypeCheck(TypeCheckError::PrefixTypeMismatch {
+			operator: PrefixOperator::Bang,
+			right_type: Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
+		})),
+		("-true", MolyError::TypeCheck(TypeCheckError::PrefixTypeMismatch {
+			operator: PrefixOperator::Minus,
+			right_type: Some(TypeExpr::Bool),
+		})),
+	];
+
+	for (input, expected_error) in tests {
+		let stmt = type_check_single_statement(input);
+		assert_eq!(stmt.expect_err("stmt didn't return error"), expected_error)
+	}
+}
+
+
+
+fn type_check(input: &str) -> Result<TypedProgram, MolyError> {
 	let program = match Parser::new(Lexer::new(input)).parse_program() {
 		Ok(p) => p,
-		Err(err) => return Err(Error::Parse(err)),
+		Err(err) => return Err(MolyError::Parse(err)),
 	};
 
 	let mut type_checker = TypeChecker::new();
 	match type_checker.check(program) {
 		Ok(program) => Ok(program),
-		Err(err) => return Err(Error::TypeCheck(err)),
+		Err(err) => return Err(MolyError::TypeCheck(err)),
 	}
 }
 
-fn type_check_single_statement(input: &str) -> Result<TypedStatement, Error> {
+fn type_check_single_statement(input: &str) -> Result<TypedStatement, MolyError> {
 	let program = type_check(input)?;
 
 	assert_eq!(program.statements.len(), 1, "program.statements does not contain 1 statement");
 
 	Ok(program.statements.into_iter().next().unwrap())
-}
-
-#[derive(Debug, PartialEq)]
-enum Error {
-	Parse(ParserError),
-	TypeCheck(String),
 }

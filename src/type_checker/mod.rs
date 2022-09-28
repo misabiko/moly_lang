@@ -37,8 +37,8 @@ impl TypeChecker {
 			Statement::Let { name, value } => {
 				let value = self.check_expression(value)?;
 
-				let value_type = match self.get_type_from_expression(&value) {
-					None => return Err(format!("cannot assign void type to a variable")),
+				let value_type = match self.get_type(&value) {
+					None => return Err(TypeCheckError::Generic(format!("cannot assign void type to a variable"))),
 					Some(type_expr) => type_expr,
 				};
 				self.type_env.define_identifier(&name, value_type);
@@ -53,6 +53,7 @@ impl TypeChecker {
 		}
 	}
 
+	//Maybe return the TypeExpr too?
 	pub fn check_expression(&mut self, expr: Expression) -> TCResult<TypedExpression> {
 		match expr {
 			Expression::Boolean(value) => Ok(TypedExpression::Boolean(value)),
@@ -61,7 +62,7 @@ impl TypeChecker {
 			Expression::Identifier(name) => {
 				let type_expr = self.type_env.get_identifier_type(name.as_str())
 					.cloned()
-					.ok_or(format!("cannot find value `{}` in this scope", name))?;
+					.ok_or(TypeCheckError::Generic(format!("cannot find value `{}` in this scope", name)))?;
 
 				Ok(TypedExpression::Identifier {
 					name,
@@ -70,6 +71,23 @@ impl TypeChecker {
 			}
 			Expression::Prefix { operator, right } => {
 				let right = self.check_expression(*right)?;
+				let right_type = self.get_type(&right);
+
+				match operator {
+					PrefixOperator::Minus => if !matches!(right_type, Some(TypeExpr::Int { .. })) {
+						return Err(TypeCheckError::PrefixTypeMismatch {
+							operator,
+							right_type,
+						})
+					},
+					PrefixOperator::Bang => if right_type != Some(TypeExpr::Bool) {
+						return Err(TypeCheckError::PrefixTypeMismatch {
+							operator,
+							right_type,
+						})
+					},
+				}
+
 				Ok(TypedExpression::Prefix {
 					operator,
 					right: Box::new(right),
@@ -90,14 +108,14 @@ impl TypeChecker {
 			}
 			Expression::If { condition, consequence, alternative } => {
 				let condition = self.check_expression(*condition)?;
-				let condition_type = self.get_type_from_expression(&condition);
+				let condition_type = self.get_type(&condition);
 				if !matches!(condition_type, Some(TypeExpr::Bool)) {
-					return Err(format!("expected `bool`, found {:?}", condition_type))
+					return Err(TypeCheckError::Generic(format!("expected `bool`, found {:?}", condition_type)))
 				}
 
 				let consequence = self.check(consequence)?;
 				let consequence_type: Option<TypeExpr> = match consequence.statements.last() {
-					Some(TypedStatement::Expression { expr, has_semicolon: false }) => self.get_type_from_expression(&expr),
+					Some(TypedStatement::Expression { expr, has_semicolon: false }) => self.get_type(&expr),
 					_ => None,
 				};
 
@@ -108,14 +126,14 @@ impl TypeChecker {
 
 				match alternative.as_ref().map(|a| a.statements.last()) {
 					Some(Some(TypedStatement::Expression { expr, has_semicolon: false })) => {
-						let alternative_type = self.get_type_from_expression(&expr);
+						let alternative_type = self.get_type(&expr);
 						if consequence_type != alternative_type {
-							return Err(format!("mismatched if types {:?} vs {:?}", consequence_type, alternative_type))
+							return Err(TypeCheckError::Generic(format!("mismatched if types {:?} vs {:?}", consequence_type, alternative_type)))
 						}
 					},
 					_ => if let Some(consequence_type) = consequence_type {
 						//TODO expected `()`, found `{:?}`
-						return Err(format!("mismatched if types {:?} vs None", consequence_type))
+						return Err(TypeCheckError::Generic(format!("mismatched if types {:?} vs None", consequence_type)))
 					}
 				};
 
@@ -141,13 +159,13 @@ impl TypeChecker {
 
 				let body_return_type = match body.statements.last() {
 					Some(TypedStatement::Expression { expr, has_semicolon: false})
-						=> self.get_type_from_expression(&expr),
+						=> self.get_type(&expr),
 					Some(TypedStatement::Return(Some(expr)))
-						=> self.get_type_from_expression(&expr),
+						=> self.get_type(&expr),
 					_ => None,
 				};
 				if return_type != body_return_type {
-					return Err(format!("function body return type {:?} doesn't match declared return type {:?}", body_return_type, return_type))
+					return Err(TypeCheckError::Generic(format!("function body return type {:?} doesn't match declared return type {:?}", body_return_type, return_type)))
 				}
 
 				Ok(TypedExpression::Function { name, parameters, body, return_type })
@@ -158,13 +176,13 @@ impl TypeChecker {
 					.map(|arg| self.check_expression(arg))
 					.collect::<TCResult<Vec<TypedExpression>>>()?;
 
-				let return_type = match self.get_type_from_expression(&function) {
+				let return_type = match self.get_type(&function) {
 					Some(called_type) => match called_type {
 						TypeExpr::Call { return_type } => return_type.map(|t| *t),
 						TypeExpr::FnLiteral { return_type } => return_type.map(|t| *t),
-						t => return Err(format!("type {:?} not callable", t))
+						t => return Err(TypeCheckError::Generic(format!("type {:?} not callable", t)))
 					},
-					None => return Err("cannot call void type".into()),
+					None => return Err(TypeCheckError::Generic("cannot call void type".into())),
 				};
 
 				Ok(TypedExpression::Call {
@@ -201,7 +219,7 @@ impl TypeChecker {
 		}
 	}
 
-	fn get_type_from_expression(&self, expr: &TypedExpression) -> Option<TypeExpr> {
+	fn get_type(&self, expr: &TypedExpression) -> Option<TypeExpr> {
 		match expr {
 			TypedExpression::Identifier { type_expr, .. } => Some(type_expr.clone()),
 			TypedExpression::Integer(v) => match v {
@@ -222,14 +240,14 @@ impl TypeChecker {
 			TypedExpression::Prefix {
 				operator: PrefixOperator::Minus,
 				right
-			} => match self.get_type_from_expression(right.as_ref()) {
+			} => match self.get_type(right.as_ref()) {
 				Some(TypeExpr::Int { unsigned: true, size }) => Some(TypeExpr::Int { unsigned: false, size }),
 				t => t,
 			},
 			TypedExpression::Prefix {
 				operator: PrefixOperator::Bang,
 				right
-			} => self.get_type_from_expression(right.as_ref()),
+			} => self.get_type(right.as_ref()),
 			TypedExpression::Infix { type_expr, .. } => Some(type_expr.clone()),
 			TypedExpression::If { type_expr, .. } => type_expr.clone(),
 			TypedExpression::Call { return_type, .. } => return_type.clone(),
@@ -242,13 +260,13 @@ impl TypeChecker {
 	}
 
 	fn check_infix(&self, operator: &InfixOperator, left: &TypedExpression, right: &TypedExpression) -> TCResult<TypeExpr> {
-		let left_type = self.get_type_from_expression(left);
-		let right_type = self.get_type_from_expression(right);
+		let left_type = self.get_type(left);
+		let right_type = self.get_type(right);
 		match (&left_type, right_type) {
-			(None, _) | (_, None) => return Err(format!("cannot include void type in infix operator ({:?} and {:?})", left, right)),
+			(None, _) | (_, None) => return Err(TypeCheckError::Generic(format!("cannot include void type in infix operator ({:?} and {:?})", left, right))),
 			//(Some(TypeExpr::Int { .. }), Some(TypeExpr::Int { .. })) => {}
 			(left, right) => if left != &right {
-				return Err(format!("incompatible types ({:?} and {:?})", left, right))
+				return Err(TypeCheckError::Generic(format!("incompatible types ({:?} and {:?})", left, right)))
 			}
 		}
 
@@ -262,4 +280,13 @@ impl TypeChecker {
 	}
 }
 
-type TCResult<T> = Result<T, String>;
+type TCResult<T> = Result<T, TypeCheckError>;
+
+#[derive(Debug, PartialEq)]
+pub enum TypeCheckError {
+	PrefixTypeMismatch {
+		operator: PrefixOperator,
+		right_type: Option<TypeExpr>,
+	},
+	Generic(String),
+}

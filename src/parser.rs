@@ -276,8 +276,7 @@ impl Parser {
 
 		let mut statements = vec![];
 
-		//TODO Parse error on EOF
-		while !self.cur_token_is(TokenType::RBrace) && !self.cur_token_is(TokenType::EOF) {
+		while !self.cur_token_is(TokenType::RBrace) {
 			statements.push(self.parse_statement()?);
 
 			self.next_token();

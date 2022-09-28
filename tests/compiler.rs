@@ -17,7 +17,6 @@ fn test_integer_arithmetic() {
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
 				make(Opcode::Add, &[]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -27,7 +26,6 @@ fn test_integer_arithmetic() {
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Pop, &[]),
 				make(Opcode::Constant, &[1]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -37,7 +35,6 @@ fn test_integer_arithmetic() {
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
 				make(Opcode::Sub, &[]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -47,7 +44,6 @@ fn test_integer_arithmetic() {
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
 				make(Opcode::Mul, &[]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -57,7 +53,6 @@ fn test_integer_arithmetic() {
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
 				make(Opcode::Div, &[]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -67,7 +62,6 @@ fn test_integer_arithmetic() {
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
 				make(Opcode::Add, &[]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -76,7 +70,6 @@ fn test_integer_arithmetic() {
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Minus, &[]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -92,7 +85,6 @@ fn test_boolean_expressions() {
 			expected_constants: vec![],
 			expected_instructions: vec![
 				make(Opcode::True, &[]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -100,7 +92,6 @@ fn test_boolean_expressions() {
 			expected_constants: vec![],
 			expected_instructions: vec![
 				make(Opcode::False, &[]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -110,7 +101,6 @@ fn test_boolean_expressions() {
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
 				make(Opcode::GreaterThan, &[]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -120,7 +110,6 @@ fn test_boolean_expressions() {
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
 				make(Opcode::GreaterThan, &[]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -130,7 +119,6 @@ fn test_boolean_expressions() {
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
 				make(Opcode::Equal, &[]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -140,7 +128,6 @@ fn test_boolean_expressions() {
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
 				make(Opcode::NotEqual, &[]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -150,7 +137,6 @@ fn test_boolean_expressions() {
 				make(Opcode::True, &[]),
 				make(Opcode::False, &[]),
 				make(Opcode::Equal, &[]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -160,7 +146,6 @@ fn test_boolean_expressions() {
 				make(Opcode::True, &[]),
 				make(Opcode::False, &[]),
 				make(Opcode::NotEqual, &[]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -169,7 +154,6 @@ fn test_boolean_expressions() {
 			expected_instructions: vec![
 				make(Opcode::True, &[]),
 				make(Opcode::Bang, &[]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -186,19 +170,12 @@ fn test_conditionals() {
             ",
 			expected_constants: vec![Object::U8(10), Object::U16(3333)],
 			expected_instructions: vec![
-				// 0000
 				make(Opcode::True, &[]),
-				// 0001
-				make(Opcode::JumpIfFalse, &[10]),
-				// 0004
+				make(Opcode::JumpIfFalse, &[11]),
 				make(Opcode::Constant, &[0]),
-				// 0007
-				make(Opcode::Jump, &[10]),
-				// 0010
 				make(Opcode::Pop, &[]),
-				// 0011
+				make(Opcode::Jump, &[11]),
 				make(Opcode::Constant, &[1]),
-				// 0013
 				make(Opcode::Pop, &[]),
 			],
 		},
@@ -289,7 +266,6 @@ fn test_string_expressions() {
 			expected_constants: vec![Object::String("monkey".into())],
 			expected_instructions: vec![
 				make(Opcode::Constant, &[0]),
-				make(Opcode::Pop, &[]),
 			]
 		},
 		TestCase {
@@ -302,7 +278,6 @@ fn test_string_expressions() {
 				make(Opcode::Constant, &[0]),
 				make(Opcode::Constant, &[1]),
 				make(Opcode::Add, &[]),
-				make(Opcode::Pop, &[]),
 			]
 		},
 	];
@@ -313,14 +288,14 @@ fn test_string_expressions() {
 #[test]
 fn test_array_literals() {
 	let tests = vec![
-		TestCase {
+		/*TestCase {
 			input: "[]",
 			expected_constants: vec![],
 			expected_instructions: vec![
 				make(Opcode::Array, &[0]),
 				make(Opcode::Pop, &[]),
 			],
-		},
+		},*/
 		TestCase {
 			input: "[1, 2, 3]",
 			expected_constants: vec![
@@ -333,7 +308,6 @@ fn test_array_literals() {
 				make(Opcode::Constant, &[1]),
 				make(Opcode::Constant, &[2]),
 				make(Opcode::Array, &[3]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -357,7 +331,6 @@ fn test_array_literals() {
 				make(Opcode::Constant, &[5]),
 				make(Opcode::Mul, &[]),
 				make(Opcode::Array, &[3]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -373,7 +346,6 @@ fn test_hash_literals() {
 			expected_constants: vec![],
 			expected_instructions: vec![
 				make(Opcode::Hash, &[0]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -388,7 +360,6 @@ fn test_hash_literals() {
 				make(Opcode::Constant, &[4]),
 				make(Opcode::Constant, &[5]),
 				make(Opcode::Hash, &[6]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -405,7 +376,6 @@ fn test_hash_literals() {
 				make(Opcode::Constant, &[5]),
 				make(Opcode::Mul, &[]),
 				make(Opcode::Hash, &[4]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -429,10 +399,10 @@ fn test_index_expressions() {
 				make(Opcode::Constant, &[4]),
 				make(Opcode::Add, &[]),
 				make(Opcode::Index, &[]),
-				make(Opcode::Pop, &[]),
 			]
 		},
-		TestCase {
+		//TODO Remove hashes?
+		/*TestCase {
 			input: "{1: 2}[2 - 1]",
 			expected_constants: vec![1, 2, 2, 1].into_iter()
 				.map(|i| Object::U8(i)).collect(),
@@ -446,7 +416,7 @@ fn test_index_expressions() {
 				make(Opcode::Index, &[]),
 				make(Opcode::Pop, &[]),
 			]
-		},
+		},*/
 	];
 
 	run_compiler_tests(tests)
@@ -473,7 +443,6 @@ fn test_functions() {
 			],
 			expected_instructions: vec![
 				make(Opcode::Closure, &[2, 0]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -494,7 +463,6 @@ fn test_functions() {
 			],
 			expected_instructions: vec![
 				make(Opcode::Closure, &[2, 0]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -515,7 +483,6 @@ fn test_functions() {
 			],
 			expected_instructions: vec![
 				make(Opcode::Closure, &[2, 0]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -539,7 +506,6 @@ fn test_functions_without_return_value() {
 			],
 			expected_instructions: vec![
 				make(Opcode::Closure, &[0, 0]),
-				make(Opcode::Pop, &[]),
 			]
 		}
 	];
@@ -717,7 +683,6 @@ fn test_let_statement_scopes() {
 				make(Opcode::Constant, &[0]),
 				make(Opcode::SetGlobal, &[0]),
 				make(Opcode::Closure, &[1, 0]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -742,7 +707,6 @@ fn test_let_statement_scopes() {
 			],
 			expected_instructions: vec![
 				make(Opcode::Closure, &[1, 0]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -773,7 +737,6 @@ fn test_let_statement_scopes() {
 			],
 			expected_instructions: vec![
 				make(Opcode::Closure, &[2, 0]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -804,12 +767,14 @@ fn test_builtins() {
 			],
 		},*/
 		TestCase {
-			input: "fn() u64 { len([]) }",
+			input: "fn() u64 { len([1]) }",
 			expected_constants: vec![
+				Object::U8(1),
 				Object::Function(Function {
 					instructions: concat_instructions(vec![
 						make(Opcode::GetBuiltin, &[0]),
-						make(Opcode::Array, &[0]),
+						make(Opcode::Constant, &[0]),
+						make(Opcode::Array, &[1]),
 						make(Opcode::Call, &[1]),
 						make(Opcode::ReturnValue, &[]),
 					]),
@@ -818,8 +783,7 @@ fn test_builtins() {
 				})
 			],
 			expected_instructions: vec![
-				make(Opcode::Closure, &[0, 0]),
-				make(Opcode::Pop, &[]),
+				make(Opcode::Closure, &[1, 0]),
 			],
 		},
 	];
@@ -862,7 +826,6 @@ fn test_closures() {
 			],
 			expected_instructions: vec![
 				make(Opcode::Closure, &[1, 0]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 		TestCase {
@@ -980,7 +943,6 @@ fn test_closures() {
 				make(Opcode::Constant, &[0]),
 				make(Opcode::SetGlobal, &[0]),
 				make(Opcode::Closure, &[6, 0]),
-				make(Opcode::Pop, &[]),
 			],
 		},
 	];
@@ -993,7 +955,7 @@ fn test_recursive_functions() {
 	let tests = vec![
 		TestCase {
 			input: "
-            let countDown = fn(x u8) { countDown(x - 1); };
+            let countDown = fn(x u8) u8 { countDown(x - 1) };
             countDown(1);
             ",
 			expected_constants: vec![
@@ -1023,9 +985,9 @@ fn test_recursive_functions() {
 		},
 		TestCase {
 			input: "
-            let wrapper = fn() {
-                let countDown = fn(x u8) { countDown(x - 1); };
-                countDown(1);
+            let wrapper = fn() u8 {
+                let countDown = fn(x u8) u8 { countDown(x - 1) };
+                countDown(1)
             };
             wrapper();
             ",
@@ -1086,7 +1048,7 @@ fn run_compiler_tests(tests: Vec<TestCase>) {
 		let mut type_checker = TypeChecker::new();
 		let program = match type_checker.check(program) {
 			Ok(program) => program,
-			Err(err) => panic!("Type checking error: {}", err),
+			Err(err) => panic!("Type checking error: {:?}", err),
 		};
 
 		let mut compiler = Compiler::new();

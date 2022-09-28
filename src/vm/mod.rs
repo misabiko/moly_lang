@@ -85,7 +85,11 @@ impl VM {
 	}
 
 	pub fn stack_top(&self) -> Option<&Object> {
-		self.stack.last().and_then(|e| e.as_ref())
+		if self.sp == 0 {
+			None
+		}else {
+			self.stack[self.sp - 1].as_ref()
+		}
 	}
 
 	pub fn run(&mut self) -> VMResult {
@@ -135,6 +139,8 @@ impl VM {
 						if condition == &FALSE_OBJ {
 							self.current_frame().ip = pos;
 						}
+
+						self.last_popped_stack_elem = None;
 					}
 
 					Opcode::SetGlobal => {
@@ -566,18 +572,11 @@ impl VM {
 	}
 
 	fn pop(&mut self) -> Option<&Object> {
-		//TODO Throw on dry pop
-			//TODO How to remove OpPop after function without return
-		if self.sp == 0 {
-			self.last_popped_stack_elem = None;
-			None
-		}else {
-			self.last_popped_stack_elem = self.stack[self.sp - 1].take();
-			assert!(self.last_popped_stack_elem.is_some(), "missing popped value");
-			self.sp -= 1;
+		self.last_popped_stack_elem = self.stack[self.sp - 1].take();
+		assert!(self.last_popped_stack_elem.is_some(), "missing popped value");
+		self.sp -= 1;
 
-			self.last_popped_stack_elem.as_ref()
-		}
+		self.last_popped_stack_elem.as_ref()
 	}
 
 	fn current_frame(&mut self) -> &mut Frame {

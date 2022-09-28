@@ -6,7 +6,8 @@ pub type TypedProgram = TypedBlockStatement;
 
 #[derive(Debug)]
 pub struct TypedBlockStatement {
-	pub statements: Vec<TypedStatement>
+	pub statements: Vec<TypedStatement>,
+	pub return_type: Option<TypeExpr>,
 }
 
 impl fmt::Display for TypedBlockStatement {
@@ -78,6 +79,7 @@ pub enum TypedExpression {
 		parameters: Vec<(String, TypeExpr)>,
 		body: TypedBlockStatement,
 		name: Option<String>,
+		//TODO Remove return_type if it's stored in TypedBlockStatement
 		return_type: Option<TypeExpr>,
 	},
 	Call {
@@ -85,7 +87,10 @@ pub enum TypedExpression {
 		arguments: Vec<TypedExpression>,
 		return_type: Option<TypeExpr>,
 	},
-	Array(Vec<TypedExpression>),
+	Array {
+		elements: Vec<TypedExpression>,
+		type_expr: TypeExpr,
+	},
 	Index {
 		left: Box<TypedExpression>,
 		index: Box<TypedExpression>,
@@ -130,7 +135,7 @@ impl fmt::Display for TypedExpression {
 				write!(f, "fn{}({}) {} {}", name, parameters, return_type, body)
 			},
 			TypedExpression::Call { function, arguments, .. } => write!(f, "{}({})", function, join_expression_vec(arguments)),
-			TypedExpression::Array(elements) => write!(f, "[{}]", join_expression_vec(elements)),
+			TypedExpression::Array { elements, .. } => write!(f, "[{}]", join_expression_vec(elements)),
 			TypedExpression::Index { left, index } => write!(f, "({}[{}])", left, index),
 			TypedExpression::Hash(pairs) => {
 				let pairs = pairs.iter()

@@ -23,10 +23,20 @@ impl TypeChecker {
 	}
 
 	pub fn check(&mut self, program: Program) -> TCResult<TypedProgram> {
+		let statements = program.statements.into_iter()
+			.map(|stmt| self.check_statement(stmt))
+			.collect::<TCResult<Vec<TypedStatement>>>()?;
+		let return_type = statements.last().and_then(|stmt| match stmt {
+			TypedStatement::Let { .. } => None,
+			TypedStatement::Return(None) => None,
+			TypedStatement::Expression { has_semicolon: true, .. } => None,
+			TypedStatement::Return(Some(e)) => get_type(e),
+			TypedStatement::Expression { expr, .. } => get_type(expr),
+		});
+
 		Ok(TypedProgram {
-			statements: program.statements.into_iter()
-				.map(|stmt| self.check_statement(stmt))
-				.collect::<TCResult<Vec<TypedStatement>>>()?
+			statements,
+			return_type,
 		})
 	}
 
@@ -37,7 +47,7 @@ impl TypeChecker {
 			Statement::Let { name, value } => {
 				let value = self.check_expression(value)?;
 
-				let value_type = match self.get_type(&value) {
+				let value_type = match get_type(&value) {
 					None => return Err(TypeCheckError::Generic(format!("cannot assign void type to a variable"))),
 					Some(type_expr) => type_expr,
 				};
@@ -71,7 +81,7 @@ impl TypeChecker {
 			}
 			Expression::Prefix { operator, right } => {
 				let right = self.check_expression(*right)?;
-				let right_type = self.get_type(&right);
+				let right_type = get_type(&right);
 
 				match operator {
 					PrefixOperator::Minus => if !matches!(right_type, Some(TypeExpr::Int { .. })) {
@@ -97,7 +107,7 @@ impl TypeChecker {
 				let left = self.check_expression(*left)?;
 				let right = self.check_expression(*right)?;
 
-				let type_expr = self.check_infix(&operator, &left, &right)?;
+				let type_expr = check_infix(&operator, &left, &right)?;
 
 				Ok(TypedExpression::Infix {
 					left: Box::new(left),
@@ -108,14 +118,14 @@ impl TypeChecker {
 			}
 			Expression::If { condition, consequence, alternative } => {
 				let condition = self.check_expression(*condition)?;
-				let condition_type = self.get_type(&condition);
+				let condition_type = get_type(&condition);
 				if !matches!(condition_type, Some(TypeExpr::Bool)) {
 					return Err(TypeCheckError::Generic(format!("expected `bool`, found {:?}", condition_type)))
 				}
 
 				let consequence = self.check(consequence)?;
 				let consequence_type: Option<TypeExpr> = match consequence.statements.last() {
-					Some(TypedStatement::Expression { expr, has_semicolon: false }) => self.get_type(&expr),
+					Some(TypedStatement::Expression { expr, has_semicolon: false }) => get_type(&expr),
 					_ => None,
 				};
 
@@ -126,7 +136,7 @@ impl TypeChecker {
 
 				match alternative.as_ref().map(|a| a.statements.last()) {
 					Some(Some(TypedStatement::Expression { expr, has_semicolon: false })) => {
-						let alternative_type = self.get_type(&expr);
+						let alternative_type = get_type(&expr);
 						if consequence_type != alternative_type {
 							return Err(TypeCheckError::Generic(format!("mismatched if types {:?} vs {:?}", consequence_type, alternative_type)))
 						}
@@ -159,9 +169,9 @@ impl TypeChecker {
 
 				let body_return_type = match body.statements.last() {
 					Some(TypedStatement::Expression { expr, has_semicolon: false})
-						=> self.get_type(&expr),
+						=> get_type(&expr),
 					Some(TypedStatement::Return(Some(expr)))
-						=> self.get_type(&expr),
+						=> get_type(&expr),
 					_ => None,
 				};
 				if return_type != body_return_type {
@@ -176,7 +186,7 @@ impl TypeChecker {
 					.map(|arg| self.check_expression(arg))
 					.collect::<TCResult<Vec<TypedExpression>>>()?;
 
-				let return_type = match self.get_type(&function) {
+				let return_type = match get_type(&function) {
 					Some(called_type) => match called_type {
 						TypeExpr::Call { return_type } => return_type.map(|t| *t),
 						TypeExpr::FnLiteral { return_type } => return_type.map(|t| *t),
@@ -195,8 +205,24 @@ impl TypeChecker {
 				let elements = elements.into_iter()
 					.map(|arg| self.check_expression(arg))
 					.collect::<TCResult<Vec<TypedExpression>>>()?;
+				let element_types: Vec<Option<TypeExpr>> = elements.iter().map(|e| get_type(e)).collect();
 
-				Ok(TypedExpression::Array(elements))
+				let type_expr = if let Some(Some(t)) = element_types.first() {
+					t.clone()
+				}else {
+					return Err(TypeCheckError::EmptyArray)
+				};
+
+				for typ in element_types.iter() {
+					match typ {
+						None => return Err(TypeCheckError::VoidArrayElem(element_types)),
+						Some(t) => if t != &type_expr {
+							return Err(TypeCheckError::ArrayTypeMismatch(element_types))
+						}
+					}
+				}
+
+				Ok(TypedExpression::Array { elements, type_expr })
 			}
 			Expression::Index { left, index } => {
 				let left = self.check_expression(*left)?;
@@ -218,65 +244,79 @@ impl TypeChecker {
 			}
 		}
 	}
+}
 
-	fn get_type(&self, expr: &TypedExpression) -> Option<TypeExpr> {
-		match expr {
-			TypedExpression::Identifier { type_expr, .. } => Some(type_expr.clone()),
-			TypedExpression::Integer(v) => match v {
-				IntExpr::U8(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
-				IntExpr::U16(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S16 }),
-				IntExpr::U32(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S32 }),
-				IntExpr::U64(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S64 }),
-				IntExpr::I8(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S8 }),
-				IntExpr::I16(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S16 }),
-				IntExpr::I32(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S32 }),
-				IntExpr::I64(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S64 }),
-			},
-			TypedExpression::Boolean(_) => Some(TypeExpr::Bool),
-			TypedExpression::String(_) => Some(TypeExpr::String),
-			TypedExpression::Function { return_type, .. } => Some(TypeExpr::FnLiteral {
-				return_type: return_type.clone().map(|t| Box::new(t))
-			}),
-			TypedExpression::Prefix {
-				operator: PrefixOperator::Minus,
-				right
-			} => match self.get_type(right.as_ref()) {
-				Some(TypeExpr::Int { unsigned: true, size }) => Some(TypeExpr::Int { unsigned: false, size }),
-				t => t,
-			},
-			TypedExpression::Prefix {
-				operator: PrefixOperator::Bang,
-				right
-			} => self.get_type(right.as_ref()),
-			TypedExpression::Infix { type_expr, .. } => Some(type_expr.clone()),
-			TypedExpression::If { type_expr, .. } => type_expr.clone(),
-			TypedExpression::Call { return_type, .. } => return_type.clone(),
-			expr => panic!("todo get_type_from_expression {:?}", expr)//TODO Remove rest
-			/*
-			TypedExpression::Array(_) => {}
-			TypedExpression::Index { .. } => {}
-			TypedExpression::Hash(_) => {}*/
+pub fn get_type(expr: &TypedExpression) -> Option<TypeExpr> {
+	match expr {
+		TypedExpression::Identifier { type_expr, .. } => Some(type_expr.clone()),
+		TypedExpression::Integer(v) => match v {
+			IntExpr::U8(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
+			IntExpr::U16(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S16 }),
+			IntExpr::U32(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S32 }),
+			IntExpr::U64(_) => Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S64 }),
+			IntExpr::I8(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S8 }),
+			IntExpr::I16(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S16 }),
+			IntExpr::I32(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S32 }),
+			IntExpr::I64(_) => Some(TypeExpr::Int { unsigned: false, size: IntegerSize::S64 }),
+		},
+		TypedExpression::Boolean(_) => Some(TypeExpr::Bool),
+		TypedExpression::String(_) => Some(TypeExpr::String),
+		TypedExpression::Function { return_type, .. } => Some(TypeExpr::FnLiteral {
+			return_type: return_type.clone().map(|t| Box::new(t))
+		}),
+		TypedExpression::Prefix {
+			operator: PrefixOperator::Minus,
+			right
+		} => match get_type(right.as_ref()) {
+			Some(TypeExpr::Int { unsigned: true, size }) => Some(TypeExpr::Int { unsigned: false, size }),
+			t => t,
+		},
+		TypedExpression::Prefix {
+			operator: PrefixOperator::Bang,
+			right
+		} => get_type(right.as_ref()),
+		TypedExpression::Infix { type_expr, .. } => Some(type_expr.clone()),
+		TypedExpression::If { type_expr, .. } => type_expr.clone(),
+		TypedExpression::Call { return_type, .. } => return_type.clone(),
+		TypedExpression::Array { type_expr, .. } => Some(TypeExpr::Array(Box::new(type_expr.clone()))),
+		TypedExpression::Index { left, .. } => {
+			let left_type = get_type(left.as_ref());
+			match left_type {
+				Some(TypeExpr::Array(elements_type)) => {
+					/*if !matches!(index_type, Some(TypeExpr::Int { .. })) {
+						return Err(TypeCheckError::IndexTypeMismatch {
+							index_type,
+							indexed_type: left_type,
+						})
+					}*/
+					Some(*elements_type.clone())
+				}
+				//Temporary
+				Some(TypeExpr::Hash) => None,
+				_ => panic!("{:?} isn't indexable (should be handled in check_expression())", left)
+			}
+		}
+		TypedExpression::Hash { .. } => Some(TypeExpr::Hash),
+	}
+}
+
+fn check_infix(operator: &InfixOperator, left: &TypedExpression, right: &TypedExpression) -> TCResult<TypeExpr> {
+	let left_type = get_type(left);
+	let right_type = get_type(right);
+	match (&left_type, right_type) {
+		(None, _) | (_, None) => return Err(TypeCheckError::Generic(format!("cannot include void type in infix operator ({:?} and {:?})", left, right))),
+		//(Some(TypeExpr::Int { .. }), Some(TypeExpr::Int { .. })) => {}
+		(left, right) => if left != &right {
+			return Err(TypeCheckError::Generic(format!("incompatible types ({:?} and {:?})", left, right)))
 		}
 	}
 
-	fn check_infix(&self, operator: &InfixOperator, left: &TypedExpression, right: &TypedExpression) -> TCResult<TypeExpr> {
-		let left_type = self.get_type(left);
-		let right_type = self.get_type(right);
-		match (&left_type, right_type) {
-			(None, _) | (_, None) => return Err(TypeCheckError::Generic(format!("cannot include void type in infix operator ({:?} and {:?})", left, right))),
-			//(Some(TypeExpr::Int { .. }), Some(TypeExpr::Int { .. })) => {}
-			(left, right) => if left != &right {
-				return Err(TypeCheckError::Generic(format!("incompatible types ({:?} and {:?})", left, right)))
-			}
-		}
-
-		match operator {
-			InfixOperator::LessThan |
-			InfixOperator::GreaterThan |
-			InfixOperator::Equal |
-			InfixOperator::Unequal => Ok(TypeExpr::Bool),
-			_ => Ok(left_type.unwrap())
-		}
+	match operator {
+		InfixOperator::LessThan |
+		InfixOperator::GreaterThan |
+		InfixOperator::Equal |
+		InfixOperator::Unequal => Ok(TypeExpr::Bool),
+		_ => Ok(left_type.unwrap())
 	}
 }
 
@@ -288,5 +328,16 @@ pub enum TypeCheckError {
 		operator: PrefixOperator,
 		right_type: Option<TypeExpr>,
 	},
+	IndexTypeMismatch {
+		indexed_type: Option<TypeExpr>,
+		index_type: Option<TypeExpr>,
+	},
+	IndexedTypeMismatch {
+		indexed_type: Option<TypeExpr>,
+		index_type: Option<TypeExpr>,
+	},
+	EmptyArray,
+	VoidArrayElem(Vec<Option<TypeExpr>>),
+	ArrayTypeMismatch(Vec<Option<TypeExpr>>),
 	Generic(String),
 }

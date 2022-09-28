@@ -101,7 +101,8 @@ fn test_scoped_type_bindings() {
 									},
 									has_semicolon: false,
 								}
-							]
+							],
+							return_type: Some(TypeExpr::String),
 						}
 					}
 				},
@@ -111,8 +112,9 @@ fn test_scoped_type_bindings() {
 						type_expr: TypeExpr::Int { unsigned: true, size: IntegerSize::S8 },
 					},
 					has_semicolon: true,
-				}
-			]
+				},
+			],
+			return_type: None,
 		}),
 	];
 

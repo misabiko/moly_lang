@@ -14,8 +14,9 @@ pub enum TypeExpr {
 	},
 	Bool,
 	String,
-	//Array,
-	//Hash,
+	Array(Box<TypeExpr>),
+	//TODO Should we get rid of hashes?
+	Hash,
 	FnLiteral {
 		return_type: Option<Box<TypeExpr>>,
 	},
@@ -49,6 +50,10 @@ impl fmt::Display for TypeExpr {
 			},
 			TypeExpr::Call { return_type: None } => write!(f, "() -> void"),
 			TypeExpr::Call { return_type: Some(return_type) } => write!(f, "() -> {}", return_type.as_ref()),
+			TypeExpr::Array(element_type) => {
+				write!(f, "[{}]", element_type)
+			},
+			TypeExpr::Hash=> write!(f, "{{:}}"),
 		}
 	}
 }

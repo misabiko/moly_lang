@@ -7,6 +7,7 @@ use crate::code::{Instructions, make, Opcode, OperandIndex};
 use crate::compiler::symbol_table::{SymbolScope, Symbol, SymbolTable};
 use crate::object::{Function, Object};
 use crate::object::builtins::get_builtins;
+use crate::type_checker::get_type;
 use crate::type_checker::typed_ast::{TypedExpression, TypedProgram, TypedStatement};
 
 pub mod symbol_table;
@@ -60,7 +61,6 @@ impl Compiler {
 		}
 	}
 
-	//TODO Either add prefix to non typed program or simplify Typed prefix
 	pub fn compile(&mut self, program: TypedProgram) -> CompilerResult {
 		for stmt in program.statements {
 			self.compile_statement(stmt)?
@@ -71,10 +71,13 @@ impl Compiler {
 
 	fn compile_statement(&mut self, stmt: TypedStatement) -> CompilerResult {
 		match stmt {
-			TypedStatement::Expression { expr, .. } => {
+			TypedStatement::Expression { expr, has_semicolon } => {
+				let is_void = get_type(&expr).is_none();
 				self.compile_expression(expr)?;
 
-				self.emit(Opcode::Pop, &[]);
+				if has_semicolon && !is_void {
+					self.emit(Opcode::Pop, &[]);
+				}
 			}
 			TypedStatement::Let { name, value } => {
 				let (index, scope) = {
@@ -96,7 +99,9 @@ impl Compiler {
 
 				self.emit(Opcode::ReturnValue, &[]);
 			}
-			_ => return Err(format!("{:?} not handled", stmt))
+			TypedStatement::Return(None) => {
+				self.emit(Opcode::Return, &[]);
+			}
 		}
 
 		Ok(())
@@ -175,11 +180,14 @@ impl Compiler {
 				//Emit an OpJumpIfFalse with temp value
 				let jump_if_false_pos = self.emit(Opcode::JumpIfFalse, &[0]);
 
+				let consequence_return_type = consequence.return_type.clone();
 				self.compile(consequence)?;
 
-				if self.last_instruction_is(Opcode::Pop) {
-					self.remove_last_pop();
-				}
+				/*if self.last_instruction_is(Opcode::Pop) {
+					if !matches!(consequence_return_type, Some(TypedStatement::Expression { has_semicolon: false, .. })) {
+						self.remove_last_pop();
+					}
+				}*/
 
 				//Emit an OpJump with temp value
 				let jump_pos = self.emit(Opcode::Jump, &[0]);
@@ -198,7 +206,7 @@ impl Compiler {
 				let after_alternative_pos = self.current_instructions().len();
 				self.change_operand(jump_pos, after_alternative_pos);
 			}
-			TypedExpression::Array(elements) => {
+			TypedExpression::Array { elements, .. } => {
 				let length = elements.len();
 				for el in elements {
 					self.compile_expression(el)?;
@@ -235,13 +243,18 @@ impl Compiler {
 					self.symbol_table.borrow_mut().define(&param.0);
 				}
 
+				let body_return_type = body.return_type.clone();
 				self.compile(body)?;
 
 				if self.last_instruction_is(Opcode::Pop) {
 					self.replace_last_pop_with_return();
 				}
-				if !self.last_instruction_is(Opcode::ReturnValue) {
-					self.emit(Opcode::Return, &[]);
+				if !self.last_instruction_is(Opcode::ReturnValue) && !self.last_instruction_is(Opcode::Return) {
+					if body_return_type.is_some() {
+						self.emit(Opcode::ReturnValue, &[]);
+					}else {
+						self.emit(Opcode::Return, &[]);
+					}
 				}
 
 				let free_symbols = self.symbol_table.borrow().free_symbols.clone();

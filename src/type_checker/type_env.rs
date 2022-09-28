@@ -19,15 +19,13 @@ pub enum TypeExpr {
 	//TODO Should we get rid of hashes?
 	Hash,
 	FnLiteral {
-		return_type: Box<TypeExpr>,
-	},
-	Call {
+		parameter_types: Vec<TypeExpr>,
 		return_type: Box<TypeExpr>,
 	},
 }
 
 impl fmt::Display for TypeExpr {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
 			TypeExpr::Void => write!(f, "void"),
 			TypeExpr::Int { unsigned: true, size: IntegerSize::S8 } => write!(f, "u8"),
@@ -40,17 +38,13 @@ impl fmt::Display for TypeExpr {
 			TypeExpr::Int { unsigned: false, size: IntegerSize::S64 } => write!(f, "i64"),
 			TypeExpr::Bool => write!(f, "bool"),
 			TypeExpr::String => write!(f, "str"),
-			TypeExpr::FnLiteral { return_type } => {
-				let return_type = match return_type.as_ref() {
-					TypeExpr::Void => "".into(),
-					r => format!(" {}", r),
-				};
+			TypeExpr::FnLiteral { parameter_types, return_type } => {
+				let parameter_types = parameter_types.iter()
+					.map(|t| t.to_string())
+					.collect::<Vec<String>>()
+					.join(", ");
 
-				write!(f, "fn() {} {{}}", return_type)
-			},
-			TypeExpr::Call { return_type } => match return_type.as_ref() {
-				TypeExpr::Void => write!(f, "() -> void"),
-				t => write!(f, "() -> {}", t),
+				write!(f, "fn({}) {} {{}}", parameter_types, return_type)
 			},
 			TypeExpr::Array(element_type) => write!(f, "[{}]", element_type),
 			TypeExpr::Hash=> write!(f, "{{:}}"),

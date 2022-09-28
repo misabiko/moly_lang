@@ -156,7 +156,8 @@ impl TypeChecker {
 				}
 
 				if let Some(name) = &name {
-					self.type_env.define_identifier(name, TypeExpr::Call {
+					self.type_env.define_identifier(name, TypeExpr::FnLiteral {
+						parameter_types: parameters.iter().map(|p| p.1.clone()).collect(),
 						return_type: Box::new(return_type.clone()),
 					});
 				}
@@ -176,16 +177,36 @@ impl TypeChecker {
 			}
 			Expression::Call { function, arguments } => {
 				let function = self.check_expression(*function)?;
+
 				let arguments = arguments.into_iter()
 					.map(|arg| self.check_expression(arg))
 					.collect::<TCResult<Vec<TypedExpression>>>()?;
 
 				let return_type = match get_type(&function) {
+					TypeExpr::FnLiteral { parameter_types ,return_type } => {
+						if arguments.len() != parameter_types.len() {
+							return Err(TypeCheckError::CallArgCount {
+								parameter_count: parameter_types.len() as u8,
+								argument_count: arguments.len() as u8,
+							})
+						}
+
+						let argument_types: Vec<TypeExpr> = arguments.iter().map(|a| get_type(a)).collect();
+						for (arg, param) in argument_types.iter().zip(parameter_types.iter()) {
+							if arg != param {
+								return Err(TypeCheckError::CallArgTypeMismatch {
+									parameter_types,
+									argument_types,
+								})
+							}
+						}
+
+						*return_type
+					},
 					TypeExpr::Void => return Err(TypeCheckError::Generic("cannot call void type".into())),
-					TypeExpr::Call { return_type } => *return_type,
-					TypeExpr::FnLiteral { return_type } => *return_type,
 					t => return Err(TypeCheckError::Generic(format!("type {:?} not callable", t)))
 				};
+
 
 				Ok(TypedExpression::Call {
 					function: Box::new(function),
@@ -252,7 +273,8 @@ pub fn get_type(expr: &TypedExpression) -> TypeExpr {
 		},
 		TypedExpression::Boolean(_) => TypeExpr::Bool,
 		TypedExpression::String(_) => TypeExpr::String,
-		TypedExpression::Function { return_type, .. } => TypeExpr::FnLiteral {
+		TypedExpression::Function { parameters, return_type, .. } => TypeExpr::FnLiteral {
+			parameter_types: parameters.iter().map(|p| p.1.clone()).collect(),
 			return_type: Box::new(return_type.clone())
 		},
 		TypedExpression::Prefix {
@@ -330,5 +352,13 @@ pub enum TypeCheckError {
 	EmptyArray,
 	VoidArrayElem(Vec<TypeExpr>),
 	ArrayTypeMismatch(Vec<TypeExpr>),
+	CallArgCount {
+		parameter_count: u8,
+		argument_count: u8,
+	},
+	CallArgTypeMismatch {
+		parameter_types: Vec<TypeExpr>,
+		argument_types: Vec<TypeExpr>,
+	},
 	Generic(String),
 }

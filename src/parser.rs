@@ -428,6 +428,8 @@ impl Parser {
 		match &self.cur_token.token_type {
 			TokenType::Function => {
 				self.expect_peek(TokenType::LParen)?;
+				//TODO Parse fn params
+				let parameter_types = vec![];
 				self.expect_peek(TokenType::RParen)?;
 
 				let return_type = if !self.peek_token_is(TokenType::LBrace) {
@@ -437,6 +439,7 @@ impl Parser {
 				};
 
 				Ok(TypeExpr::FnLiteral {
+					parameter_types,
 					return_type: Box::new(return_type),
 				})
 			}

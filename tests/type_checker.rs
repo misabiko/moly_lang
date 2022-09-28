@@ -144,7 +144,62 @@ fn test_prefix() {
 	}
 }
 
+#[test]
+fn test_call_arg_num() {
+	let tests = vec![
+		("
+			let func = fn() {};
+			func(0)
+		", MolyError::TypeCheck(TypeCheckError::CallArgCount {
+			parameter_count: 0,
+			argument_count: 1,
+		})),
+		("
+			let func = fn(a u8) {};
+			func();
+		", MolyError::TypeCheck(TypeCheckError::CallArgCount {
+			parameter_count: 1,
+			argument_count: 0
+		})),
+		("
+			let func = fn(a u8) {};
+			func(0, 0);
+		", MolyError::TypeCheck(TypeCheckError::CallArgCount {
+			parameter_count: 1,
+			argument_count: 2,
+		})),
+	];
 
+	for (input, expected_error) in tests {
+		let program = type_check(input);
+		assert_eq!(program.expect_err("type check didn't return error"), expected_error)
+	}
+}
+
+#[test]
+fn test_call_arg_type_mismatch() {
+	let tests = vec![
+		("
+			let func = fn(a str) {};
+			func(true)
+		", MolyError::TypeCheck(TypeCheckError::CallArgTypeMismatch {
+			parameter_types: vec![TypeExpr::String],
+			argument_types: vec![TypeExpr::Bool]
+		})),
+		(r#"
+			let func = fn(a str, b bool) {};
+			func(true, "bleh");
+		"#, MolyError::TypeCheck(TypeCheckError::CallArgTypeMismatch {
+			parameter_types: vec![TypeExpr::String, TypeExpr::Bool],
+			argument_types: vec![TypeExpr::Bool, TypeExpr::String]
+		})),
+	];
+
+	for (input, expected_error) in tests {
+		let program = type_check(input);
+		assert_eq!(program.expect_err("type check didn't return error"), expected_error)
+	}
+}
 
 fn type_check(input: &str) -> Result<TypedProgram, MolyError> {
 	let program = match Parser::new(Lexer::new(input)).parse_program() {

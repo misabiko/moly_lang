@@ -12,7 +12,9 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 	vec![
 		BuiltinInfo {
 			name: "len",
-			type_expr: TypeExpr::Call {
+			type_expr: TypeExpr::FnLiteral {
+				//TODO Comment rest of builtins
+				parameter_types: vec![],
 				return_type: Box::new(TypeExpr::Int {
 					unsigned: true,
 					//Temporary size
@@ -33,7 +35,8 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		},
 		BuiltinInfo {
 			name: "print",
-			type_expr: TypeExpr::Call {
+			type_expr: TypeExpr::FnLiteral {
+				parameter_types: vec![],
 				return_type: Box::new(TypeExpr::Void)
 			},
 			builtin: |args| {
@@ -47,7 +50,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		//These require template typing
 		/*BuiltinInfo {
 			name: "first",
-			type_expr: TypeExpr::Call {
+			type_expr: TypeExpr::FnLiteral {
 				return_type: Some()
 			},
 			builtin: |args| {
@@ -64,7 +67,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		},
 		BuiltinInfo {
 			name: "last",
-			type_expr: TypeExpr::Call {
+			type_expr: TypeExpr::FnLiteral {
 				return_type:
 			},
 			builtin: |args| {
@@ -81,7 +84,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		},
 		BuiltinInfo {
 			name: "rest",
-			type_expr: TypeExpr::Call {
+			type_expr: TypeExpr::FnLiteral {
 				return_type:
 			},
 			builtin: |args| {
@@ -98,7 +101,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		},*/
 		/*BuiltinInfo {
 			name: "push",
-			type_expr: TypeExpr::Call {
+			type_expr: TypeExpr::FnLiteral {
 				return_type: TypeExpr::Array(Box::new(TypeExpr::))
 			},
 			builtin: |args| {

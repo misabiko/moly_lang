@@ -87,7 +87,7 @@ impl VM {
 	pub fn stack_top(&self) -> Option<&Object> {
 		if self.sp == 0 {
 			None
-		}else {
+		} else {
 			self.stack[self.sp - 1].as_ref()
 		}
 	}
@@ -369,7 +369,7 @@ impl VM {
 
 		match (&left, &right) {
 			(Object::U8(left), Object::U8(right))
-				=> return self.execute_integer_comparison(op, *left as i64, *right as i64),
+			=> return self.execute_integer_comparison(op, *left as i64, *right as i64),
 			(Object::U16(left), Object::U16(right))
 			=> return self.execute_integer_comparison(op, *left as i64, *right as i64),
 			(Object::U32(left), Object::U32(right))
@@ -480,23 +480,23 @@ impl VM {
 	fn execute_index_expression(&mut self, left: Object, index: Object) -> VMResult {
 		match (left, index) {
 			(Object::Array(elements), Object::U8(index))
-				=> self.execute_array_index(elements, index as i64),
+			=> self.execute_array_index(elements, index as i64),
 			(Object::Array(elements), Object::U16(index))
-				=> self.execute_array_index(elements, index as i64),
+			=> self.execute_array_index(elements, index as i64),
 			(Object::Array(elements), Object::U32(index))
-				=> self.execute_array_index(elements, index as i64),
+			=> self.execute_array_index(elements, index as i64),
 			(Object::Array(elements), Object::U64(index))
-				=> self.execute_array_index(elements, index as i64),
+			=> self.execute_array_index(elements, index as i64),
 			(Object::Array(elements), Object::I8(index))
-				=> self.execute_array_index(elements, index as i64),
+			=> self.execute_array_index(elements, index as i64),
 			(Object::Array(elements), Object::I16(index))
-				=> self.execute_array_index(elements, index as i64),
+			=> self.execute_array_index(elements, index as i64),
 			(Object::Array(elements), Object::I32(index))
-				=> self.execute_array_index(elements, index as i64),
+			=> self.execute_array_index(elements, index as i64),
 			(Object::Array(elements), Object::I64(index))
-				=> self.execute_array_index(elements, index),
+			=> self.execute_array_index(elements, index),
 			(Object::Hash(pairs), index)
-				=> self.execute_hash_index(pairs, index),
+			=> self.execute_hash_index(pairs, index),
 			(left, index) => Err(format!("index operator not supported: {:?}[{:?}]", left, index))
 		}
 	}
@@ -530,10 +530,11 @@ impl VM {
 	}
 
 	fn call_closure(&mut self, closure: Closure, num_args: u8) -> VMResult {
-		if closure.func.num_parameters != num_args {
-			//TODO Wrong arg number should be caught by type checker
-			return Err(format!("wrong number of arguments: want={}, got={}", closure.func.num_parameters, num_args));
-		}
+		assert_eq!(closure.func.num_parameters, num_args,
+				   "wrong number of arguments: want={}, got={}",
+				   closure.func.num_parameters,
+				   num_args
+		);
 
 		let num_args = num_args as usize;
 		let num_locals = closure.func.num_locals;

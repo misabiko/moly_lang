@@ -1,4 +1,5 @@
 use std::fmt;
+use crate::token::IntType;
 
 pub struct TypeBinding {
 	ident: String,
@@ -8,11 +9,7 @@ pub struct TypeBinding {
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeExpr {
 	Void,
-	Int {
-		//TODO If unsigned field unused, dissolve into enum?
-		unsigned: bool,
-		size: IntegerSize,
-	},
+	Int(IntType),
 	Bool,
 	String,
 	Array(Box<TypeExpr>),
@@ -30,14 +27,14 @@ impl fmt::Display for TypeExpr {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
 			TypeExpr::Void => write!(f, "void"),
-			TypeExpr::Int { unsigned: true, size: IntegerSize::S8 } => write!(f, "u8"),
-			TypeExpr::Int { unsigned: true, size: IntegerSize::S16 } => write!(f, "u16"),
-			TypeExpr::Int { unsigned: true, size: IntegerSize::S32 } => write!(f, "u32"),
-			TypeExpr::Int { unsigned: true, size: IntegerSize::S64 } => write!(f, "u64"),
-			TypeExpr::Int { unsigned: false, size: IntegerSize::S8 } => write!(f, "i8"),
-			TypeExpr::Int { unsigned: false, size: IntegerSize::S16 } => write!(f, "i16"),
-			TypeExpr::Int { unsigned: false, size: IntegerSize::S32 } => write!(f, "i32"),
-			TypeExpr::Int { unsigned: false, size: IntegerSize::S64 } => write!(f, "i64"),
+			TypeExpr::Int(IntType::U8) => write!(f, "u8"),
+			TypeExpr::Int(IntType::U16) => write!(f, "u16"),
+			TypeExpr::Int(IntType::U32) => write!(f, "u32"),
+			TypeExpr::Int(IntType::U64) => write!(f, "u64"),
+			TypeExpr::Int(IntType::I8) => write!(f, "i8"),
+			TypeExpr::Int(IntType::I16) => write!(f, "i16"),
+			TypeExpr::Int(IntType::I32) => write!(f, "i32"),
+			TypeExpr::Int(IntType::I64) => write!(f, "i64"),
 			TypeExpr::Bool => write!(f, "bool"),
 			TypeExpr::String => write!(f, "str"),
 			TypeExpr::FnLiteral { parameter_types, return_type } => {
@@ -53,15 +50,6 @@ impl fmt::Display for TypeExpr {
 			TypeExpr::Any=> write!(f, "ANY"),
 		}
 	}
-}
-
-#[derive(Debug, PartialEq, Copy, Clone)]
-#[repr(u8)]
-pub enum IntegerSize {
-	S8 = 8,
-	S16 = 16,
-	S32 = 32,
-	S64 = 64,
 }
 
 pub type TypeId = u32;

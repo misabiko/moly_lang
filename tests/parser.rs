@@ -5,7 +5,8 @@ use moly::{
 	parser::Parser,
 };
 use moly::ast::{Expression, InfixOperator, IntExpr, PrefixOperator};
-use moly::type_checker::type_env::{IntegerSize, TypeExpr};
+use moly::token::IntType;
+use moly::type_checker::type_env::TypeExpr;
 
 //TODO Parse DeclarativeProgram
 
@@ -345,7 +346,7 @@ fn test_if_expression() {
 fn test_function_literal_parsing() {
 	let tests = vec![
 		("fn(x u8, y u8) { x + y; }", TypeExpr::Void),
-		("fn(x u8, y u8) u8 { x + y }", TypeExpr::Int {unsigned: true, size: IntegerSize::S8}),
+		("fn(x u8, y u8) u8 { x + y }", TypeExpr::Int(IntType::U8)),
 	];
 
 	for (input, expected_return) in tests {
@@ -356,8 +357,8 @@ fn test_function_literal_parsing() {
 
 			assert_eq!(parameters.len(), 2, "function parameters wrong, want 2. ({:?})", parameters);
 
-			assert_eq!(parameters[0], ("x".into(), TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }));
-			assert_eq!(parameters[1], ("y".into(), TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }));
+			assert_eq!(parameters[0], ("x".into(), TypeExpr::Int(IntType::U8)));
+			assert_eq!(parameters[1], ("y".into(), TypeExpr::Int(IntType::U8)));
 
 			assert_eq!(return_type, expected_return, "wrong return type");
 
@@ -388,12 +389,12 @@ fn test_function_parameter_parsing() {
 	let tests = vec![
 		("fn() {};", vec![]),
 		("fn(x u8) {};", vec![
-			("x".into(), TypeExpr::Int { unsigned: true, size: IntegerSize::S8 })
+			("x".into(), TypeExpr::Int(IntType::U8))
 		]),
 		("fn(x u8, y str, z i16) {};", vec![
-			("x".into(), TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
+			("x".into(), TypeExpr::Int(IntType::U8)),
 			("y".into(), TypeExpr::String),
-			("z".into(), TypeExpr::Int { unsigned: false, size: IntegerSize::S16 }),
+			("z".into(), TypeExpr::Int(IntType::I16)),
 		]),
 	];
 

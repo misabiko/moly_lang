@@ -3,7 +3,7 @@ use std::fmt::Formatter;
 use crate::ast::{BlockStatement, Expression, InfixOperator, IntExpr, PrefixOperator, Program, Statement};
 use crate::lexer::Lexer;
 use crate::token::{IntType, Token, TokenLiteral, TokenType};
-use crate::type_checker::type_env::{IntegerSize, TypeExpr};
+use crate::type_checker::type_env::TypeExpr;
 
 pub struct Parser {
 	pub lexer: Lexer,
@@ -443,14 +443,14 @@ impl Parser {
 					return_type: Box::new(return_type),
 				})
 			}
-			TokenType::IntegerType(IntType::U8) => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
-			TokenType::IntegerType(IntType::U16) => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S16 }),
-			TokenType::IntegerType(IntType::U32) => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S32 }),
-			TokenType::IntegerType(IntType::U64) => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S64 }),
-			TokenType::IntegerType(IntType::I8) => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S8 }),
-			TokenType::IntegerType(IntType::I16) => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S16 }),
-			TokenType::IntegerType(IntType::I32) => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S32 }),
-			TokenType::IntegerType(IntType::I64) => Ok(TypeExpr::Int { unsigned: false, size: IntegerSize::S64 }),
+			TokenType::IntegerType(IntType::U8) => Ok(TypeExpr::Int(IntType::U8)),
+			TokenType::IntegerType(IntType::U16) => Ok(TypeExpr::Int(IntType::U16)),
+			TokenType::IntegerType(IntType::U32) => Ok(TypeExpr::Int(IntType::U32)),
+			TokenType::IntegerType(IntType::U64) => Ok(TypeExpr::Int(IntType::U64)),
+			TokenType::IntegerType(IntType::I8) => Ok(TypeExpr::Int(IntType::I8)),
+			TokenType::IntegerType(IntType::I16) => Ok(TypeExpr::Int(IntType::I16)),
+			TokenType::IntegerType(IntType::I32) => Ok(TypeExpr::Int(IntType::I32)),
+			TokenType::IntegerType(IntType::I64) => Ok(TypeExpr::Int(IntType::I64)),
 			TokenType::Bool => Ok(TypeExpr::Bool),
 			TokenType::Str => Ok(TypeExpr::String),
 			_ => Err(ParserError::Generic(format!("unrecognized type: {:?}", self.cur_token))),

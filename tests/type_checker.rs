@@ -2,9 +2,10 @@ use moly::ast::{IntExpr, PrefixOperator};
 use moly::lexer::Lexer;
 use moly::MolyError;
 use moly::parser::Parser;
+use moly::token::IntType;
 use moly::type_checker::{TypeChecker, TypeCheckError};
 use moly::type_checker::typed_ast::{TypedBlockStatement, TypedExpression, TypedProgram, TypedStatement};
-use moly::type_checker::type_env::{TypeExpr, IntegerSize};
+use moly::type_checker::type_env::TypeExpr;
 
 #[test]
 fn test_boolean_expression() {
@@ -28,9 +29,9 @@ fn test_boolean_expression() {
 fn test_function_parameter_parsing() {
 	let tests = vec![
 		("fn(x u8, y str, z i16) {};", vec![
-			("x".into(), TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
+			("x".into(), TypeExpr::Int(IntType::U8)),
 			("y".into(), TypeExpr::String),
-			("z".into(), TypeExpr::Int { unsigned: false, size: IntegerSize::S16 }),
+			("z".into(), TypeExpr::Int(IntType::I16)),
 		]),
 	];
 
@@ -52,8 +53,8 @@ fn test_function_parameter_parsing() {
 fn test_if_expression() {
 	let tests = vec![
 		("if 2 < 4 { 4; }", Ok(TypeExpr::Void)),
-		("if 2 < 4 { 4 }", Err(MolyError::TypeCheck(TypeCheckError::Generic("mismatched if types Int { unsigned: true, size: S8 } vs None".into())))),
-		("if 2 < 4 { 2 } else { 4 }", Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 })),
+		("if 2 < 4 { 4 }", Err(MolyError::TypeCheck(TypeCheckError::Generic("mismatched if types Int(U8) vs None".into())))),
+		("if 2 < 4 { 2 } else { 4 }", Ok(TypeExpr::Int(IntType::U8))),
 	];
 
 	for (input, expected_type) in tests {
@@ -109,7 +110,7 @@ fn test_scoped_type_bindings() {
 				TypedStatement::Expression {
 					expr: TypedExpression::Identifier {
 						name: "a".into(),
-						type_expr: TypeExpr::Int { unsigned: true, size: IntegerSize::S8 },
+						type_expr: TypeExpr::Int(IntType::U8),
 					},
 					has_semicolon: true,
 				},
@@ -130,7 +131,7 @@ fn test_prefix() {
 	let tests = vec![
 		("!5", MolyError::TypeCheck(TypeCheckError::PrefixTypeMismatch {
 			operator: PrefixOperator::Bang,
-			right_type: TypeExpr::Int { unsigned: true, size: IntegerSize::S8 },
+			right_type: TypeExpr::Int(IntType::U8),
 		})),
 		("-true", MolyError::TypeCheck(TypeCheckError::PrefixTypeMismatch {
 			operator: PrefixOperator::Minus,

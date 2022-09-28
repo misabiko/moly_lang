@@ -1,6 +1,7 @@
 use crate::ast::{Expression, InfixOperator, IntExpr, PrefixOperator, Program, Statement};
 use crate::object::builtins::get_builtins;
-use crate::type_checker::type_env::{IntegerSize, TypeEnv, TypeExpr};
+use crate::token::IntType;
+use crate::type_checker::type_env::{TypeEnv, TypeExpr};
 use crate::type_checker::typed_ast::{TypedExpression, TypedProgram, TypedStatement};
 
 pub mod typed_ast;
@@ -269,14 +270,14 @@ pub fn get_type(expr: &TypedExpression) -> TypeExpr {
 	match expr {
 		TypedExpression::Identifier { type_expr, .. } => type_expr.clone(),
 		TypedExpression::Integer(v) => match v {
-			IntExpr::U8(_) => TypeExpr::Int { unsigned: true, size: IntegerSize::S8 },
-			IntExpr::U16(_) => TypeExpr::Int { unsigned: true, size: IntegerSize::S16 },
-			IntExpr::U32(_) => TypeExpr::Int { unsigned: true, size: IntegerSize::S32 },
-			IntExpr::U64(_) => TypeExpr::Int { unsigned: true, size: IntegerSize::S64 },
-			IntExpr::I8(_) => TypeExpr::Int { unsigned: false, size: IntegerSize::S8 },
-			IntExpr::I16(_) => TypeExpr::Int { unsigned: false, size: IntegerSize::S16 },
-			IntExpr::I32(_) => TypeExpr::Int { unsigned: false, size: IntegerSize::S32 },
-			IntExpr::I64(_) => TypeExpr::Int { unsigned: false, size: IntegerSize::S64 },
+			IntExpr::U8(_) => TypeExpr::Int(IntType::U8),
+			IntExpr::U16(_) => TypeExpr::Int(IntType::U16),
+			IntExpr::U32(_) => TypeExpr::Int(IntType::U32),
+			IntExpr::U64(_) => TypeExpr::Int(IntType::U64),
+			IntExpr::I8(_) => TypeExpr::Int(IntType::I8),
+			IntExpr::I16(_) => TypeExpr::Int(IntType::I16),
+			IntExpr::I32(_) => TypeExpr::Int(IntType::I32),
+			IntExpr::I64(_) => TypeExpr::Int(IntType::I64),
 		},
 		TypedExpression::Boolean(_) => TypeExpr::Bool,
 		TypedExpression::String(_) => TypeExpr::String,
@@ -288,7 +289,10 @@ pub fn get_type(expr: &TypedExpression) -> TypeExpr {
 			operator: PrefixOperator::Minus,
 			right
 		} => match get_type(right.as_ref()) {
-			TypeExpr::Int { unsigned: true, size } => TypeExpr::Int { unsigned: false, size },
+			TypeExpr::Int(IntType::U8) => TypeExpr::Int(IntType::I8),
+			TypeExpr::Int(IntType::U16) => TypeExpr::Int(IntType::I16),
+			TypeExpr::Int(IntType::U32) => TypeExpr::Int(IntType::I32),
+			TypeExpr::Int(IntType::U64) => TypeExpr::Int(IntType::I64),
 			t => t,
 		},
 		TypedExpression::Prefix {

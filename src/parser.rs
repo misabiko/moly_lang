@@ -119,7 +119,6 @@ impl Parser {
 	}
 
 	fn parse_expression(&mut self, precedence: Precedence) -> PResult<Expression> {
-
 		let mut left_exp = match &self.cur_token {
 			//TODO Consume Token instead of cloning
 			Token { token_type: TokenType::Ident, literal: TokenLiteral::String(ident), .. }
@@ -293,6 +292,7 @@ impl Parser {
 		let parameters = self.parse_function_parameters()?;
 
 		let return_type = if !self.peek_token_is(TokenType::LBrace) {
+			self.next_token();
 			self.parse_type_identifier()?
 		} else {
 			TypeExpr::Void
@@ -322,6 +322,7 @@ impl Parser {
 
 		let expect_str = "identifier literal isn't string";
 		identifiers.push(if let TokenLiteral::String(ident) = self.cur_token.literal.clone() {
+			self.next_token();
 			(ident.clone(), self.parse_type_identifier()?)
 		} else {
 			return Err(ParserError::Generic(expect_str.into()));
@@ -332,6 +333,7 @@ impl Parser {
 			self.next_token();
 
 			identifiers.push(if let TokenLiteral::String(ident) = self.cur_token.literal.clone() {
+				self.next_token();
 				(ident.clone(), self.parse_type_identifier()?)
 			} else {
 				return Err(ParserError::Generic(expect_str.into()));
@@ -423,16 +425,14 @@ impl Parser {
 	}
 
 	fn parse_type_identifier(&mut self) -> PResult<TypeExpr> {
-		self.next_token();
-
 		match &self.cur_token.token_type {
 			TokenType::Function => {
 				self.expect_peek(TokenType::LParen)?;
-				//TODO Parse fn params
-				let parameter_types = vec![];
-				self.expect_peek(TokenType::RParen)?;
+
+				let parameter_types = self.parse_type_list(TokenType::RParen)?;
 
 				let return_type = if !self.peek_token_is(TokenType::LBrace) {
+					self.next_token();
 					self.parse_type_identifier()?
 				} else {
 					TypeExpr::Void
@@ -455,6 +455,28 @@ impl Parser {
 			TokenType::Str => Ok(TypeExpr::String),
 			_ => Err(ParserError::Generic(format!("unrecognized type: {:?}", self.cur_token))),
 		}
+	}
+
+	fn parse_type_list(&mut self, end: TokenType) -> PResult<Vec<TypeExpr>> {
+		let mut list = vec![];
+
+		if self.peek_token_is(end) {
+			self.next_token();
+			return Ok(list);
+		}
+
+		self.next_token();
+		list.push(self.parse_type_identifier()?);
+
+		while self.peek_token_is(TokenType::Comma) {
+			self.next_token();
+			self.next_token();
+			list.push(self.parse_type_identifier()?);
+		}
+
+		self.expect_peek(end)?;
+
+		Ok(list)
 	}
 
 	fn cur_token_is(&self, t: TokenType) -> bool {

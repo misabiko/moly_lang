@@ -797,7 +797,7 @@ fn test_closures() {
 		//TODO Temporary callable syntax
 		TestCase {
 			input: "
-            fn(a u8) fn() u8 {
+            fn(a u8) fn(u8) u8 {
                 fn(b u8) u8 {
                     a + b
                 }
@@ -830,8 +830,8 @@ fn test_closures() {
 		},
 		TestCase {
 			input: "
-            fn(a u8) fn() fn() u8 {
-                fn(b u8) fn() u8 {
+            fn(a u8) fn(u8) fn(u8) u8 {
+                fn(b u8) fn(u8) u8 {
                     fn(c u8) u8 {
                         a + b + c
                     }

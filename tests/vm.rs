@@ -399,26 +399,6 @@ fn test_calling_functions_with_arguments_and_bindings() {
 }
 
 #[test]
-fn test_calling_functions_with_wrong_arguments() {
-	let tests = vec![
-		TestCase {
-			input:    "fn() { 1; }(1);",
-			expected: Err(Some("wrong number of arguments: want=0, got=1".into())),
-		},
-		TestCase {
-			input:    "fn(a u8) { a; }();",
-			expected: Err(Some("wrong number of arguments: want=1, got=0".into())),
-		},
-		TestCase {
-			input:    "fn(a u8, b u8) { a + b; }(1);",
-			expected: Err(Some("wrong number of arguments: want=2, got=1".into())),
-		},
-	];
-
-	run_vm_tests(tests)
-}
-
-#[test]
 fn test_builtin_functions() {
 	let tests = vec![
 		TestCase {input: r#"len("")"#, expected: Ok(Some(Object::U64(0)))},
@@ -428,21 +408,14 @@ fn test_builtin_functions() {
 			input: "len(1)",
 			expected: Ok(Some(Object::Error("argument to `len` not supported, got U8(1)".into())))
 		},
-		TestCase {
-			input: r#"len("one", "two")"#,
-			expected: Ok(Some(Object::Error("wrong number of arguments. got=2, want=1".into())))
-		},
 		TestCase {input: "len([1, 2, 3])", expected: Ok(Some(Object::U64(3)))},
 		TestCase {input: "len([1])", expected: Ok(Some(Object::U64(1)))},
-		TestCase {input: r#"print("hello", "world!")"#, expected: Ok(None)},
-		/*TODO TestCase {input: "first([1, 2, 3])", expected: Ok(Some(Object::U8(1)))},
-		TestCase {input: r#"first([])"#, expected: Ok(None)},
+		TestCase {input: "first([1, 2, 3])", expected: Ok(Some(Object::U8(1)))},
 		TestCase {
 			input: "first(1)",
 			expected: Ok(Some(Object::Error("argument to `first` must be Array, got U8(1)".into())))
 		},
 		TestCase {input: "last([1, 2, 3])", expected: Ok(Some(Object::U8(3)))},
-		TestCase {input: r#"last([])"#, expected: Ok(None)},
 		TestCase {
 			input: "last(1)",
 			expected: Ok(Some(Object::Error("argument to `last` must be Array, got U8(1)".into())))
@@ -451,15 +424,14 @@ fn test_builtin_functions() {
 			Object::U8(2),
 			Object::U8(3),
 		])))},
-		TestCase {input: r#"rest([])"#, expected: Ok(None)},*/
-		/*TestCase {input: "push([1], 1)", expected: Ok(Some(Object::Array(vec![
+		TestCase {input: "push([1], 1)", expected: Ok(Some(Object::Array(vec![
 			Object::U8(1),
 			Object::U8(1),
-		])))},*/
-		/*TestCase {
+		])))},
+		TestCase {
 			input: "push(1, 1)",
 			expected: Ok(Some(Object::Error("argument to `push` must be Array, got U8(1)".into())))
-		},*/
+		},
 	];
 
 	run_vm_tests(tests)
@@ -480,7 +452,7 @@ fn test_closures() {
 		},
 		TestCase {
 			input: "
-			let newAdder = fn(a u8, b u8) fn() u8 {
+			let newAdder = fn(a u8, b u8) fn(u8) u8 {
 				fn(c u8) u8 { a + b + c }
 			};
 			let adder = newAdder(1, 2);
@@ -490,7 +462,7 @@ fn test_closures() {
 		},
 		TestCase {
 			input: "
-			let newAdder = fn(a u8, b u8) fn() u8 {
+			let newAdder = fn(a u8, b u8) fn(u8) u8 {
 				let c = a + b;
 				fn(d u8) u8 { c + d }
 			};
@@ -501,9 +473,9 @@ fn test_closures() {
 		},
 		TestCase {
 			input: "
-			let newAdderOuter = fn(a u8, b u8) fn() fn() u8 {
+			let newAdderOuter = fn(a u8, b u8) fn(u8) fn(u8) u8 {
 				let c = a + b;
-				fn(d u8) fn() u8 {
+				fn(d u8) fn(u8) u8 {
 					let e = d + c;
 					fn(f u8) u8 { e + f }
 				}
@@ -517,8 +489,8 @@ fn test_closures() {
 		TestCase {
 			input: "
 			let a = 1;
-			let newAdderOuter = fn(b u8) fn() fn() u8 {
-				fn(c u8) fn() u8 {
+			let newAdderOuter = fn(b u8) fn(u8) fn(u8) u8 {
+				fn(c u8) fn(u8) u8 {
 					fn(d u8) u8 { a + b + c + d }
 				}
 			};

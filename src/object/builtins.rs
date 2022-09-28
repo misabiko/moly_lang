@@ -13,8 +13,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		BuiltinInfo {
 			name: "len",
 			type_expr: TypeExpr::FnLiteral {
-				//TODO Comment rest of builtins
-				parameter_types: vec![],
+				parameter_types: vec![TypeExpr::Any],
 				return_type: Box::new(TypeExpr::Int {
 					unsigned: true,
 					//Temporary size
@@ -22,10 +21,6 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 				})
 			},
 			builtin: |args| {
-				if args.len() != 1 {
-					return Some(Object::Error(format!("wrong number of arguments. got={}, want=1", args.len())));
-				}
-
 				Some(match &args[0] {
 					Object::Array(elements) => Object::U64(elements.len() as u64),
 					Object::String(value) => Object::U64(value.len() as u64),
@@ -36,7 +31,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		BuiltinInfo {
 			name: "print",
 			type_expr: TypeExpr::FnLiteral {
-				parameter_types: vec![],
+				parameter_types: vec![TypeExpr::Any],
 				return_type: Box::new(TypeExpr::Void)
 			},
 			builtin: |args| {
@@ -48,16 +43,13 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 			},
 		},
 		//These require template typing
-		/*BuiltinInfo {
+		BuiltinInfo {
 			name: "first",
 			type_expr: TypeExpr::FnLiteral {
-				return_type: Some()
+				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any))],
+				return_type: Box::new(TypeExpr::Any),
 			},
 			builtin: |args| {
-				if args.len() != 1 {
-					return Some(Object::Error(format!("wrong number of arguments. got={}, want=1", args.len())));
-				}
-
 				if let Object::Array(elements) = &args[0] {
 					elements.first().cloned()
 				}else {
@@ -68,13 +60,10 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		BuiltinInfo {
 			name: "last",
 			type_expr: TypeExpr::FnLiteral {
-				return_type:
+				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any))],
+				return_type: Box::new(TypeExpr::Any),
 			},
 			builtin: |args| {
-				if args.len() != 1 {
-					return Some(Object::Error(format!("wrong number of arguments. got={}, want=1", args.len())));
-				}
-
 				if let Object::Array(elements) = &args[0] {
 					elements.last().cloned()
 				}else {
@@ -85,30 +74,24 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		BuiltinInfo {
 			name: "rest",
 			type_expr: TypeExpr::FnLiteral {
-				return_type:
+				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any))],
+				return_type: Box::new(TypeExpr::Any),
 			},
 			builtin: |args| {
-				if args.len() != 1 {
-					return Some(Object::Error(format!("wrong number of arguments. got={}, want=1", args.len())));
-				}
-
 				if let Object::Array(elements) = &args[0] {
 					Some(Object::Array(elements.iter().skip(1).cloned().collect()))
 				}else {
 					Some(Object::Error(format!("argument to `rest` must be Array, got {:?}", args[0])))
 				}
 			},
-		},*/
-		/*BuiltinInfo {
+		},
+		BuiltinInfo {
 			name: "push",
 			type_expr: TypeExpr::FnLiteral {
-				return_type: TypeExpr::Array(Box::new(TypeExpr::))
+				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any)), TypeExpr::Any],
+				return_type: Box::new(TypeExpr::Array(Box::new(TypeExpr::Any))),
 			},
 			builtin: |args| {
-				if args.len() != 2 {
-					return Some(Object::Error(format!("wrong number of arguments. got={}, want=2", args.len())));
-				}
-
 				if let Object::Array(elements) = &args[0] {
 					let mut new_elements = elements.clone();
 					new_elements.push(args[1].clone());
@@ -118,7 +101,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 					Some(Object::Error(format!("argument to `push` must be Array, got {:?}", args[0])))
 				}
 			},
-		},*/
+		},
 	]
 }
 

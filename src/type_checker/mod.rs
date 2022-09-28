@@ -193,6 +193,13 @@ impl TypeChecker {
 
 						let argument_types: Vec<TypeExpr> = arguments.iter().map(|a| get_type(a)).collect();
 						for (arg, param) in argument_types.iter().zip(parameter_types.iter()) {
+							match param {
+								TypeExpr::Array(elements) => if let TypeExpr::Any = elements.as_ref() {
+									continue
+								}
+								TypeExpr::Any => continue,
+								_ => {}
+							}
 							if arg != param {
 								return Err(TypeCheckError::CallArgTypeMismatch {
 									parameter_types,

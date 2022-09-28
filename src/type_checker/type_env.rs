@@ -22,6 +22,8 @@ pub enum TypeExpr {
 		parameter_types: Vec<TypeExpr>,
 		return_type: Box<TypeExpr>,
 	},
+	//TODO Remove TypeExpr::Any once builtin have been removed
+	Any,
 }
 
 impl fmt::Display for TypeExpr {
@@ -48,6 +50,7 @@ impl fmt::Display for TypeExpr {
 			},
 			TypeExpr::Array(element_type) => write!(f, "[{}]", element_type),
 			TypeExpr::Hash=> write!(f, "{{:}}"),
+			TypeExpr::Any=> write!(f, "ANY"),
 		}
 	}
 }

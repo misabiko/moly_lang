@@ -44,6 +44,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 				None
 			},
 		},
+		//These require template typing
 		/*BuiltinInfo {
 			name: "first",
 			type_expr: TypeExpr::Call {
@@ -95,10 +96,10 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 				}
 			},
 		},*/
-		BuiltinInfo {
+		/*BuiltinInfo {
 			name: "push",
 			type_expr: TypeExpr::Call {
-				return_type: None
+				return_type: TypeExpr::Array(Box::new(TypeExpr::))
 			},
 			builtin: |args| {
 				if args.len() != 2 {
@@ -114,7 +115,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 					Some(Object::Error(format!("argument to `push` must be Array, got {:?}", args[0])))
 				}
 			},
-		},
+		},*/
 	]
 }
 

@@ -456,13 +456,14 @@ fn test_builtin_functions() {
 			Object::U8(3),
 		])))},
 		TestCase {input: r#"rest([])"#, expected: Ok(None)},*/
-		TestCase {input: "push([], 1)", expected: Ok(Some(Object::Array(vec![
-			Object::U8(1)
-		])))},
-		TestCase {
+		/*TestCase {input: "push([1], 1)", expected: Ok(Some(Object::Array(vec![
+			Object::U8(1),
+			Object::U8(1),
+		])))},*/
+		/*TestCase {
 			input: "push(1, 1)",
 			expected: Ok(Some(Object::Error("argument to `push` must be Array, got U8(1)".into())))
-		},
+		},*/
 	];
 
 	run_vm_tests(tests)

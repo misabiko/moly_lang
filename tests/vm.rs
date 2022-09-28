@@ -147,14 +147,12 @@ fn test_index_expressions() {
 		TestCase { input: "[1, 2, 3][1]", expected: Ok(Some(Object::U8(2))) },
 		TestCase { input: "[1, 2, 3][0 + 2]", expected: Ok(Some(Object::U8(3))) },
 		TestCase { input: "[[1, 1, 1]][0][0]", expected: Ok(Some(Object::U8(1))) },
-		//TODO Test run time error
-		//VMTestCase { input: "[][0]", expected: Ok(Some(Object::U8(Null))) },
-		//VMTestCase { input: "[1, 2, 3][99]", expected: Ok(Some(Object::U8(Null))) },
-		//VMTestCase { input: "[1][-1]", expected: Ok(Some(Object::U8(Null))) },
+		TestCase { input: "[1, 2, 3][99]", expected: Err(Some("index 99 out of bound [0..2]".into())) },
+		TestCase { input: "[1][-1]", expected: Err(Some("index -1 out of bound [0..0]".into())) },
 		//TestCase { input: "{1: 1, 2: 2}[1]", expected: Ok(Some(Object::U8(1))) },
 		//TestCase { input: "{1: 1, 2: 2}[2]", expected: Ok(Some(Object::U8(2))) },
-		//VMTestCase { input: "{1: 1}[0]", expected: Ok(Some(Object::U8(Null))) },
-		//VMTestCase { input: "{}[0]", expected: Ok(Some(Object::U8(Null))) },
+		//TestCase { input: "{1: 1}[0]", expected: Err(None) },
+		//TestCase { input: "{}[0]", expected: Err(None) },
 	];
 
 	run_vm_tests(tests)

@@ -27,8 +27,7 @@ pub fn start() {
 	}
 	let mut symbol_table = Rc::new(RefCell::new(table));
 
-	//TODO Show how to exit
-	println!("Enter commands");
+	println!("Enter commands, use Ctrl-C or enter `exit` to exit:");
 
 	loop {
 		print!("{} ", PROMPT);
@@ -38,6 +37,10 @@ pub fn start() {
 		let mut buffer = String::new();
 		std::io::stdin().read_line(&mut buffer)
 			.expect("Failed to read line from stdin");
+
+		if buffer.trim() == "exit" {
+			std::process::exit(0);
+		}
 
 		let mut parser = Parser::new(Lexer::new(&buffer));
 

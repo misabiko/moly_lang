@@ -293,10 +293,9 @@ impl Parser {
 		let parameters = self.parse_function_parameters()?;
 
 		let return_type = if !self.peek_token_is(TokenType::LBrace) {
-			let return_type = Some(self.parse_type_identifier()?);
-			return_type
+			self.parse_type_identifier()?
 		} else {
-			None
+			TypeExpr::Void
 		};
 
 		self.expect_peek(TokenType::LBrace)?;
@@ -432,14 +431,13 @@ impl Parser {
 				self.expect_peek(TokenType::RParen)?;
 
 				let return_type = if !self.peek_token_is(TokenType::LBrace) {
-					let return_type = Some(self.parse_type_identifier()?);
-					return_type
+					self.parse_type_identifier()?
 				} else {
-					None
+					TypeExpr::Void
 				};
 
 				Ok(TypeExpr::FnLiteral {
-					return_type: return_type.map(|t| Box::new(t)),
+					return_type: Box::new(return_type),
 				})
 			}
 			TokenType::IntegerType(IntType::U8) => Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),

@@ -531,7 +531,7 @@ impl VM {
 
 	fn call_closure(&mut self, closure: Closure, num_args: u8) -> VMResult {
 		if closure.func.num_parameters != num_args {
-			//TODO Standardize assert_eq errors
+			//TODO Wrong arg number should be caught by type checker
 			return Err(format!("wrong number of arguments: want={}, got={}", closure.func.num_parameters, num_args));
 		}
 

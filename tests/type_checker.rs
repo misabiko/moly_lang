@@ -51,9 +51,9 @@ fn test_function_parameter_parsing() {
 #[test]
 fn test_if_expression() {
 	let tests = vec![
-		("if 2 < 4 { 4; }", Ok(None)),
+		("if 2 < 4 { 4; }", Ok(TypeExpr::Void)),
 		("if 2 < 4 { 4 }", Err(MolyError::TypeCheck(TypeCheckError::Generic("mismatched if types Int { unsigned: true, size: S8 } vs None".into())))),
-		("if 2 < 4 { 2 } else { 4 }", Ok(Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }))),
+		("if 2 < 4 { 2 } else { 4 }", Ok(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 })),
 	];
 
 	for (input, expected_type) in tests {
@@ -91,7 +91,7 @@ fn test_scoped_type_bindings() {
 					value: TypedExpression::Function {
 						name: Some("func".into()),
 						parameters: vec![("a".into(), TypeExpr::String)],
-						return_type: Some(TypeExpr::String),
+						return_type: TypeExpr::String,
 						body: TypedBlockStatement {
 							statements: vec![
 								TypedStatement::Expression {
@@ -102,7 +102,7 @@ fn test_scoped_type_bindings() {
 									has_semicolon: false,
 								}
 							],
-							return_type: Some(TypeExpr::String),
+							return_type: TypeExpr::String,
 						}
 					}
 				},
@@ -114,7 +114,7 @@ fn test_scoped_type_bindings() {
 					has_semicolon: true,
 				},
 			],
-			return_type: None,
+			return_type: TypeExpr::Void,
 		}),
 	];
 
@@ -130,11 +130,11 @@ fn test_prefix() {
 	let tests = vec![
 		("!5", MolyError::TypeCheck(TypeCheckError::PrefixTypeMismatch {
 			operator: PrefixOperator::Bang,
-			right_type: Some(TypeExpr::Int { unsigned: true, size: IntegerSize::S8 }),
+			right_type: TypeExpr::Int { unsigned: true, size: IntegerSize::S8 },
 		})),
 		("-true", MolyError::TypeCheck(TypeCheckError::PrefixTypeMismatch {
 			operator: PrefixOperator::Minus,
-			right_type: Some(TypeExpr::Bool),
+			right_type: TypeExpr::Bool,
 		})),
 	];
 

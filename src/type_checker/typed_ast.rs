@@ -7,7 +7,7 @@ pub type TypedProgram = TypedBlockStatement;
 #[derive(Debug)]
 pub struct TypedBlockStatement {
 	pub statements: Vec<TypedStatement>,
-	pub return_type: Option<TypeExpr>,
+	pub return_type: TypeExpr,
 }
 
 impl fmt::Display for TypedBlockStatement {
@@ -71,7 +71,7 @@ pub enum TypedExpression {
 	},
 	If {
 		condition: Box<TypedExpression>,
-		type_expr: Option<TypeExpr>,
+		type_expr: TypeExpr,
 		consequence: TypedBlockStatement,
 		alternative: Option<TypedBlockStatement>,
 	},
@@ -80,12 +80,12 @@ pub enum TypedExpression {
 		body: TypedBlockStatement,
 		name: Option<String>,
 		//TODO Remove return_type if it's stored in TypedBlockStatement
-		return_type: Option<TypeExpr>,
+		return_type: TypeExpr,
 	},
 	Call {
 		function: Box<TypedExpression>,
 		arguments: Vec<TypedExpression>,
-		return_type: Option<TypeExpr>,
+		return_type: TypeExpr,
 	},
 	Array {
 		elements: Vec<TypedExpression>,
@@ -126,10 +126,9 @@ impl fmt::Display for TypedExpression {
 					.map(|(i, t)| format!("{} {}", i, t))
 					.collect::<Vec<String>>()
 					.join(", ");
-				let return_type = if let Some(r) = return_type {
-					format!(" {}", r)
-				}else {
-					"".into()
+				let return_type = match return_type {
+					TypeExpr::Void => "".into(),
+					r => format!(" {}", r),
 				};
 
 				write!(f, "fn{}({}) {} {}", name, parameters, return_type, body)

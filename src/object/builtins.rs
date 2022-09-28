@@ -13,11 +13,11 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		BuiltinInfo {
 			name: "len",
 			type_expr: TypeExpr::Call {
-				return_type: Some(Box::new(TypeExpr::Int {
+				return_type: Box::new(TypeExpr::Int {
 					unsigned: true,
 					//Temporary size
 					size: IntegerSize::S64
-				}))
+				})
 			},
 			builtin: |args| {
 				if args.len() != 1 {
@@ -34,7 +34,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		BuiltinInfo {
 			name: "print",
 			type_expr: TypeExpr::Call {
-				return_type: None
+				return_type: Box::new(TypeExpr::Void)
 			},
 			builtin: |args| {
 				for arg in args {

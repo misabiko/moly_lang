@@ -73,7 +73,7 @@ pub enum Expression {
 		parameters: Vec<(String, TypeExpr)>,
 		body: BlockStatement,
 		name: Option<String>,
-		return_type: Option<TypeExpr>,
+		return_type: TypeExpr,
 	},
 	Call {
 		function: Box<Expression>,
@@ -122,10 +122,9 @@ impl fmt::Display for Expression {
 					.map(|(i, t)| format!("{} {}", i, t))
 					.collect::<Vec<String>>()
 					.join(", ");
-				let return_type = if let Some(r) = return_type {
-					format!(" {}", r)
-				}else {
-					"".into()
+				let return_type = match return_type {
+					TypeExpr::Void => "".into(),
+					r => format!(" {}", r),
 				};
 
 				write!(f, "fn{}({}) {} {}", name, parameters, return_type, body)

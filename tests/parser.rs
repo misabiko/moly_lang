@@ -344,8 +344,8 @@ fn test_if_expression() {
 #[test]
 fn test_function_literal_parsing() {
 	let tests = vec![
-		("fn(x u8, y u8) { x + y; }", None),
-		("fn(x u8, y u8) u8 { x + y }", Some(TypeExpr::Int {unsigned: true, size: IntegerSize::S8})),
+		("fn(x u8, y u8) { x + y; }", TypeExpr::Void),
+		("fn(x u8, y u8) u8 { x + y }", TypeExpr::Int {unsigned: true, size: IntegerSize::S8}),
 	];
 
 	for (input, expected_return) in tests {

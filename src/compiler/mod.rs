@@ -9,6 +9,7 @@ use crate::object::{Function, Object};
 use crate::object::builtins::get_builtins;
 use crate::type_checker::get_type;
 use crate::type_checker::typed_ast::{TypedExpression, TypedProgram, TypedStatement};
+use crate::type_checker::type_env::TypeExpr;
 
 pub mod symbol_table;
 
@@ -72,7 +73,7 @@ impl Compiler {
 	fn compile_statement(&mut self, stmt: TypedStatement) -> CompilerResult {
 		match stmt {
 			TypedStatement::Expression { expr, has_semicolon } => {
-				let is_void = get_type(&expr).is_none();
+				let is_void = matches!(get_type(&expr), TypeExpr::Void);
 				self.compile_expression(expr)?;
 
 				if has_semicolon && !is_void {
@@ -180,14 +181,7 @@ impl Compiler {
 				//Emit an OpJumpIfFalse with temp value
 				let jump_if_false_pos = self.emit(Opcode::JumpIfFalse, &[0]);
 
-				let consequence_return_type = consequence.return_type.clone();
 				self.compile(consequence)?;
-
-				/*if self.last_instruction_is(Opcode::Pop) {
-					if !matches!(consequence_return_type, Some(TypedStatement::Expression { has_semicolon: false, .. })) {
-						self.remove_last_pop();
-					}
-				}*/
 
 				//Emit an OpJump with temp value
 				let jump_pos = self.emit(Opcode::Jump, &[0]);
@@ -250,10 +244,10 @@ impl Compiler {
 					self.replace_last_pop_with_return();
 				}
 				if !self.last_instruction_is(Opcode::ReturnValue) && !self.last_instruction_is(Opcode::Return) {
-					if body_return_type.is_some() {
-						self.emit(Opcode::ReturnValue, &[]);
-					}else {
+					if matches!(body_return_type, TypeExpr::Void) {
 						self.emit(Opcode::Return, &[]);
+					} else {
+						self.emit(Opcode::ReturnValue, &[]);
 					}
 				}
 

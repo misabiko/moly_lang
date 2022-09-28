@@ -7,6 +7,7 @@ pub struct TypeBinding {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeExpr {
+	Void,
 	Int {
 		//TODO If unsigned field unused, dissolve into enum?
 		unsigned: bool,
@@ -18,17 +19,17 @@ pub enum TypeExpr {
 	//TODO Should we get rid of hashes?
 	Hash,
 	FnLiteral {
-		return_type: Option<Box<TypeExpr>>,
+		return_type: Box<TypeExpr>,
 	},
 	Call {
-		return_type: Option<Box<TypeExpr>>,
+		return_type: Box<TypeExpr>,
 	},
-	//TODO Add void as a TypeExpr?
 }
 
 impl fmt::Display for TypeExpr {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
+			TypeExpr::Void => write!(f, "void"),
 			TypeExpr::Int { unsigned: true, size: IntegerSize::S8 } => write!(f, "u8"),
 			TypeExpr::Int { unsigned: true, size: IntegerSize::S16 } => write!(f, "u16"),
 			TypeExpr::Int { unsigned: true, size: IntegerSize::S32 } => write!(f, "u32"),
@@ -40,19 +41,18 @@ impl fmt::Display for TypeExpr {
 			TypeExpr::Bool => write!(f, "bool"),
 			TypeExpr::String => write!(f, "str"),
 			TypeExpr::FnLiteral { return_type } => {
-				let return_type = if let Some(r) = return_type {
-					format!(" {}", r)
-				}else {
-					"".into()
+				let return_type = match return_type.as_ref() {
+					TypeExpr::Void => "".into(),
+					r => format!(" {}", r),
 				};
 
 				write!(f, "fn() {} {{}}", return_type)
 			},
-			TypeExpr::Call { return_type: None } => write!(f, "() -> void"),
-			TypeExpr::Call { return_type: Some(return_type) } => write!(f, "() -> {}", return_type.as_ref()),
-			TypeExpr::Array(element_type) => {
-				write!(f, "[{}]", element_type)
+			TypeExpr::Call { return_type } => match return_type.as_ref() {
+				TypeExpr::Void => write!(f, "() -> void"),
+				t => write!(f, "() -> {}", t),
 			},
+			TypeExpr::Array(element_type) => write!(f, "[{}]", element_type),
 			TypeExpr::Hash=> write!(f, "{{:}}"),
 		}
 	}

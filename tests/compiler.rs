@@ -339,51 +339,6 @@ fn test_array_literals() {
 }
 
 #[test]
-fn test_hash_literals() {
-	let tests = vec![
-		TestCase {
-			input: "{}",
-			expected_constants: vec![],
-			expected_instructions: vec![
-				make(Opcode::Hash, &[0]),
-			],
-		},
-		TestCase {
-			input: "{1: 2, 3: 4, 5: 6}",
-			expected_constants: vec![1, 2, 3, 4, 5, 6].into_iter()
-				.map(|i| Object::U8(i)).collect(),
-			expected_instructions: vec![
-				make(Opcode::Constant, &[0]),
-				make(Opcode::Constant, &[1]),
-				make(Opcode::Constant, &[2]),
-				make(Opcode::Constant, &[3]),
-				make(Opcode::Constant, &[4]),
-				make(Opcode::Constant, &[5]),
-				make(Opcode::Hash, &[6]),
-			],
-		},
-		TestCase {
-			input: "{1: 2 + 3, 4: 5 * 6}",
-			expected_constants: vec![1, 2, 3, 4, 5, 6].into_iter()
-				.map(|i| Object::U8(i)).collect(),
-			expected_instructions: vec![
-				make(Opcode::Constant, &[0]),
-				make(Opcode::Constant, &[1]),
-				make(Opcode::Constant, &[2]),
-				make(Opcode::Add, &[]),
-				make(Opcode::Constant, &[3]),
-				make(Opcode::Constant, &[4]),
-				make(Opcode::Constant, &[5]),
-				make(Opcode::Mul, &[]),
-				make(Opcode::Hash, &[4]),
-			],
-		},
-	];
-
-	run_compiler_tests(tests)
-}
-
-#[test]
 fn test_index_expressions() {
 	let tests = vec![
 		TestCase {
@@ -401,22 +356,6 @@ fn test_index_expressions() {
 				make(Opcode::Index, &[]),
 			]
 		},
-		//TODO Remove hashes?
-		/*TestCase {
-			input: "{1: 2}[2 - 1]",
-			expected_constants: vec![1, 2, 2, 1].into_iter()
-				.map(|i| Object::U8(i)).collect(),
-			expected_instructions: vec![
-				make(Opcode::Constant, &[0]),
-				make(Opcode::Constant, &[1]),
-				make(Opcode::Hash, &[2]),
-				make(Opcode::Constant, &[2]),
-				make(Opcode::Constant, &[3]),
-				make(Opcode::Sub, &[]),
-				make(Opcode::Index, &[]),
-				make(Opcode::Pop, &[]),
-			]
-		},*/
 	];
 
 	run_compiler_tests(tests)

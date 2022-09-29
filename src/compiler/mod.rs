@@ -208,17 +208,6 @@ impl Compiler {
 
 				self.emit(Opcode::Array, &[length]);
 			}
-			TypedExpression::Hash(mut pairs) => {
-				let length = pairs.len();
-				pairs.sort_by_key(|(k, _)| k.to_string());
-
-				for (k, v) in pairs {
-					self.compile_expression(k)?;
-					self.compile_expression(v)?;
-				}
-
-				self.emit(Opcode::Hash, &[length * 2]);
-			}
 			TypedExpression::Index { left, index } => {
 				self.compile_expression(*left)?;
 				self.compile_expression(*index)?;

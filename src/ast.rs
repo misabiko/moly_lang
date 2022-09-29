@@ -84,7 +84,6 @@ pub enum Expression {
 		left: Box<Expression>,
 		index: Box<Expression>,
 	},
-	Hash(Vec<(Expression, Expression)>),
 }
 
 impl fmt::Display for Expression {
@@ -132,14 +131,6 @@ impl fmt::Display for Expression {
 			Expression::Call { function, arguments } => write!(f, "{}({})", function, join_expression_vec(arguments)),
 			Expression::Array(elements) => write!(f, "[{}]", join_expression_vec(elements)),
 			Expression::Index { left, index } => write!(f, "({}[{}])", left, index),
-			Expression::Hash(pairs) => {
-				let pairs = pairs.iter()
-					.map(|(k, v)| format!("{}:{}", k, v))
-					.collect::<Vec<String>>()
-					.join(", ");
-
-				write!(f, "{{{}}}", pairs)
-			},
 		}
 	}
 }

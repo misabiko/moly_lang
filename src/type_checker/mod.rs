@@ -289,15 +289,6 @@ impl TypeChecker {
 					index: Box::new(index),
 				})
 			}
-			Expression::Hash(pairs) => {
-				let mut typed_pairs: Vec<(TypedExpression, TypedExpression)> = Vec::with_capacity(pairs.len());
-
-				for (key, value) in pairs {
-					typed_pairs.push((self.check_expression(key)?, self.check_expression(value)?))
-				}
-
-				Ok(TypedExpression::Hash(typed_pairs))
-			}
 		}
 	}
 
@@ -371,12 +362,9 @@ pub fn get_type(expr: &TypedExpression) -> TypeExpr {
 					}*/
 					*elements_type.clone()
 				}
-				//Temporary
-				TypeExpr::Hash => TypeExpr::Void,
 				_ => panic!("{:?} isn't indexable (should be handled in check_expression())", left)
 			}
 		}
-		TypedExpression::Hash { .. } => TypeExpr::Hash,
 	}
 }
 

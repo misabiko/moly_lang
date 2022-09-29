@@ -156,7 +156,6 @@ impl Parser {
 			Token { token_type: TokenType::Function, .. } => self.parse_function_literal(),
 			Token { token_type: TokenType::String, .. } => Ok(self.parse_string_literal()),
 			Token { token_type: TokenType::LBracket, .. } => self.parse_array_literal(),
-			Token { token_type: TokenType::LBrace, .. } => self.parse_hash_literal(),
 			_ => Err(self.no_prefix_parse_fn_error().unwrap_err()),
 		}?;
 
@@ -395,32 +394,6 @@ impl Parser {
 			left: Box::new(left),
 			index: Box::new(index),
 		})
-	}
-
-	fn parse_hash_literal(&mut self) -> PResult<Expression> {
-		let mut pairs = vec![];
-
-		//We could skip a peek_token_is with a manual loop, but probably not worth it
-		while !self.peek_token_is(TokenType::RBrace) {
-			self.next_token();
-
-			let key = self.parse_expression(Precedence::Lowest)?;
-
-			self.expect_peek(TokenType::Colon)?;
-
-			self.next_token();
-			let value = self.parse_expression(Precedence::Lowest)?;
-
-			pairs.push((key, value));
-
-			if !self.peek_token_is(TokenType::RBrace) {
-				self.expect_peek(TokenType::Comma)?;
-			}
-		}
-
-		self.expect_peek(TokenType::RBrace)?;
-
-		Ok(Expression::Hash(pairs))
 	}
 
 	fn parse_type_identifier(&mut self) -> PResult<TypeExpr> {

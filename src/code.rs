@@ -72,11 +72,6 @@ pub enum Opcode {
 	/// Operands:
 	/// element_count: u16
 	Array,
-	/// Pops the elements off the stack and make an array with them
-	/// The elements alternate in key-value pairs
-	/// Operands:
-	/// element_count_times_two: u16
-	Hash,
 	/// Pops the index and container off the stack, and push the indexed value on it
 	Index,
 	/// Pop the called closure and its arguments from the stack
@@ -137,8 +132,6 @@ pub fn lookup(op: u8) -> Result<Definition, String> {
 			//TODO Test error message for too many elements in an array
 			//Operand width: Number of elements
 			Opcode::Array => Ok(Definition { name: "OpArray", operand_widths: &[2] }),
-			//Operand width: Number of keys + Number of values
-			Opcode::Hash => Ok(Definition { name: "OpHash", operand_widths: &[2] }),
 			Opcode::Index => Ok(Definition { name: "OpIndex", operand_widths: &[] }),
 
 			Opcode::Call => Ok(Definition { name: "OpCall", operand_widths: &[1] }),

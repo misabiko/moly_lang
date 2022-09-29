@@ -95,7 +95,6 @@ pub enum TypedExpression {
 		left: Box<TypedExpression>,
 		index: Box<TypedExpression>,
 	},
-	Hash(Vec<(TypedExpression, TypedExpression)>),
 }
 
 impl fmt::Display for TypedExpression {
@@ -136,14 +135,6 @@ impl fmt::Display for TypedExpression {
 			TypedExpression::Call { function, arguments, .. } => write!(f, "{}({})", function, join_expression_vec(arguments)),
 			TypedExpression::Array { elements, .. } => write!(f, "[{}]", join_expression_vec(elements)),
 			TypedExpression::Index { left, index } => write!(f, "({}[{}])", left, index),
-			TypedExpression::Hash(pairs) => {
-				let pairs = pairs.iter()
-					.map(|(k, v)| format!("{}:{}", k, v))
-					.collect::<Vec<String>>()
-					.join(", ");
-
-				write!(f, "{{{}}}", pairs)
-			},
 		}
 	}
 }

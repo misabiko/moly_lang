@@ -1,8 +1,7 @@
-use std::collections::HashMap;
 use enum_primitive::FromPrimitive;
 use crate::code::{Instructions, Opcode, read_u16, read_u8};
 use crate::compiler::Bytecode;
-use crate::object::{Builtin, Closure, Function, HashingObject, Object};
+use crate::object::{Builtin, Closure, Function, Object};
 use crate::object::builtins::get_builtins;
 use crate::vm::frame::Frame;
 
@@ -200,15 +199,6 @@ impl VM {
 						self.sp -= num_elements;
 
 						self.push(array)?;
-					}
-					Opcode::Hash => {
-						let num_elements = read_u16(&ins[ip..]) as usize;
-						self.current_frame().ip += 2;
-
-						let hash = self.build_hash(self.sp - num_elements, self.sp)?;
-						self.sp -= num_elements;
-
-						self.push(hash)?;
 					}
 					Opcode::Index => {
 						let index = self.pop().cloned().ok_or("index not on stack")?;
@@ -462,21 +452,6 @@ impl VM {
 		)
 	}
 
-	fn build_hash(&self, start_index: usize, end_index: usize) -> Result<Object, String> {
-		let mut pairs = HashMap::new();
-
-		for i in (start_index..end_index).step_by(2) {
-			let key = self.stack[i].as_ref().unwrap();
-			let value = self.stack[i + 1].as_ref().unwrap();
-
-			let hash_key = HashingObject::try_from(key.clone())?;
-
-			pairs.insert(hash_key.clone(), (hash_key, value.clone()));
-		}
-
-		Ok(Object::Hash(pairs))
-	}
-
 	fn execute_index_expression(&mut self, left: Object, index: Object) -> VMResult {
 		match (left, index) {
 			(Object::Array(elements), Object::U8(index))
@@ -495,8 +470,6 @@ impl VM {
 			=> self.execute_array_index(elements, index as i64),
 			(Object::Array(elements), Object::I64(index))
 			=> self.execute_array_index(elements, index),
-			(Object::Hash(pairs), index)
-			=> self.execute_hash_index(pairs, index),
 			(left, index) => Err(format!("index operator not supported: {:?}[{:?}]", left, index))
 		}
 	}
@@ -509,14 +482,6 @@ impl VM {
 		};
 
 		self.push(array.get(index).cloned().unwrap())
-	}
-
-	fn execute_hash_index(&mut self, hash: HashMap<HashingObject, (HashingObject, Object)>, index: Object) -> VMResult {
-		let hash_key = HashingObject::try_from(index)?;
-
-		let pair = hash.get(&hash_key).ok_or_else(|| format!("value not found for {:?}", hash_key))?;
-
-		self.push(pair.1.clone())
 	}
 
 	fn execute_call(&mut self, num_args: u8) -> VMResult {

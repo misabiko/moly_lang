@@ -1,8 +1,7 @@
-use std::collections::HashMap;
 use moly::ast::Program;
 use moly::compiler::Compiler;
 use moly::lexer::Lexer;
-use moly::object::{HashingObject, Object};
+use moly::object::Object;
 use moly::parser::{Parser, ParserError};
 use moly::type_checker::TypeChecker;
 use moly::vm::VM;
@@ -117,30 +116,6 @@ fn test_array_literals() {
 	run_vm_tests(tests)
 }
 
-//TODO error on duplicate key if {1 + 2: 0, 4 - 1: 0, 3: 0}
-#[test]
-fn test_hash_literals() {
-	let tests = vec![
-		TestCase { input: "{}", expected: Ok(Some(Object::Hash(HashMap::new())))},
-		TestCase {
-			input: "{1: 2, 2: 3}",
-			expected: Ok(Some(Object::Hash(HashMap::from([
-				(HashingObject::U8(1), (HashingObject::U8(1), Object::U8(2))),
-				(HashingObject::U8(2), (HashingObject::U8(2), Object::U8(3))),
-			]))))
-		},
-		TestCase {
-			input: "{1 + 1: 2 * 2, 3 + 3: 4 * 4}",
-			expected: Ok(Some(Object::Hash(HashMap::from([
-				(HashingObject::U8(2), (HashingObject::U8(2), Object::U8(4))),
-				(HashingObject::U8(6), (HashingObject::U8(6), Object::U8(16))),
-			]))))
-		},
-	];
-
-	run_vm_tests(tests)
-}
-
 #[test]
 fn test_index_expressions() {
 	let tests = vec![
@@ -149,10 +124,6 @@ fn test_index_expressions() {
 		TestCase { input: "[[1, 1, 1]][0][0]", expected: Ok(Some(Object::U8(1))) },
 		TestCase { input: "[1, 2, 3][99]", expected: Err(Some("index 99 out of bound [0..2]".into())) },
 		TestCase { input: "[1][-1]", expected: Err(Some("index -1 out of bound [0..0]".into())) },
-		//TestCase { input: "{1: 1, 2: 2}[1]", expected: Ok(Some(Object::U8(1))) },
-		//TestCase { input: "{1: 1, 2: 2}[2]", expected: Ok(Some(Object::U8(2))) },
-		//TestCase { input: "{1: 1}[0]", expected: Err(None) },
-		//TestCase { input: "{}[0]", expected: Err(None) },
 	];
 
 	run_vm_tests(tests)

@@ -13,8 +13,6 @@ pub enum TypeExpr {
 	Bool,
 	String,
 	Array(Box<TypeExpr>),
-	//TODO Should we get rid of hashes?
-	Hash,
 	FnLiteral {
 		parameter_types: Vec<TypeExpr>,
 		return_type: Box<TypeExpr>,
@@ -48,7 +46,6 @@ impl fmt::Display for TypeExpr {
 				write!(f, "fn({}) {} {{}}", parameter_types, return_type)
 			}
 			TypeExpr::Array(element_type) => write!(f, "[{}]", element_type),
-			TypeExpr::Hash => write!(f, "{{:}}"),
 			TypeExpr::Return(returned_type) => write!(f, "return {}", returned_type),
 			TypeExpr::Any => write!(f, "ANY"),
 		}
@@ -58,14 +55,12 @@ impl fmt::Display for TypeExpr {
 pub type TypeId = u32;
 
 pub struct TypeEnv {
-	//types: HashMap<TypeId, TypeExpr>,
 	bindings: Vec<TypeBinding>,
 }
 
 impl TypeEnv {
 	pub fn new() -> Self {
 		Self {
-			//types: HashMap::new(),
 			bindings: Vec::new(),
 		}
 	}

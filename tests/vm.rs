@@ -3,6 +3,7 @@ use moly::compiler::Compiler;
 use moly::lexer::Lexer;
 use moly::object::Object;
 use moly::parser::{Parser, ParserError};
+use moly::token::TokenType;
 use moly::type_checker::TypeChecker;
 use moly::vm::VM;
 
@@ -614,5 +615,5 @@ fn run_vm_tests(tests: Vec<TestCase>) {
 }
 
 fn parse(input: &str) -> Result<Program, ParserError> {
-	Parser::new(Lexer::new(input)).parse_program()
+	Parser::new(Lexer::new(input)).parse_block_statement(TokenType::EOF)
 }

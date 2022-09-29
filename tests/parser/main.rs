@@ -5,6 +5,7 @@ use moly::{
 };
 use moly::ast::{Expression, Function, IntExpr, Program, StatementBlock};
 use moly::parser::ParserError;
+use moly::token::{Token, TokenLiteral, TokenType};
 use moly::type_checker::type_env::TypeExpr;
 
 mod statements;
@@ -13,12 +14,13 @@ mod expressions;
 #[test]
 fn test_program_parsing() {
 	let tests = vec![
-		("let x = 5;", Err(ParserError::InvalidGlobalStatement(Statement::Let {
-			name: "x".to_string(),
-			value: Expression::Integer(IntExpr::U8(5)),
+		("let x = 5;", Err(ParserError::InvalidGlobalToken(Token {
+			token_type: TokenType::Let,
+			literal: TokenLiteral::Static("let"),
+			after_whitespace: false
 		}))),
-		("fn(){}", Err(ParserError::MissingGlobalFunctionName)),
-		("fn myFunc(){}", Ok(StatementBlock(vec![
+		 ("fn(){}", Err(ParserError::MissingGlobalFunctionName)),
+		 ("fn myFunc(){}", Ok(StatementBlock(vec![
 			Statement::Function(Function {
 				name: Some("myFunc".into()),
 				parameters: vec![],
@@ -29,7 +31,9 @@ fn test_program_parsing() {
 	];
 
 	for (input, expected) in tests {
-		assert_eq!(parse(input), expected);
+		let mut parser = Parser::new(Lexer::new(input));
+
+		assert_eq!(parser.parse_program(), expected);
 	}
 }
 
@@ -144,7 +148,7 @@ fn test_operator_precedence_parsing() {
 
 	for (input, expected) in tests {
 		let mut parser = Parser::new(Lexer::new(input));
-		let program = match parser.parse_program() {
+		let program = match parser.parse_block_statement(TokenType::EOF) {
 			Ok(p) => p,
 			Err(err) => panic!("parse error: {}", err),
 		};
@@ -155,7 +159,7 @@ fn test_operator_precedence_parsing() {
 
 fn parse(input: &str) -> Result<Program, ParserError> {
 	let mut parser = Parser::new(Lexer::new(input));
-	parser.parse_program()
+	parser.parse_block_statement(TokenType::EOF)
 }
 
 fn parse_single_statement(input: &str) -> Result<Statement, ParserError> {

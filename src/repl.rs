@@ -9,6 +9,7 @@ use crate::compiler::Compiler;
 use crate::compiler::symbol_table::SymbolTable;
 use crate::object::builtins::get_builtins;
 use crate::parser::Parser;
+use crate::token::TokenType;
 use crate::type_checker::TypeChecker;
 use crate::vm::{GLOBALS_SIZE, VM};
 
@@ -44,7 +45,7 @@ pub fn start() {
 
 		let mut parser = Parser::new(Lexer::new(&buffer));
 
-		let program = match parser.parse_program() {
+		let program = match parser.parse_block_statement(TokenType::EOF) {
 			Ok(program) => program,
 			Err(err) => {
 				eprintln!("Parsing error: {}", err);

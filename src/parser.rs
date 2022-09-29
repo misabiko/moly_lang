@@ -43,12 +43,31 @@ impl Parser {
 		let mut statements = vec![];
 
 		while self.cur_token.token_type != TokenType::EOF {
+			statements.push(self.parse_global_statement()?);
+
+			self.next_token();
+		}
+
+		Ok(StatementBlock(statements))
+	}
+
+	pub fn parse_block_statement(&mut self, end: TokenType) -> PResult<StatementBlock> {
+		let mut statements = vec![];
+
+		while !self.cur_token_is(end) {
 			statements.push(self.parse_statement()?);
 
 			self.next_token();
 		}
 
 		Ok(StatementBlock(statements))
+	}
+
+	fn parse_global_statement(&mut self) -> PResult<Statement> {
+		match self.cur_token.token_type {
+			TokenType::Function => Ok(Statement::Function(self.parse_function_literal()?)),
+			_ => return Err(ParserError::InvalidGlobalToken(self.cur_token.clone())),
+		}
 	}
 
 	fn parse_statement(&mut self) -> PResult<Statement> {
@@ -153,13 +172,16 @@ impl Parser {
 			Token { token_type: TokenType::Minus, .. } => self.parse_prefix_expression(),
 			Token { token_type: TokenType::LParen, .. } => self.parse_grouped_expression(),
 			Token { token_type: TokenType::If, .. } => self.parse_if_expression(),
-			Token { token_type: TokenType::Function, .. } => self.parse_function_literal(),
+			Token { token_type: TokenType::Function, .. } => Ok(Expression::Function(self.parse_function_literal()?)),
 			Token { token_type: TokenType::String, .. } => Ok(self.parse_string_literal()),
 			Token { token_type: TokenType::LBracket, .. } => self.parse_array_literal(),
-			Token { token_type: TokenType::LBrace, .. } => Ok(Expression::Block {
-				statements: self.parse_block_statement()?,
-				return_transparent: false,
-			}),
+			Token { token_type: TokenType::LBrace, .. } => {
+				self.next_token();
+				Ok(Expression::Block {
+					statements: self.parse_block_statement(TokenType::RBrace)?,
+					return_transparent: false,
+				})
+			}
 			_ => Err(self.no_prefix_parse_fn_error().unwrap_err()),
 		}?;
 
@@ -254,15 +276,17 @@ impl Parser {
 		let condition = self.parse_expression(Precedence::Lowest)?;
 
 		self.expect_peek(TokenType::LBrace)?;
+		self.next_token();
 
-		let consequence = self.parse_block_statement()?;
+		let consequence = self.parse_block_statement(TokenType::RBrace)?;
 
 		let alternative = if self.peek_token_is(TokenType::Else) {
 			self.next_token();
 
 			self.expect_peek(TokenType::LBrace)?;
+			self.next_token();
 
-			Some(self.parse_block_statement()?)
+			Some(self.parse_block_statement(TokenType::RBrace)?)
 		} else {
 			None
 		};
@@ -274,21 +298,7 @@ impl Parser {
 		})
 	}
 
-	fn parse_block_statement(&mut self) -> PResult<StatementBlock> {
-		self.next_token();
-
-		let mut statements = vec![];
-
-		while !self.cur_token_is(TokenType::RBrace) {
-			statements.push(self.parse_statement()?);
-
-			self.next_token();
-		}
-
-		Ok(StatementBlock(statements))
-	}
-
-	fn parse_function_literal(&mut self) -> PResult<Expression> {
+	fn parse_function_literal(&mut self) -> PResult<Function> {
 		self.expect_peek(TokenType::LParen)?;
 
 		let parameters = self.parse_function_parameters()?;
@@ -301,15 +311,16 @@ impl Parser {
 		};
 
 		self.expect_peek(TokenType::LBrace)?;
+		self.next_token();
 
-		let body = self.parse_block_statement()?;
+		let body = self.parse_block_statement(TokenType::RBrace)?;
 
-		Ok(Expression::Function(Function {
+		Ok(Function {
 			parameters,
 			body,
 			name: None,
 			return_type,
-		}))
+		})
 	}
 
 	fn parse_function_parameters(&mut self) -> PResult<Vec<(String, TypeExpr)>> {
@@ -520,7 +531,7 @@ pub enum ParserError {
 		expected: String,
 		found: String,
 	},
-	InvalidGlobalStatement(Statement),
+	InvalidGlobalToken(Token),
 	MissingGlobalFunctionName,
 	//TODO Classify generic errors
 	Generic(String),

@@ -5,6 +5,7 @@ use moly::object::{Function, Object};
 use moly::compiler::{Compiler, EmittedInstruction};
 use moly::lexer::Lexer;
 use moly::parser::{Parser, ParserError};
+use moly::token::TokenType;
 use moly::type_checker::TypeChecker;
 
 #[test]
@@ -288,14 +289,6 @@ fn test_string_expressions() {
 #[test]
 fn test_array_literals() {
 	let tests = vec![
-		/*TestCase {
-			input: "[]",
-			expected_constants: vec![],
-			expected_instructions: vec![
-				make(Opcode::Array, &[0]),
-				make(Opcode::Pop, &[]),
-			],
-		},*/
 		TestCase {
 			input: "[1, 2, 3]",
 			expected_constants: vec![
@@ -1013,5 +1006,5 @@ fn run_compiler_tests(tests: Vec<TestCase>) {
 }
 
 fn parse(input: &str) -> Result<Program, ParserError> {
-	Parser::new(Lexer::new(input)).parse_program()
+	Parser::new(Lexer::new(input)).parse_block_statement(TokenType::EOF)
 }

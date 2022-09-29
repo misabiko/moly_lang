@@ -2,7 +2,7 @@ use moly::ast::{IntExpr, PrefixOperator};
 use moly::lexer::Lexer;
 use moly::MolyError;
 use moly::parser::Parser;
-use moly::token::IntType;
+use moly::token::{IntType, TokenType};
 use moly::type_checker::{TypeChecker, TypeCheckError};
 use moly::type_checker::typed_ast::{TypedStatementBlock, TypedExpression, TypedProgram, TypedStatement, TypedFunction};
 use moly::type_checker::type_env::TypeExpr;
@@ -296,7 +296,7 @@ fn test_return_statements() {
 }
 
 fn type_check(input: &str) -> Result<TypedProgram, MolyError> {
-	let program = match Parser::new(Lexer::new(input)).parse_program() {
+	let program = match Parser::new(Lexer::new(input)).parse_block_statement(TokenType::EOF) {
 		Ok(p) => p,
 		Err(err) => return Err(MolyError::Parse(err)),
 	};

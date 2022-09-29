@@ -56,12 +56,14 @@ pub type TypeId = u32;
 
 pub struct TypeEnv {
 	bindings: Vec<TypeBinding>,
+	scope_stack: Vec<usize>,
 }
 
 impl TypeEnv {
 	pub fn new() -> Self {
 		Self {
 			bindings: Vec::new(),
+			scope_stack: Vec::new(),
 		}
 	}
 
@@ -76,5 +78,15 @@ impl TypeEnv {
 			ident: name.into(),
 			type_expr,
 		})
+	}
+
+	pub fn push_scope(&mut self) {
+		self.scope_stack.push(self.bindings.len());
+	}
+
+	pub fn pop_scope(&mut self) {
+		if let Some(last_scope_top) = self.scope_stack.pop() {
+			self.bindings.truncate(last_scope_top);
+		}
 	}
 }

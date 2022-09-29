@@ -26,7 +26,7 @@ impl TypeChecker {
 	}
 
 	pub fn check(&mut self, program: Program, new_scope: bool) -> TCResult<TypedProgram> {
-		let block = self.check_block(program, new_scope)?;
+		let block = self.check_block(program, new_scope, false)?;
 
 		Ok(TypedProgram {
 			statements: block.statements,
@@ -34,9 +34,14 @@ impl TypeChecker {
 		})
 	}
 
-	pub fn check_block(&mut self, block: StatementBlock, new_scope: bool) -> TCResult<TypedStatementBlock> {
+	pub fn check_block(&mut self, block: StatementBlock, new_scope: bool, already_type_scoped: bool) -> TCResult<TypedStatementBlock> {
 		if new_scope {
 			self.scope_return_types.push(None);
+
+			//Kind of hard-coded bool to include function's parameters in the scope
+			if !already_type_scoped {
+				self.type_env.push_scope();
+			}
 		}
 
 		let statements = block.0.into_iter()
@@ -58,6 +63,7 @@ impl TypeChecker {
 		if new_scope {
 			self.check_scope_return_type(&return_type)?;
 			self.scope_return_types.pop();
+			self.type_env.pop_scope();
 		}
 
 		Ok(TypedStatementBlock {
@@ -198,6 +204,8 @@ impl TypeChecker {
 				})
 			}
 			Expression::Function { name, parameters, body, return_type } => {
+				self.type_env.push_scope();
+
 				for (param, param_type) in parameters.iter() {
 					self.type_env.define_identifier(&param, param_type.clone());
 				}
@@ -209,7 +217,7 @@ impl TypeChecker {
 					});
 				}
 
-				let body = self.check(body, true)?;
+				let body = self.check_block(body, true, true)?;
 
 				let body_return_type = match &body.return_type {
 					TypeExpr::Return(returned_type) => returned_type.as_ref(),
@@ -303,7 +311,7 @@ impl TypeChecker {
 				})
 			}
 			Expression::Block { statements, return_transparent } => {
-				let block = self.check_block(statements, !return_transparent)?;
+				let block = self.check_block(statements, !return_transparent, false)?;
 
 				Ok(TypedExpression::Block {
 					block,

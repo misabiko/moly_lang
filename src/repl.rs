@@ -2,9 +2,7 @@ use std::cell::RefCell;
 use std::io::{BufRead, Write};
 use std::rc::Rc;
 use ctrlc;
-use crate::{
-	lexer::Lexer,
-};
+use crate::lexer::Lexer;
 use crate::compiler::Compiler;
 use crate::compiler::symbol_table::SymbolTable;
 use crate::object::builtins::get_builtins;
@@ -99,6 +97,7 @@ fn prompt<R: BufRead, W: Write>(
 enum PromptResult {
 	Continue,
 	Exit,
+	//Could return MolyError instead
 	Err(String),
 }
 

@@ -20,7 +20,7 @@ fn main() {
 ";
 
 fn main() {
-	let bytecode = match build(INPUT) {
+	let bytecode = match build(INPUT, true) {
 		Ok(b) => b,
 		Err(err) => {
 			eprintln!("{}", err);

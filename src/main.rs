@@ -8,7 +8,7 @@ fn main() {
 	match cli.command {
 		None | Some(Commands::Repl) => repl::start(),
 		Some(Commands::Run { input }) => moly::run_file(input),
-		Some(Commands::Exec { input }) => moly::run_string(&input),
+		Some(Commands::Exec { input }) => moly::run_string(&input, false),
 	}
 }
 

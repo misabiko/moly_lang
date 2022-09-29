@@ -4,11 +4,10 @@ Currently this README serves mostly as personal notes, so it might not make sens
 
 ---
 
-
 Inspirations
 - Rust compiler implementation of Monkey Script
   - Cymbal https://github.com/shuhei/cymbal
-- `fn() { 5 }()`
+- Calling function literals directly: `fn() { 5 }()`
   - Monkey
 - Eliding field name on struct initialization
   - Go

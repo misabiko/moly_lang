@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use crate::compiler::{Bytecode, Compiler};
 use crate::lexer::Lexer;
 use crate::parser::{Parser, ParserError};
+use crate::token::TokenType;
 use crate::type_checker::{TypeChecker, TypeCheckError};
 use crate::vm::VM;
 
@@ -26,10 +27,15 @@ pub mod type_checker;
 //TODO Store line number in Result type for better stack trace
 //Destructure struct directly fn parameters
 
-pub fn build(input: &str) -> Result<Bytecode, String> {
+pub fn build(input: &str, full_program: bool) -> Result<Bytecode, String> {
 	let mut parser = Parser::new(Lexer::new(input));
 
-	let program = match parser.parse_program() {
+	let program = if full_program {
+		parser.parse_program()
+	}else {
+		parser.parse_block_statement(TokenType::EOF)
+	};
+	let program = match program {
 		Ok(program) => program,
 		Err(err) => {
 			return Err(format!("Parsing error: {}", err));
@@ -45,15 +51,20 @@ pub fn build(input: &str) -> Result<Bytecode, String> {
 	};
 
 	let mut compiler = Compiler::new();
-	if let Err(err) = compiler.compile(program) {
+	let compiled = if full_program {
+		compiler.compile(program)
+	}else {
+		compiler.compile_block(program)
+	};
+	if let Err(err) = compiled {
 		Err(format!("Compilation failed:\n{}", err))
 	}else {
 		Ok(compiler.bytecode())
 	}
 }
 
-pub fn run_string(input: &str) {
-	let bytecode = match build(input) {
+pub fn run_string(input: &str, full_program: bool) {
+	let bytecode = match build(input, full_program) {
 		Ok(b) => b,
 		Err(err) => {
 			eprintln!("{}", err);
@@ -67,7 +78,7 @@ pub fn run_string(input: &str) {
 		return
 	}
 
-	if let Some(obj) = machine.last_popped_stack_elem {
+	if let Some(obj) = machine.stack_top() {
 		println!("{}", obj)
 	}else {
 		println!()
@@ -77,7 +88,7 @@ pub fn run_string(input: &str) {
 pub fn run_file(file: PathBuf) {
 	let input = std::fs::read_to_string(file).expect("failed to read file");
 
-	run_string(&input);
+	run_string(&input, true);
 }
 
 #[derive(Debug, PartialEq)]

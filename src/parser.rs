@@ -399,13 +399,22 @@ impl Parser {
 			return Ok(list);
 		}
 
-		self.next_token();
-		list.push(self.parse_expression(Precedence::Lowest)?);
-
-		while self.peek_token_is(TokenType::Comma) {
-			self.next_token();
+		loop {
 			self.next_token();
 			list.push(self.parse_expression(Precedence::Lowest)?);
+
+			if self.peek_token_is(TokenType::Comma) {
+				self.next_token();
+
+				//In case of trailing comma
+				if self.peek_token_is(end) {
+					self.next_token();
+					break;
+				}
+			} else {
+				self.expect_peek(end)?;
+				break;
+			}
 		}
 
 		self.expect_peek(end)?;

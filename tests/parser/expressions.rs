@@ -295,32 +295,42 @@ fn test_string_literal_expression() {
 
 #[test]
 fn test_parsing_array_literals() {
-	const INPUT: &str = "[1, 2 * 2, 3 + 3]";
+	let tests = vec![
+		("[1, 2 * 2, 3 + 3]", vec![
+			Expression::Integer(IntExpr::U8(1)),
+			Expression::Infix {
+				left: Box::new(Expression::Integer(IntExpr::U8(2))),
+				operator: InfixOperator::Mul,
+				right: Box::new(Expression::Integer(IntExpr::U8(2))),
+			},
+			Expression::Infix {
+				left: Box::new(Expression::Integer(IntExpr::U8(3))),
+				operator: InfixOperator::Plus,
+				right: Box::new(Expression::Integer(IntExpr::U8(3))),
+			},
+		]),
+		("[0]", vec![
+			Expression::Integer(IntExpr::U8(0)),
+		]),
+		("[0,]", vec![
+			Expression::Integer(IntExpr::U8(0)),
+		]),
+	];
 
-	let stmt = parse_single_statement(INPUT).unwrap();
+	for (input, expected) in tests {
+		let stmt = parse_single_statement(input).unwrap();
 
-	if let Statement::Expression { expr: Expression::Array(value), has_semicolon: _ } = stmt {
-		assert_eq!(value.len(), 3, "wrong array length");
+		if let Statement::Expression { expr: Expression::Array(value), has_semicolon: _ } = stmt {
+			assert_eq!(value.len(), expected.len(), "wrong array length");
 
-		assert_eq!(
+			assert_eq!(
 			value,
-			[
-				Expression::Integer(IntExpr::U8(1)),
-				Expression::Infix {
-					left: Box::new(Expression::Integer(IntExpr::U8(2))),
-					operator: InfixOperator::Mul,
-					right: Box::new(Expression::Integer(IntExpr::U8(2))),
-				},
-				Expression::Infix {
-					left: Box::new(Expression::Integer(IntExpr::U8(3))),
-					operator: InfixOperator::Plus,
-					right: Box::new(Expression::Integer(IntExpr::U8(3))),
-				},
-			],
+			expected,
 			"wrong array elements"
 		);
-	} else {
-		panic!("{:?} is not Statement::Expression(Array)", stmt);
+		} else {
+			panic!("{:?} is not Statement::Expression(Array)", stmt);
+		}
 	}
 }
 

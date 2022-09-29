@@ -417,7 +417,9 @@ impl Parser {
 			}
 		}
 
-		self.expect_peek(end)?;
+		if list.len() > u16::MAX as usize {
+			return Err(ParserError::ArrayTooLong(list.len()))
+		}
 
 		Ok(list)
 	}
@@ -556,6 +558,7 @@ pub enum ParserError {
 	},
 	InvalidGlobalToken(Token),
 	MissingGlobalFunctionName,
+	ArrayTooLong(usize),
 	//TODO Classify generic errors
 	Generic(String),
 }

@@ -129,7 +129,6 @@ pub fn lookup(op: u8) -> Result<Definition, String> {
 			Opcode::GetBuiltin => Ok(Definition { name: "OpGetBuiltin", operand_widths: &[1] }),
 			Opcode::GetFree => Ok(Definition { name: "OpGetFree", operand_widths: &[1] }),
 
-			//TODO Test error message for too many elements in an array
 			//Operand width: Number of elements
 			Opcode::Array => Ok(Definition { name: "OpArray", operand_widths: &[2] }),
 			Opcode::Index => Ok(Definition { name: "OpIndex", operand_widths: &[] }),

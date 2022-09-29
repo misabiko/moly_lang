@@ -334,6 +334,15 @@ fn test_parsing_array_literals() {
 	}
 }
 
+// Takes way too long to parse
+/*#[test]
+fn test_parsing_array_too_many_elements() {
+	let length = u16::MAX as usize;
+	let input = format!("[{}]", "0,".repeat(length));
+
+	assert_eq!(parse_single_statement(&input), Err(ParserError::ArrayTooLong(length)));
+}*/
+
 #[test]
 fn test_parsing_index_expressions() {
 	const INPUT: &str = "myArray[1 + 1]";

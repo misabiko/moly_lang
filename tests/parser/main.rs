@@ -3,7 +3,7 @@ use moly::{
 	lexer::Lexer,
 	parser::Parser,
 };
-use moly::ast::{Expression, Function, IntExpr, Program, StatementBlock};
+use moly::ast::{Function, Program, StatementBlock};
 use moly::parser::ParserError;
 use moly::token::{Token, TokenLiteral, TokenType};
 use moly::type_checker::type_env::TypeExpr;

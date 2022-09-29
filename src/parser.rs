@@ -65,7 +65,14 @@ impl Parser {
 
 	fn parse_global_statement(&mut self) -> PResult<Statement> {
 		match self.cur_token.token_type {
-			TokenType::Function => Ok(Statement::Function(self.parse_function_literal()?)),
+			TokenType::Function => {
+				let func = self.parse_function_literal()?;
+				if func.name.is_none() {
+					return Err(ParserError::MissingGlobalFunctionName)
+				}
+
+				Ok(Statement::Function(func))
+			},
 			_ => return Err(ParserError::InvalidGlobalToken(self.cur_token.clone())),
 		}
 	}
@@ -299,6 +306,13 @@ impl Parser {
 	}
 
 	fn parse_function_literal(&mut self) -> PResult<Function> {
+		let name = if self.peek_token_is(TokenType::Ident) {
+			self.next_token();
+			Some(self.cur_token.literal.get_string().unwrap().clone())
+		}else {
+			None
+		};
+
 		self.expect_peek(TokenType::LParen)?;
 
 		let parameters = self.parse_function_parameters()?;
@@ -318,7 +332,7 @@ impl Parser {
 		Ok(Function {
 			parameters,
 			body,
-			name: None,
+			name,
 			return_type,
 		})
 	}

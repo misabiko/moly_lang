@@ -1,0 +1,41 @@
+{
+	"name": "moly-lang",
+	"displayName": "Moly Lang",
+	"description": "Syntax highlighting for moly-lang",
+	"author": {
+		"name": "misabiko"
+	},
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.71.0"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"contributes": {
+		"languages": [
+			{
+				"id": "moly",
+				"aliases": [
+					"Moly",
+					"moly"
+				],
+				"extensions": [
+					".moly"
+				],
+				"configuration": "./language-configuration.json",
+				"icon": {
+					"dark": "icons/1f42e.svg",
+					"light": "icons/1f42e.svg"
+				}
+			}
+		],
+		"grammars": [
+			{
+				"language": "moly",
+				"scopeName": "source.moly",
+				"path": "./syntaxes/moly.tmLanguage.json"
+			}
+		]
+	}
+}

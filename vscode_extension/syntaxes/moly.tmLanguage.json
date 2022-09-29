@@ -1,0 +1,89 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Moly",
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#number_literals"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#identifiers"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.operator",
+					"match": "(==|=|\\+|-|!=|!|\\*|/|<|>|,|;|:)"
+				},
+				{
+					"name": "storage.type",
+					"match": "\\b(let)\\b"
+				},
+				{
+					"match": "\\b(fn)\\s*\\(((([a-zA-Z][a-zA-Z0-9]*)\\s+([a-zA-Z][a-zA-Z0-9]*)),?)*\\)\\s*([a-zA-Z][a-zA-Z0-9]*)\\s*{",
+					"captures": {
+						"1": {
+							"name": "storage.type.fn"
+						},
+						"2": {
+							"name": "meta.parameter"
+						},
+						"4": {
+							"name": "variable.parameter"
+						},
+						"5": {
+							"name": "support.type"
+						},
+						"6": {
+							"name": "support.type"
+						}
+					}
+				},
+				{
+					"name": "keyword.control.moly",
+					"match": "\\b(if|else|return)\\b"
+				},
+				{
+					"name": "constant.language",
+					"match": "\\b(true|false)\\b"
+				},
+				{
+					"name": "support.type.primitive",
+					"match": "\\b(u8|u16|u32|u64|i8|i16|i32|i64|bool|str)\\b"
+				}
+			]
+		},
+		"number_literals": {
+			"name": "constant.numeric",
+			"match": "\\b\\d[\\d_]*(u8|u16|u32|u64|i8|i16|i32|i64)?\\b",
+			"captures": {
+				"1": {
+					"name": "entity.name.type.numeric.rust"
+				}
+			}
+		},
+		"strings": {
+			"name": "string.quoted.double.moly",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.moly",
+					"match": "\\\\."
+				}
+			]
+		},
+		"identifiers": {
+			"name": "variable.other",
+			"match": "\\b[a-zA-Z][a-zA-Z0-9]*\\b"
+		}
+	},
+	"scopeName": "source.moly"
+}

@@ -26,6 +26,7 @@ pub enum Statement {
 		expr: Expression,
 		has_semicolon: bool
 	},
+	/// Function::name should be Some, might split expr and stmt function later
 	Function(Function)
 }
 

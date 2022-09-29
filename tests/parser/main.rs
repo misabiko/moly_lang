@@ -28,6 +28,14 @@ fn test_program_parsing() {
 				body: StatementBlock(vec![]),
 			})
 		]))),
+		("fn main(){}", Ok(StatementBlock(vec![
+			Statement::Function(Function {
+				name: Some("main".into()),
+				parameters: vec![],
+				return_type: TypeExpr::Void,
+				body: StatementBlock(vec![]),
+			})
+		]))),
 	];
 
 	for (input, expected) in tests {

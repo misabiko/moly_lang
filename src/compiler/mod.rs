@@ -8,7 +8,7 @@ use crate::compiler::symbol_table::{SymbolScope, Symbol, SymbolTable};
 use crate::object::{Function, Object};
 use crate::object::builtins::get_builtins;
 use crate::type_checker::get_type;
-use crate::type_checker::typed_ast::{TypedExpression, TypedFunction, TypedProgram, TypedStatement};
+use crate::type_checker::typed_ast::{TypedExpression, TypedFunction, TypedProgram, TypedStatement, TypedStatementBlock};
 use crate::type_checker::type_env::TypeExpr;
 
 pub mod symbol_table;
@@ -67,6 +67,26 @@ impl Compiler {
 			self.compile_statement(stmt)?
 		}
 
+		//Pretend there was a "main()" at the end
+		//compile_expression(Identifier)
+		let symbol = if let Some(s) = self.symbol_table.borrow_mut().resolve("main") {
+			s
+		} else {
+			return Err(format!("undefined variable main"));
+		};
+		self.load_symbol(symbol);
+
+		//compile_expression(Call)
+		self.emit(Opcode::Call, &[0]);
+
+		Ok(())
+	}
+
+	pub fn compile_block(&mut self, block: TypedStatementBlock) -> CompilerResult {
+		for stmt in block.statements {
+			self.compile_statement(stmt)?
+		}
+
 		Ok(())
 	}
 
@@ -103,7 +123,23 @@ impl Compiler {
 			TypedStatement::Return(None) => {
 				self.emit(Opcode::Return, &[]);
 			}
-			TypedStatement::Function(_) => {}
+			//Acts like a let statement
+			TypedStatement::Function(func) => {
+				let name = func.name.clone();
+				let (index, scope) = {
+					let mut table = self.symbol_table.borrow_mut();
+					let symbol = table.define(name.unwrap().as_str());
+					(symbol.index as OperandIndex, symbol.scope)
+				};
+
+				self.compile_function(func)?;
+
+				if let SymbolScope::Global = scope {
+					self.emit(Opcode::SetGlobal, &[index]);
+				} else {
+					self.emit(Opcode::SetLocal, &[index]);
+				}
+			},
 		}
 
 		Ok(())
@@ -182,7 +218,7 @@ impl Compiler {
 				//Emit an OpJumpIfFalse with temp value
 				let jump_if_false_pos = self.emit(Opcode::JumpIfFalse, &[0]);
 
-				self.compile(consequence)?;
+				self.compile_block(consequence)?;
 
 				//Emit an OpJump with temp value
 				let jump_pos = self.emit(Opcode::Jump, &[0]);
@@ -191,7 +227,7 @@ impl Compiler {
 				self.change_operand(jump_if_false_pos, after_consequence_pos);
 
 				if let Some(alternative) = alternative {
-					self.compile(alternative)?;
+					self.compile_block(alternative)?;
 
 					if self.last_instruction_is(Opcode::Pop) {
 						self.remove_last_pop();
@@ -249,7 +285,7 @@ impl Compiler {
 		}
 
 		let body_return_type = function.body.return_type.clone();
-		self.compile(function.body)?;
+		self.compile_block(function.body)?;
 
 		if self.last_instruction_is(Opcode::Pop) {
 			self.replace_last_pop_with_return();

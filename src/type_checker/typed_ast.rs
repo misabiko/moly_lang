@@ -30,6 +30,7 @@ pub enum TypedStatement {
 		expr: TypedExpression,
 		has_semicolon: bool,
 	},
+	/// TypedFunction::name should be Some
 	Function(TypedFunction),
 }
 

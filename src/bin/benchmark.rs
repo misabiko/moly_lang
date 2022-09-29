@@ -3,18 +3,20 @@ use moly::build;
 use moly::vm::VM;
 
 const INPUT: &str = "
-let fibonacci = fn(x u64) u64 {
-  if x == 0u64 {
-    0u64
-  } else {
-    if x == 1u64 {
-      1u64
-    } else {
-      fibonacci(x - 1u64) + fibonacci(x - 2u64)
-    }
-  }
-};
-fibonacci(35u64);
+fn main() {
+	let fibonacci = fn(x u64) u64 {
+	  if x == 0u64 {
+		0u64
+	  } else {
+		if x == 1u64 {
+		  1u64
+		} else {
+		  fibonacci(x - 1u64) + fibonacci(x - 2u64)
+		}
+	  }
+	};
+	fibonacci(35u64);
+}
 ";
 
 fn main() {

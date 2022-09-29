@@ -1,8 +1,7 @@
-use moly::ast::Program;
 use moly::compiler::Compiler;
 use moly::lexer::Lexer;
 use moly::object::Object;
-use moly::parser::{Parser, ParserError};
+use moly::parser::Parser;
 use moly::token::TokenType;
 use moly::type_checker::TypeChecker;
 use moly::vm::VM;
@@ -28,7 +27,7 @@ fn test_integer_arithmetic() {
 		TestCase { input: "(5i8 + 10i8 * 2i8 + 15i8 / 3i8) * 2i8 + -10", expected: Ok(Some(Object::I8(50))) },
 	];
 
-	run_vm_tests(tests);
+	run_vm_tests(tests, true);
 }
 
 #[test]
@@ -59,7 +58,7 @@ fn test_boolean_expressions() {
 		TestCase { input: "!!false", expected: Ok(Some(Object::Boolean(false))) },
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
 }
 
 #[test]
@@ -73,7 +72,7 @@ fn test_conditionals() {
 		TestCase { input: "if 1 > 2 { 10 } else { 20 }", expected: Ok(Some(Object::U8(20))) },
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
 }
 
 #[test]
@@ -84,7 +83,7 @@ fn test_global_let_statements() {
 		TestCase { input: "let one = 1; let two = one + one; one + two", expected: Ok(Some(Object::U8(3))) },
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
 }
 
 #[test]
@@ -95,7 +94,7 @@ fn test_string_expressions() {
 		TestCase { input: r#""mon" + "key" + "banana""#, expected: Ok(Some(Object::String("monkeybanana".into()))) },
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
 }
 
 #[test]
@@ -114,7 +113,7 @@ fn test_array_literals() {
 		]))) },
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
 }
 
 #[test]
@@ -127,7 +126,7 @@ fn test_index_expressions() {
 		TestCase { input: "[1][-1]", expected: Err(Some("index -1 out of bound [0..0]".into())) },
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
 }
 
 #[test]
@@ -159,7 +158,7 @@ fn test_calling_functions_without_arguments() {
 		},
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
 }
 
 #[test]
@@ -181,7 +180,7 @@ fn test_calling_functions_with_return_statement() {
 		},
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
 }
 
 //Might want to make it easier to check no value return
@@ -213,7 +212,7 @@ fn test_functions_without_return_value() {
 		},
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
 }
 
 #[test]
@@ -239,7 +238,7 @@ fn test_first_class_functions() {
 		},
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
 }
 
 #[test]
@@ -292,7 +291,7 @@ fn test_calling_functions_with_bindings() {
 		},
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
 }
 
 #[test]
@@ -364,7 +363,7 @@ fn test_calling_functions_with_arguments_and_bindings() {
 		},
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
 }
 
 #[test]
@@ -403,7 +402,7 @@ fn test_builtin_functions() {
 		},
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
 }
 
 #[test]
@@ -483,7 +482,7 @@ fn test_closures() {
 		},
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
 }
 
 #[test]
@@ -536,7 +535,7 @@ fn test_recursive_functions() {
 		},
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
 }
 
 #[test]
@@ -561,7 +560,19 @@ fn test_recursive_fibonacci() {
 		}
 	];
 
-	run_vm_tests(tests)
+	run_vm_tests(tests, true)
+}
+
+#[test]
+fn test_global_program() {
+	let tests = vec![
+		TestCase {
+			input: "fn main() {}",
+			expected: Ok(None)
+		}
+	];
+
+	run_vm_tests(tests, false)
 }
 
 struct TestCase {
@@ -569,10 +580,15 @@ struct TestCase {
 	expected: Result<Option<Object>, Option<String>>,
 }
 
-fn run_vm_tests(tests: Vec<TestCase>) {
+fn run_vm_tests(tests: Vec<TestCase>, compile_block: bool) {
 	for (i, TestCase { input, expected }) in tests.into_iter().enumerate() {
 		//println!("{}", input);
-		let program = match parse(input) {
+		let program = if compile_block {
+			Parser::new(Lexer::new(input)).parse_block_statement(TokenType::EOF)
+		}else {
+			Parser::new(Lexer::new(input)).parse_program()
+		};
+		let program = match program {
 			Ok(p) => p,
 			Err(err) => panic!("test {}: parse error: {}", i, err),
 		};
@@ -584,7 +600,12 @@ fn run_vm_tests(tests: Vec<TestCase>) {
 		};
 
 		let mut compiler = Compiler::new();
-		if let Err(err) = compiler.compile(program) {
+		let compile_result = if compile_block {
+			compiler.compile_block(program)
+		}else {
+			compiler.compile(program)
+		};
+		if let Err(err) = compile_result {
 			panic!("test {}: compiler error: {}", i, err)
 		}
 
@@ -612,8 +633,4 @@ fn run_vm_tests(tests: Vec<TestCase>) {
 			(_, Ok(expected)) => assert_eq!(stack_elem, expected)
 		}
 	}
-}
-
-fn parse(input: &str) -> Result<Program, ParserError> {
-	Parser::new(Lexer::new(input)).parse_block_statement(TokenType::EOF)
 }

@@ -1,10 +1,9 @@
 use std::rc::Rc;
-use moly::ast::Program;
 use moly::code::{concat_instructions, instruction_to_string, Instructions, make, Opcode};
 use moly::object::{Function, Object};
 use moly::compiler::{Compiler, EmittedInstruction};
 use moly::lexer::Lexer;
-use moly::parser::{Parser, ParserError};
+use moly::parser::Parser;
 use moly::token::TokenType;
 use moly::type_checker::TypeChecker;
 
@@ -75,7 +74,7 @@ fn test_integer_arithmetic() {
 		},
 	];
 
-	run_compiler_tests(tests);
+	run_compiler_tests(tests, true);
 }
 
 #[test]
@@ -159,7 +158,7 @@ fn test_boolean_expressions() {
 		},
 	];
 
-	run_compiler_tests(tests)
+	run_compiler_tests(tests, true)
 }
 
 #[test]
@@ -206,7 +205,7 @@ fn test_conditionals() {
 		},
 	];
 
-	run_compiler_tests(tests)
+	run_compiler_tests(tests, true)
 }
 
 #[test]
@@ -256,7 +255,7 @@ fn test_global_let_statements() {
 		},
 	];
 
-	run_compiler_tests(tests)
+	run_compiler_tests(tests, true)
 }
 
 #[test]
@@ -283,7 +282,7 @@ fn test_string_expressions() {
 		},
 	];
 
-	run_compiler_tests(tests)
+	run_compiler_tests(tests, true)
 }
 
 #[test]
@@ -328,7 +327,7 @@ fn test_array_literals() {
 		},
 	];
 
-	run_compiler_tests(tests)
+	run_compiler_tests(tests, true)
 }
 
 #[test]
@@ -351,7 +350,7 @@ fn test_index_expressions() {
 		},
 	];
 
-	run_compiler_tests(tests)
+	run_compiler_tests(tests, true)
 }
 
 #[test]
@@ -419,7 +418,7 @@ fn test_functions() {
 		},
 	];
 
-	run_compiler_tests(tests)
+	run_compiler_tests(tests, true)
 }
 
 #[test]
@@ -442,7 +441,7 @@ fn test_functions_without_return_value() {
 		}
 	];
 
-	run_compiler_tests(tests)
+	run_compiler_tests(tests, true)
 }
 
 #[test]
@@ -589,7 +588,7 @@ fn test_function_calls() {
 		},
 	];
 
-	run_compiler_tests(tests)
+	run_compiler_tests(tests, true)
 }
 
 #[test]
@@ -673,7 +672,7 @@ fn test_let_statement_scopes() {
 		},
 	];
 
-	run_compiler_tests(tests)
+	run_compiler_tests(tests, true)
 }
 
 #[test]
@@ -720,7 +719,7 @@ fn test_builtins() {
 		},
 	];
 
-	run_compiler_tests(tests)
+	run_compiler_tests(tests, true)
 }
 
 #[test]
@@ -879,7 +878,7 @@ fn test_closures() {
 		},
 	];
 
-	run_compiler_tests(tests)
+	run_compiler_tests(tests, true)
 }
 
 #[test]
@@ -961,7 +960,33 @@ fn test_recursive_functions() {
 		},
 	];
 
-	run_compiler_tests(tests)
+	run_compiler_tests(tests, true)
+}
+
+#[test]
+fn test_global_program() {
+	let tests = vec![
+		TestCase {
+			input: "fn main() {}",
+			expected_constants: vec![
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
+						make(Opcode::Return, &[]),
+					]),
+					num_locals: 0,
+					num_parameters: 0,
+				}),
+			],
+			expected_instructions: vec![
+				make(Opcode::Closure, &[0, 0]),
+				make(Opcode::SetGlobal, &[0]),
+				make(Opcode::GetGlobal, &[0]),
+				make(Opcode::Call, &[0]),
+			]
+		}
+	];
+
+	run_compiler_tests(tests, false);
 }
 
 struct TestCase {
@@ -970,9 +995,14 @@ struct TestCase {
 	expected_instructions: Vec<Instructions>,
 }
 
-fn run_compiler_tests(tests: Vec<TestCase>) {
+fn run_compiler_tests(tests: Vec<TestCase>, compile_block: bool) {
 	for (i, TestCase { input, expected_constants, expected_instructions }) in tests.into_iter().enumerate() {
-		let program = match parse(input) {
+		let program = if compile_block {
+			Parser::new(Lexer::new(input)).parse_block_statement(TokenType::EOF)
+		}else {
+			Parser::new(Lexer::new(input)).parse_program()
+		};
+		let program = match program {
 			Ok(p) => p,
 			Err(err) => panic!("test {}: parse error: {}", i, err),
 		};
@@ -984,7 +1014,12 @@ fn run_compiler_tests(tests: Vec<TestCase>) {
 		};
 
 		let mut compiler = Compiler::new();
-		if let Err(err) = compiler.compile(program) {
+		let compile_result = if compile_block {
+			compiler.compile_block(program)
+		}else {
+			compiler.compile(program)
+		};
+		if let Err(err) = compile_result {
 			panic!("test {}: compiler error: {:?}", i, err)
 		}
 
@@ -1003,8 +1038,4 @@ fn run_compiler_tests(tests: Vec<TestCase>) {
 			"wrong constant\nInput `{}`", input
 		);
 	}
-}
-
-fn parse(input: &str) -> Result<Program, ParserError> {
-	Parser::new(Lexer::new(input)).parse_block_statement(TokenType::EOF)
 }

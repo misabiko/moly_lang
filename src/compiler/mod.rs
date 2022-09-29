@@ -8,7 +8,7 @@ use crate::compiler::symbol_table::{SymbolScope, Symbol, SymbolTable};
 use crate::object::{Function, Object};
 use crate::object::builtins::get_builtins;
 use crate::type_checker::get_type;
-use crate::type_checker::typed_ast::{TypedExpression, TypedProgram, TypedStatement};
+use crate::type_checker::typed_ast::{TypedExpression, TypedFunction, TypedProgram, TypedStatement};
 use crate::type_checker::type_env::TypeExpr;
 
 pub mod symbol_table;
@@ -103,6 +103,7 @@ impl Compiler {
 			TypedStatement::Return(None) => {
 				self.emit(Opcode::Return, &[]);
 			}
+			TypedStatement::Function(_) => {}
 		}
 
 		Ok(())
@@ -214,48 +215,7 @@ impl Compiler {
 
 				self.emit(Opcode::Index, &[]);
 			}
-			TypedExpression::Function { parameters, body, name, .. } => {
-				self.enter_scope();
-
-				if let Some(name) = name {
-					self.symbol_table.borrow_mut().define_function_name(&name);
-				}
-
-				let num_parameters = parameters.len() as u8;
-				for param in parameters.into_iter() {
-					self.symbol_table.borrow_mut().define(&param.0);
-				}
-
-				let body_return_type = body.return_type.clone();
-				self.compile(body)?;
-
-				if self.last_instruction_is(Opcode::Pop) {
-					self.replace_last_pop_with_return();
-				}
-				if !self.last_instruction_is(Opcode::ReturnValue) && !self.last_instruction_is(Opcode::Return) {
-					if matches!(body_return_type, TypeExpr::Void) {
-						self.emit(Opcode::Return, &[]);
-					} else {
-						self.emit(Opcode::ReturnValue, &[]);
-					}
-				}
-
-				let free_symbols = self.symbol_table.borrow().free_symbols.clone();
-				let num_locals = self.symbol_table.borrow().num_definitions as u8;
-				let instructions = self.leave_scope().unwrap();
-
-				let num_free_symbols = free_symbols.len();
-				for sym in free_symbols {
-					self.load_symbol(sym);
-				}
-
-				let fn_index = self.add_constant(Object::Function(Function {
-					instructions,
-					num_locals,
-					num_parameters,
-				}));
-				self.emit(Opcode::Closure, &[fn_index, num_free_symbols]);
-			}
+			TypedExpression::Function(func) => self.compile_function(func)?,
 			TypedExpression::Call { function, arguments, .. } => {
 				self.compile_expression(*function)?;
 
@@ -272,6 +232,52 @@ impl Compiler {
 				}
 			}
 		}
+
+		Ok(())
+	}
+
+	fn compile_function(&mut self, function: TypedFunction) -> CompilerResult {
+		self.enter_scope();
+
+		if let Some(name) = function.name {
+			self.symbol_table.borrow_mut().define_function_name(&name);
+		}
+
+		let num_parameters = function.parameters.len() as u8;
+		for param in function.parameters.into_iter() {
+			self.symbol_table.borrow_mut().define(&param.0);
+		}
+
+		let body_return_type = function.body.return_type.clone();
+		self.compile(function.body)?;
+
+		if self.last_instruction_is(Opcode::Pop) {
+			self.replace_last_pop_with_return();
+		}
+		if !self.last_instruction_is(Opcode::ReturnValue) && !self.last_instruction_is(Opcode::Return) {
+			if matches!(body_return_type, TypeExpr::Void) {
+				self.emit(Opcode::Return, &[]);
+			} else {
+				self.emit(Opcode::ReturnValue, &[]);
+			}
+		}
+
+		let free_symbols = self.symbol_table.borrow().free_symbols.clone();
+		let num_locals = self.symbol_table.borrow().num_definitions as u8;
+		let instructions = self.leave_scope().unwrap();
+
+		let num_free_symbols = free_symbols.len();
+		for sym in free_symbols {
+			self.load_symbol(sym);
+		}
+
+		let fn_index = self.add_constant(Object::Function(Function {
+			instructions,
+			num_locals,
+			num_parameters,
+		}));
+
+		self.emit(Opcode::Closure, &[fn_index, num_free_symbols]);
 
 		Ok(())
 	}

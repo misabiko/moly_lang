@@ -26,6 +26,7 @@ pub enum Statement {
 		expr: Expression,
 		has_semicolon: bool
 	},
+	Function(Function)
 }
 
 impl fmt::Display for Statement {
@@ -36,6 +37,7 @@ impl fmt::Display for Statement {
 			Statement::Return(None) => write!(f, "return;"),
 			Statement::Expression { expr, has_semicolon }
 				=> write!(f, "{}{}", expr, if *has_semicolon { ";" } else { "" }),
+			Statement::Function(func) => write!(f, "{}", func),
 		}
 	}
 }
@@ -60,13 +62,7 @@ pub enum Expression {
 		consequence: StatementBlock,
 		alternative: Option<StatementBlock>,
 	},
-	Function {
-		/// name in Expression::Identifier
-		parameters: Vec<(String, TypeExpr)>,
-		body: StatementBlock,
-		name: Option<String>,
-		return_type: TypeExpr,
-	},
+	Function(Function),
 	Call {
 		function: Box<Expression>,
 		arguments: Vec<Expression>,
@@ -108,23 +104,7 @@ impl fmt::Display for Expression {
 
 				write!(f, "if {} {}{})", condition, consequence, alt_str)
 			},
-			Expression::Function { parameters, body, name, return_type } => {
-				let name = if let Some(name) = name {
-					format!("<{}>", name)
-				}else {
-					"".into()
-				};
-				let parameters = parameters.iter()
-					.map(|(i, t)| format!("{} {}", i, t))
-					.collect::<Vec<String>>()
-					.join(", ");
-				let return_type = match return_type {
-					TypeExpr::Void => "".into(),
-					r => format!(" {}", r),
-				};
-
-				write!(f, "fn{}({}) {} {}", name, parameters, return_type, body)
-			},
+			Expression::Function(func) => write!(f, "{}", func),
 			Expression::Call { function, arguments } => write!(f, "{}({})", function, join_expression_vec(arguments)),
 			Expression::Array(elements) => write!(f, "[{}]", join_expression_vec(elements)),
 			Expression::Index { left, index } => write!(f, "({}[{}])", left, index),
@@ -214,5 +194,33 @@ impl fmt::Display for IntExpr {
 			IntExpr::I32(v) => write!(f, "{}", v),
 			IntExpr::I64(v) => write!(f, "{}", v),
 		}
+	}
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Function {
+	pub parameters: Vec<(String, TypeExpr)>,
+	pub body: StatementBlock,
+	pub name: Option<String>,
+	pub return_type: TypeExpr,
+}
+
+impl fmt::Display for Function {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let name = if let Some(name) = &self.name {
+			format!("<{}>", name)
+		}else {
+			"".into()
+		};
+		let parameters = self.parameters.iter()
+			.map(|(i, t)| format!("{} {}", i, t))
+			.collect::<Vec<String>>()
+			.join(", ");
+		let return_type = match &self.return_type {
+			TypeExpr::Void => "".into(),
+			r => format!(" {}", r),
+		};
+
+		write!(f, "fn{}({}) {} {}", name, parameters, return_type, self.body)
 	}
 }

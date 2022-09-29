@@ -1,8 +1,8 @@
-use crate::ast::{Expression, InfixOperator, IntExpr, PrefixOperator, Program, Statement, StatementBlock};
+use crate::ast::{Expression, Function, InfixOperator, IntExpr, PrefixOperator, Program, Statement, StatementBlock};
 use crate::object::builtins::get_builtins;
 use crate::token::IntType;
 use crate::type_checker::type_env::{TypeEnv, TypeExpr};
-use crate::type_checker::typed_ast::{TypedExpression, TypedProgram, TypedStatement, TypedStatementBlock};
+use crate::type_checker::typed_ast::{TypedExpression, TypedFunction, TypedProgram, TypedStatement, TypedStatementBlock};
 
 pub mod typed_ast;
 pub mod type_env;
@@ -49,7 +49,8 @@ impl TypeChecker {
 			.collect::<TCResult<Vec<TypedStatement>>>()?;
 
 		let return_type = statements.last().map(|stmt| match stmt {
-			TypedStatement::Let { .. } => TypeExpr::Void,
+			TypedStatement::Let { .. } |
+			TypedStatement::Function(_) |
 			TypedStatement::Return(None) => TypeExpr::Void,
 			TypedStatement::Expression { has_semicolon: true, .. } => TypeExpr::Void,
 			TypedStatement::Return(Some(e)) => if new_scope {
@@ -94,14 +95,15 @@ impl TypeChecker {
 				self.check_scope_return_type(&TypeExpr::Void)?;
 
 				Ok(TypedStatement::Return(None))
-			},
+			}
 			Statement::Return(Some(value)) => {
 				let returned = self.check_expression(value)?;
 
 				self.check_scope_return_type(&get_type(&returned))?;
 
 				Ok(TypedStatement::Return(Some(returned)))
-			},
+			}
+			Statement::Function(func) => Ok(TypedStatement::Function(self.check_function(func)?)),
 		}
 	}
 
@@ -203,36 +205,7 @@ impl TypeChecker {
 					alternative,
 				})
 			}
-			Expression::Function { name, parameters, body, return_type } => {
-				self.type_env.push_scope();
-
-				for (param, param_type) in parameters.iter() {
-					self.type_env.define_identifier(&param, param_type.clone());
-				}
-
-				if let Some(name) = &name {
-					self.type_env.define_identifier(name, TypeExpr::FnLiteral {
-						parameter_types: parameters.iter().map(|p| p.1.clone()).collect(),
-						return_type: Box::new(return_type.clone()),
-					});
-				}
-
-				let body = self.check_block(body, true, true)?;
-
-				let body_return_type = match &body.return_type {
-					TypeExpr::Return(returned_type) => returned_type.as_ref(),
-					t => t,
-				};
-				if &return_type != body_return_type {
-					return Err(TypeCheckError::Generic(format!(
-						"function body return type {:?} doesn't match declared return type {:?}",
-						body_return_type,
-						return_type
-					)));
-				}
-
-				Ok(TypedExpression::Function { name, parameters, body })
-			}
+			Expression::Function(func) => Ok(TypedExpression::Function(self.check_function(func)?)),
 			Expression::Call { function, arguments } => {
 				let function = self.check_expression(*function)?;
 
@@ -241,19 +214,19 @@ impl TypeChecker {
 					.collect::<TCResult<Vec<TypedExpression>>>()?;
 
 				let return_type = match get_type(&function) {
-					TypeExpr::FnLiteral { parameter_types ,return_type } => {
+					TypeExpr::FnLiteral { parameter_types, return_type } => {
 						if arguments.len() != parameter_types.len() {
 							return Err(TypeCheckError::CallArgCount {
 								parameter_count: parameter_types.len() as u8,
 								argument_count: arguments.len() as u8,
-							})
+							});
 						}
 
 						let argument_types: Vec<TypeExpr> = arguments.iter().map(|a| get_type(a)).collect();
 						for (arg, param) in argument_types.iter().zip(parameter_types.iter()) {
 							match param {
 								TypeExpr::Array(elements) => if let TypeExpr::Any = elements.as_ref() {
-									continue
+									continue;
 								}
 								TypeExpr::Any => continue,
 								_ => {}
@@ -262,12 +235,12 @@ impl TypeChecker {
 								return Err(TypeCheckError::CallArgTypeMismatch {
 									parameter_types,
 									argument_types,
-								})
+								});
 							}
 						}
 
 						*return_type
-					},
+					}
 					TypeExpr::Void => return Err(TypeCheckError::Generic("cannot call void type".into())),
 					t => return Err(TypeCheckError::Generic(format!("type {:?} not callable", t)))
 				};
@@ -315,10 +288,45 @@ impl TypeChecker {
 
 				Ok(TypedExpression::Block {
 					block,
-					return_transparent
+					return_transparent,
 				})
 			}
 		}
+	}
+
+	fn check_function(&mut self, function: Function) -> TCResult<TypedFunction> {
+		self.type_env.push_scope();
+
+		for (param, param_type) in function.parameters.iter() {
+			self.type_env.define_identifier(&param, param_type.clone());
+		}
+
+		if let Some(name) = &function.name {
+			self.type_env.define_identifier(name, TypeExpr::FnLiteral {
+				parameter_types: function.parameters.iter().map(|p| p.1.clone()).collect(),
+				return_type: Box::new(function.return_type.clone()),
+			});
+		}
+
+		let body = self.check_block(function.body, true, true)?;
+
+		let body_return_type = match &body.return_type {
+			TypeExpr::Return(returned_type) => returned_type.as_ref(),
+			t => t,
+		};
+		if &function.return_type != body_return_type {
+			return Err(TypeCheckError::Generic(format!(
+				"function body return type {:?} doesn't match declared return type {:?}",
+				body_return_type,
+				function.return_type
+			)));
+		}
+
+		Ok(TypedFunction {
+			name: function.name,
+			parameters: function.parameters,
+			body,
+		})
 	}
 
 	fn check_scope_return_type(&mut self, new_return_type: &TypeExpr) -> TCResult<()> {
@@ -334,7 +342,7 @@ impl TypeChecker {
 				return Err(TypeCheckError::ReturnTypeMismatch {
 					scope_return_type: current.clone(),
 					mismatched_type: new_return_type.clone(),
-				})
+				});
 			}
 		}
 
@@ -357,9 +365,9 @@ pub fn get_type(expr: &TypedExpression) -> TypeExpr {
 		},
 		TypedExpression::Boolean(_) => TypeExpr::Bool,
 		TypedExpression::String(_) => TypeExpr::String,
-		TypedExpression::Function { parameters, body, .. } => TypeExpr::FnLiteral {
+		TypedExpression::Function(TypedFunction { parameters, body, .. }) => TypeExpr::FnLiteral {
 			parameter_types: parameters.iter().map(|p| p.1.clone()).collect(),
-			return_type: Box::new(body.return_type.clone())
+			return_type: Box::new(body.return_type.clone()),
 		},
 		TypedExpression::Prefix {
 			operator: PrefixOperator::Minus,

@@ -30,6 +30,7 @@ pub enum TypedStatement {
 		expr: TypedExpression,
 		has_semicolon: bool,
 	},
+	Function(TypedFunction),
 }
 
 impl fmt::Display for TypedStatement {
@@ -40,6 +41,7 @@ impl fmt::Display for TypedStatement {
 			TypedStatement::Return(None) => write!(f, "return;"),
 			TypedStatement::Expression { expr, has_semicolon }
 				=> write!(f, "{}{}", expr, if *has_semicolon { ";" } else { "" }),
+			TypedStatement::Function(func) => write!(f, "{}", func),
 		}
 	}
 }
@@ -69,11 +71,7 @@ pub enum TypedExpression {
 		consequence: TypedStatementBlock,
 		alternative: Option<TypedStatementBlock>,
 	},
-	Function {
-		parameters: Vec<(String, TypeExpr)>,
-		body: TypedStatementBlock,
-		name: Option<String>,
-	},
+	Function(TypedFunction),
 	Call {
 		function: Box<TypedExpression>,
 		arguments: Vec<TypedExpression>,
@@ -111,23 +109,7 @@ impl fmt::Display for TypedExpression {
 
 				write!(f, "if {} {}{})", condition, consequence, alt_str)
 			},
-			TypedExpression::Function { parameters, body, name } => {
-				let name = if let Some(name) = name {
-					format!("<{}>", name)
-				}else {
-					"".into()
-				};
-				let parameters = parameters.iter()
-					.map(|(i, t)| format!("{} {}", i, t))
-					.collect::<Vec<String>>()
-					.join(", ");
-				let return_type = match &body.return_type {
-					TypeExpr::Void => "".into(),
-					r => format!(" {}", r),
-				};
-
-				write!(f, "fn{}({}) {} {}", name, parameters, return_type, body)
-			},
+			TypedExpression::Function(func) => write!(f, "{}", func),
 			TypedExpression::Call { function, arguments, .. } => write!(f, "{}({})", function, join_expression_vec(arguments)),
 			TypedExpression::Array { elements, .. } => write!(f, "[{}]", join_expression_vec(elements)),
 			TypedExpression::Index { left, index } => write!(f, "({}[{}])", left, index),
@@ -141,4 +123,31 @@ fn join_expression_vec(expressions: &[TypedExpression]) -> String {
 		.map(|p| p.to_string())
 		.collect::<Vec<String>>()
 		.join(", ")
+}
+
+#[derive(Debug, PartialEq)]
+pub struct TypedFunction {
+	pub parameters: Vec<(String, TypeExpr)>,
+	pub body: TypedStatementBlock,
+	pub name: Option<String>,
+}
+
+impl fmt::Display for TypedFunction {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let name = if let Some(name) = &self.name {
+			format!("<{}>", name)
+		}else {
+			"".into()
+		};
+		let parameters = &self.parameters.iter()
+			.map(|(i, t)| format!("{} {}", i, t))
+			.collect::<Vec<String>>()
+			.join(", ");
+		let return_type = match &self.body.return_type {
+			TypeExpr::Void => "".into(),
+			r => format!(" {}", r),
+		};
+
+		write!(f, "fn{}({}) {} {}", name, parameters, return_type, self.body)
+	}
 }

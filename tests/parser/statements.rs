@@ -12,12 +12,13 @@ fn test_let_statements() {
 
 	for (input, expected_identifier, expected_value) in tests {
 		match parse_single_statement(input) {
-			Statement::Let { name, value } => {
+			Err(err) => panic!("parse error: {}", err),
+			Ok(Statement::Let { name, value }) => {
 				assert_eq!(&name, expected_identifier, "wrong let statement identifier");
 
 				assert_eq!(value, expected_value, "wrong let statement value");
 			}
-			stmt => panic!("{:?} not Let", stmt),
+			Ok(stmt) => panic!("{:?} not Let", stmt),
 		}
 	}
 }
@@ -32,9 +33,10 @@ fn test_return_statements() {
 
 	for (input, expected_value) in tests {
 		match parse_single_statement(input) {
-			Statement::Return(Some(value)) => assert_eq!(value, expected_value, "wrong returned value"),
-			Statement::Return(None) => panic!("missing returned value"),
-			stmt => panic!("{:?} not Return", stmt),
+			Err(err) => panic!("parse error: {}", err),
+			Ok(Statement::Return(Some(value))) => assert_eq!(value, expected_value, "wrong returned value"),
+			Ok(Statement::Return(None)) => panic!("missing returned value"),
+			Ok(stmt) => panic!("{:?} not Return", stmt),
 		}
 	}
 }

@@ -4,7 +4,7 @@ use moly::MolyError;
 use moly::parser::Parser;
 use moly::token::IntType;
 use moly::type_checker::{TypeChecker, TypeCheckError};
-use moly::type_checker::typed_ast::{TypedStatementBlock, TypedExpression, TypedProgram, TypedStatement};
+use moly::type_checker::typed_ast::{TypedStatementBlock, TypedExpression, TypedProgram, TypedStatement, TypedFunction};
 use moly::type_checker::type_env::TypeExpr;
 
 #[test]
@@ -37,7 +37,7 @@ fn test_function_parameter_parsing() {
 
 	for (input, expected_params) in tests {
 		let stmt = type_check_single_statement(input).unwrap();
-		if let TypedStatement::Expression { expr: TypedExpression::Function { parameters, .. }, has_semicolon: _ } = stmt {
+		if let TypedStatement::Expression { expr: TypedExpression::Function(TypedFunction { parameters, .. }), has_semicolon: _ } = stmt {
 			assert_eq!(parameters.len(), expected_params.len());
 
 			for (param, expected_param) in parameters.iter().zip(expected_params.iter()) {
@@ -89,7 +89,7 @@ fn test_scoped_type_bindings() {
 				},
 				TypedStatement::Let {
 					name: "func".into(),
-					value: TypedExpression::Function {
+					value: TypedExpression::Function(TypedFunction {
 						name: Some("func".into()),
 						parameters: vec![("a".into(), TypeExpr::String)],
 						body: TypedStatementBlock {
@@ -104,7 +104,7 @@ fn test_scoped_type_bindings() {
 							],
 							return_type: TypeExpr::String,
 						}
-					}
+					})
 				},
 				TypedStatement::Expression {
 					expr: TypedExpression::Identifier {

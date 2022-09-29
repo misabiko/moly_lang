@@ -24,6 +24,7 @@ pub mod type_checker;
 //TODO Static string in sum type to pattern match with
 	/* type BooleanOperator = "<" | ">" | "<=" | ">=" | "==" | "!="; */
 //TODO Store line number in Result type for better stack trace
+//Destructure struct directly fn parameters
 
 pub fn build(input: &str) -> Result<Bytecode, String> {
 	let mut parser = Parser::new(Lexer::new(input));

@@ -1,6 +1,6 @@
 use std::fmt;
 use std::fmt::Formatter;
-use crate::ast::{Expression, InfixOperator, IntExpr, PrefixOperator, Program, Statement, StatementBlock};
+use crate::ast::{Expression, Function, InfixOperator, IntExpr, PrefixOperator, Program, Statement, StatementBlock};
 use crate::lexer::Lexer;
 use crate::token::{IntType, Token, TokenLiteral, TokenType};
 use crate::type_checker::type_env::TypeExpr;
@@ -72,7 +72,7 @@ impl Parser {
 
 		let mut value = self.parse_expression(Precedence::Lowest)?;
 
-		if let Expression::Function { name, .. } = &mut value {
+		if let Expression::Function(Function { name, .. }) = &mut value {
 			*name = Some(stmt_name.clone());
 		}
 
@@ -304,12 +304,12 @@ impl Parser {
 
 		let body = self.parse_block_statement()?;
 
-		Ok(Expression::Function {
+		Ok(Expression::Function(Function {
 			parameters,
 			body,
 			name: None,
 			return_type,
-		})
+		}))
 	}
 
 	fn parse_function_parameters(&mut self) -> PResult<Vec<(String, TypeExpr)>> {
@@ -520,6 +520,8 @@ pub enum ParserError {
 		expected: String,
 		found: String,
 	},
+	InvalidGlobalStatement(Statement),
+	MissingGlobalFunctionName,
 	//TODO Classify generic errors
 	Generic(String),
 }
@@ -528,7 +530,7 @@ impl fmt::Display for ParserError {
 	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 		match self {
 			ParserError::ExpectedType { expected, found } => write!(f, "expected {}, found {}", expected, found),
-			ParserError::Generic(err) => write!(f, "{}", err),
+			_ => write!(f, "{:?}", self),
 		}
 	}
 }

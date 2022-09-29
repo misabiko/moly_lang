@@ -210,12 +210,23 @@ fn test_return_statements() {
 			],
 			return_type: TypeExpr::Bool,
 		})),
-		/*TODO Add (replace hashes with) block literal ("{return true;}", TypedBlockStatement {
+		("{return true;}", Ok(TypedStatementBlock {
 			statements: vec![
-				TypedStatement::Return(Some(TypedExpression::Boolean(true))),
+				TypedStatement::Expression {
+					expr: TypedExpression::Block {
+						block: TypedStatementBlock {
+							statements: vec![
+								TypedStatement::Return(Some(TypedExpression::Boolean(true))),
+							],
+							return_type: TypeExpr::Bool,
+						},
+						return_transparent: false
+					},
+					has_semicolon: false
+				},
 			],
 			return_type: TypeExpr::Bool,
-		}),*/
+		})),
 		//TODO Warn about redundant if true/false {}
 		("
 			let if_result = if true {

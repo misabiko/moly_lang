@@ -2,26 +2,20 @@ use std::fmt;
 use crate::ast::{InfixOperator, IntExpr, PrefixOperator};
 use super::type_env::TypeExpr;
 
-pub type TypedProgram = TypedBlockStatement;
+pub type TypedProgram = TypedStatementBlock;
 
-#[derive(Debug)]
-pub struct TypedBlockStatement {
+#[derive(Debug, PartialEq)]
+pub struct TypedStatementBlock {
 	pub statements: Vec<TypedStatement>,
 	pub return_type: TypeExpr,
 }
 
-impl fmt::Display for TypedBlockStatement {
+impl fmt::Display for TypedStatementBlock {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		for stmt in &self.statements {
 			write!(f, "{}", stmt)?;
 		}
 		Ok(())
-	}
-}
-
-impl PartialEq for TypedBlockStatement {
-	fn eq(&self, other: &Self) -> bool {
-		self.to_string() == other.to_string()
 	}
 }
 
@@ -72,12 +66,12 @@ pub enum TypedExpression {
 	If {
 		condition: Box<TypedExpression>,
 		type_expr: TypeExpr,
-		consequence: TypedBlockStatement,
-		alternative: Option<TypedBlockStatement>,
+		consequence: TypedStatementBlock,
+		alternative: Option<TypedStatementBlock>,
 	},
 	Function {
 		parameters: Vec<(String, TypeExpr)>,
-		body: TypedBlockStatement,
+		body: TypedStatementBlock,
 		name: Option<String>,
 	},
 	Call {
@@ -93,6 +87,10 @@ pub enum TypedExpression {
 		left: Box<TypedExpression>,
 		index: Box<TypedExpression>,
 	},
+	Block {
+		block: TypedStatementBlock,
+		return_transparent: bool,
+	}
 }
 
 impl fmt::Display for TypedExpression {
@@ -133,6 +131,7 @@ impl fmt::Display for TypedExpression {
 			TypedExpression::Call { function, arguments, .. } => write!(f, "{}({})", function, join_expression_vec(arguments)),
 			TypedExpression::Array { elements, .. } => write!(f, "[{}]", join_expression_vec(elements)),
 			TypedExpression::Index { left, index } => write!(f, "({}[{}])", left, index),
+			TypedExpression::Block { block, .. } => write!(f, "{{{}}}", block),
 		}
 	}
 }

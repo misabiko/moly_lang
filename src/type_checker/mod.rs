@@ -1,8 +1,8 @@
-use crate::ast::{Expression, InfixOperator, IntExpr, PrefixOperator, Program, Statement};
+use crate::ast::{Expression, InfixOperator, IntExpr, PrefixOperator, Program, Statement, StatementBlock};
 use crate::object::builtins::get_builtins;
 use crate::token::IntType;
 use crate::type_checker::type_env::{TypeEnv, TypeExpr};
-use crate::type_checker::typed_ast::{TypedExpression, TypedProgram, TypedStatement};
+use crate::type_checker::typed_ast::{TypedExpression, TypedProgram, TypedStatement, TypedStatementBlock};
 
 pub mod typed_ast;
 pub mod type_env;
@@ -26,11 +26,20 @@ impl TypeChecker {
 	}
 
 	pub fn check(&mut self, program: Program, new_scope: bool) -> TCResult<TypedProgram> {
+		let block = self.check_block(program, new_scope)?;
+
+		Ok(TypedProgram {
+			statements: block.statements,
+			return_type: block.return_type,
+		})
+	}
+
+	pub fn check_block(&mut self, block: StatementBlock, new_scope: bool) -> TCResult<TypedStatementBlock> {
 		if new_scope {
 			self.scope_return_types.push(None);
 		}
 
-		let statements = program.statements.into_iter()
+		let statements = block.0.into_iter()
 			.map(|stmt| self.check_statement(stmt))
 			.collect::<TCResult<Vec<TypedStatement>>>()?;
 
@@ -38,7 +47,11 @@ impl TypeChecker {
 			TypedStatement::Let { .. } => TypeExpr::Void,
 			TypedStatement::Return(None) => TypeExpr::Void,
 			TypedStatement::Expression { has_semicolon: true, .. } => TypeExpr::Void,
-			TypedStatement::Return(Some(e)) => TypeExpr::Return(Box::new(get_type(e))),
+			TypedStatement::Return(Some(e)) => if new_scope {
+				get_type(e)
+			} else {
+				TypeExpr::Return(Box::new(get_type(e)))
+			},
 			TypedStatement::Expression { expr, .. } => get_type(expr),
 		}).unwrap_or(TypeExpr::Void);
 
@@ -47,7 +60,7 @@ impl TypeChecker {
 			self.scope_return_types.pop();
 		}
 
-		Ok(TypedProgram {
+		Ok(TypedStatementBlock {
 			statements,
 			return_type,
 		})
@@ -86,7 +99,7 @@ impl TypeChecker {
 		}
 	}
 
-	//Maybe return the TypeExpr too?
+	//TODO Maybe return the TypeExpr too?
 	pub fn check_expression(&mut self, expr: Expression) -> TCResult<TypedExpression> {
 		match expr {
 			Expression::Boolean(value) => Ok(TypedExpression::Boolean(value)),
@@ -289,6 +302,14 @@ impl TypeChecker {
 					index: Box::new(index),
 				})
 			}
+			Expression::Block { statements, return_transparent } => {
+				let block = self.check_block(statements, !return_transparent)?;
+
+				Ok(TypedExpression::Block {
+					block,
+					return_transparent
+				})
+			}
 		}
 	}
 
@@ -365,6 +386,7 @@ pub fn get_type(expr: &TypedExpression) -> TypeExpr {
 				_ => panic!("{:?} isn't indexable (should be handled in check_expression())", left)
 			}
 		}
+		TypedExpression::Block { block, .. } => block.return_type.clone(),
 	}
 }
 

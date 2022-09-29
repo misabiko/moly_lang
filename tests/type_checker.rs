@@ -4,7 +4,7 @@ use moly::MolyError;
 use moly::parser::Parser;
 use moly::token::IntType;
 use moly::type_checker::{TypeChecker, TypeCheckError};
-use moly::type_checker::typed_ast::{TypedBlockStatement, TypedExpression, TypedProgram, TypedStatement};
+use moly::type_checker::typed_ast::{TypedStatementBlock, TypedExpression, TypedProgram, TypedStatement};
 use moly::type_checker::type_env::TypeExpr;
 
 #[test]
@@ -81,7 +81,7 @@ fn test_scoped_type_bindings() {
 				a
 			};
 			a;
-		", TypedBlockStatement {
+		", TypedStatementBlock {
 			statements: vec![
 				TypedStatement::Let {
 					name: "a".into(),
@@ -92,7 +92,7 @@ fn test_scoped_type_bindings() {
 					value: TypedExpression::Function {
 						name: Some("func".into()),
 						parameters: vec![("a".into(), TypeExpr::String)],
-						body: TypedBlockStatement {
+						body: TypedStatementBlock {
 							statements: vec![
 								TypedStatement::Expression {
 									expr: TypedExpression::Identifier {
@@ -204,7 +204,7 @@ fn test_call_arg_type_mismatch() {
 #[test]
 fn test_return_statements() {
 	let tests = vec![
-		("return true;", Ok(TypedBlockStatement {
+		("return true;", Ok(TypedStatementBlock {
 			statements: vec![
 				TypedStatement::Return(Some(TypedExpression::Boolean(true))),
 			],
@@ -224,20 +224,20 @@ fn test_return_statements() {
 				0
 			};
 			false
-		", Ok(TypedBlockStatement {
+		", Ok(TypedStatementBlock {
 			statements: vec![
 				TypedStatement::Let {
 					name: "if_result".into(),
 					value: TypedExpression::If {
 						condition: Box::new(TypedExpression::Boolean(true)),
 						type_expr: TypeExpr::Int(IntType::U8),
-						consequence: TypedBlockStatement {
+						consequence: TypedStatementBlock {
 							statements: vec![
 								TypedStatement::Return(Some(TypedExpression::Boolean(true)))
 							],
 							return_type: TypeExpr::Return(Box::new(TypeExpr::Bool)),
 						},
-						alternative: Some(TypedBlockStatement {
+						alternative: Some(TypedStatementBlock {
 							statements: vec![TypedStatement::Expression {
 								expr: TypedExpression::Integer(IntExpr::U8(0)),
 								has_semicolon: false
@@ -251,7 +251,7 @@ fn test_return_statements() {
 					has_semicolon: false,
 				}
 			],
-			return_type: TypeExpr::Int(IntType::U8),
+			return_type: TypeExpr::Bool,
 		})),
 		("
 			if true {

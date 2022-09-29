@@ -266,6 +266,11 @@ impl Compiler {
 
 				self.emit(Opcode::Call, &[length]);
 			}
+			TypedExpression::Block { block, .. } => {
+				for stmt in block.statements {
+					self.compile_statement(stmt)?
+				}
+			}
 		}
 
 		Ok(())

@@ -1,25 +1,17 @@
 use std::fmt;
 use crate::type_checker::type_env::TypeExpr;
 
-pub type Program = BlockStatement;
+pub type Program = StatementBlock;
 
-#[derive(Debug)]
-pub struct BlockStatement {
-	pub statements: Vec<Statement>
-}
+#[derive(Debug, PartialEq)]
+pub struct StatementBlock(pub Vec<Statement>);
 
-impl fmt::Display for BlockStatement {
+impl fmt::Display for StatementBlock {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		for stmt in &self.statements {
+		for stmt in &self.0 {
 			write!(f, "{}", stmt)?;
 		}
 		Ok(())
-	}
-}
-
-impl PartialEq for BlockStatement {
-	fn eq(&self, other: &Self) -> bool {
-		self.to_string() == other.to_string()
 	}
 }
 
@@ -65,13 +57,13 @@ pub enum Expression {
 	},
 	If {
 		condition: Box<Expression>,
-		consequence: BlockStatement,
-		alternative: Option<BlockStatement>,
+		consequence: StatementBlock,
+		alternative: Option<StatementBlock>,
 	},
 	Function {
 		/// name in Expression::Identifier
 		parameters: Vec<(String, TypeExpr)>,
-		body: BlockStatement,
+		body: StatementBlock,
 		name: Option<String>,
 		return_type: TypeExpr,
 	},
@@ -83,6 +75,11 @@ pub enum Expression {
 	Index {
 		left: Box<Expression>,
 		index: Box<Expression>,
+	},
+	Block {
+		statements: StatementBlock,
+		/// true if return statement go affect the outer block instead (e.g. if)
+		return_transparent: bool,
 	},
 }
 
@@ -131,6 +128,7 @@ impl fmt::Display for Expression {
 			Expression::Call { function, arguments } => write!(f, "{}({})", function, join_expression_vec(arguments)),
 			Expression::Array(elements) => write!(f, "[{}]", join_expression_vec(elements)),
 			Expression::Index { left, index } => write!(f, "({}[{}])", left, index),
+			Expression::Block { statements, .. } => write!(f, "{{{}}}", statements),
 		}
 	}
 }

@@ -1,6 +1,6 @@
 use std::fmt;
 use std::fmt::Formatter;
-use crate::ast::{BlockStatement, Expression, InfixOperator, IntExpr, PrefixOperator, Program, Statement};
+use crate::ast::{Expression, InfixOperator, IntExpr, PrefixOperator, Program, Statement, StatementBlock};
 use crate::lexer::Lexer;
 use crate::token::{IntType, Token, TokenLiteral, TokenType};
 use crate::type_checker::type_env::TypeExpr;
@@ -48,7 +48,7 @@ impl Parser {
 			self.next_token();
 		}
 
-		Ok(Program { statements })
+		Ok(StatementBlock(statements))
 	}
 
 	fn parse_statement(&mut self) -> PResult<Statement> {
@@ -156,6 +156,10 @@ impl Parser {
 			Token { token_type: TokenType::Function, .. } => self.parse_function_literal(),
 			Token { token_type: TokenType::String, .. } => Ok(self.parse_string_literal()),
 			Token { token_type: TokenType::LBracket, .. } => self.parse_array_literal(),
+			Token { token_type: TokenType::LBrace, .. } => Ok(Expression::Block {
+				statements: self.parse_block_statement()?,
+				return_transparent: false,
+			}),
 			_ => Err(self.no_prefix_parse_fn_error().unwrap_err()),
 		}?;
 
@@ -270,7 +274,7 @@ impl Parser {
 		})
 	}
 
-	fn parse_block_statement(&mut self) -> PResult<BlockStatement> {
+	fn parse_block_statement(&mut self) -> PResult<StatementBlock> {
 		self.next_token();
 
 		let mut statements = vec![];
@@ -281,7 +285,7 @@ impl Parser {
 			self.next_token();
 		}
 
-		Ok(BlockStatement { statements })
+		Ok(StatementBlock(statements))
 	}
 
 	fn parse_function_literal(&mut self) -> PResult<Expression> {

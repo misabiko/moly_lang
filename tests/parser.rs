@@ -3,7 +3,7 @@ use moly::{
 	ast::Statement,
 	parser::Parser,
 };
-use moly::ast::{Expression, InfixOperator, IntExpr, PrefixOperator};
+use moly::ast::{Expression, InfixOperator, IntExpr, PrefixOperator, StatementBlock};
 use moly::token::IntType;
 use moly::type_checker::type_env::TypeExpr;
 
@@ -310,9 +310,9 @@ fn test_if_expression() {
 				"wrong condition"
 			);
 
-			assert_eq!(consequence.statements.len(), 1, "consequence is not 1 statement. ({:?})", consequence.statements);
+			assert_eq!(consequence.0.len(), 1, "consequence is not 1 statement. ({:?})", consequence.0);
 
-			let consequence_stmt = consequence.statements.first().unwrap();
+			let consequence_stmt = consequence.0.first().unwrap();
 
 			assert_eq!(
 				*consequence_stmt,
@@ -322,7 +322,7 @@ fn test_if_expression() {
 
 			if has_alternative {
 				if let Some(alternative) = alternative {
-					let alternative_stmt = alternative.statements.first().unwrap();
+					let alternative_stmt = alternative.0.first().unwrap();
 
 					assert_eq!(
 						*alternative_stmt,
@@ -361,9 +361,9 @@ fn test_function_literal_parsing() {
 
 			assert_eq!(return_type, expected_return, "wrong return type");
 
-			assert_eq!(body.statements.len(), 1, "body.statements doesn't have 1 statement. ({:?})", body.statements);
+			assert_eq!(body.0.len(), 1, "body.statements doesn't have 1 statement. ({:?})", body.0);
 
-			let body_stmt = body.statements.first().unwrap();
+			let body_stmt = body.0.first().unwrap();
 			if let Statement::Expression { expr, has_semicolon: _ } = body_stmt {
 				assert_eq!(
 					*expr,
@@ -526,6 +526,49 @@ fn test_function_literal_with_name() {
 	}
 }
 
+#[test]
+fn test_block_expression() {
+	let tests = vec![
+		("{}", Statement::Expression {
+			expr: Expression::Block {
+				statements: StatementBlock(vec![]),
+				return_transparent: false,
+			},
+			has_semicolon: false,
+		}),
+		("{ 0; }", Statement::Expression {
+			expr: Expression::Block {
+				statements: StatementBlock(vec![
+					Statement::Expression {
+						expr: Expression::Integer(IntExpr::U8(0)),
+						has_semicolon: true
+					}
+				]),
+				return_transparent: false,
+			},
+			has_semicolon: false
+		}),
+		("let x = { 0 }", Statement::Let {
+			name: "x".into(),
+			value: Expression::Block {
+				statements: StatementBlock(vec![
+					Statement::Expression {
+						expr: Expression::Integer(IntExpr::U8(0)),
+						has_semicolon: false
+					}
+				]),
+				return_transparent: false,
+			}
+		}),
+	];
+
+	for (input, expected) in tests {
+		let stmt = parse_single_statement(input);
+
+		assert_eq!(stmt, expected);
+	}
+}
+
 fn parse_single_statement(input: &str) -> Statement {
 	let mut parser = Parser::new(Lexer::new(input));
 	let program = match parser.parse_program() {
@@ -533,7 +576,7 @@ fn parse_single_statement(input: &str) -> Statement {
 		Err(err) => panic!("parse error: {}", err),
 	};
 
-	assert_eq!(program.statements.len(), 1, "program.statements does not contain 1 statement");
+	assert_eq!(program.0.len(), 1, "program.statements does not contain 1 statement");
 
-	program.statements.into_iter().next().unwrap()
+	program.0.into_iter().next().unwrap()
 }

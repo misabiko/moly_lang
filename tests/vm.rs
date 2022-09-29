@@ -195,7 +195,7 @@ fn test_calling_functions_with_return_statement() {
 	let tests = vec![
 		TestCase {
 			input: "
-			let earlyExit = fn() { return 99; 100; };
+			let earlyExit = fn() u8 { return 99; 100 };
 			earlyExit()
 			",
 			expected: Ok(Some(Object::U8(99))),
@@ -598,22 +598,22 @@ struct TestCase {
 }
 
 fn run_vm_tests(tests: Vec<TestCase>) {
-	for TestCase { input, expected } in tests {
+	for (i, TestCase { input, expected }) in tests.into_iter().enumerate() {
 		//println!("{}", input);
 		let program = match parse(input) {
 			Ok(p) => p,
-			Err(err) => panic!("parse error: {}", err),
+			Err(err) => panic!("test {}: parse error: {}", i, err),
 		};
 
 		let mut type_checker = TypeChecker::new();
-		let program = match type_checker.check(program) {
+		let program = match type_checker.check(program, true) {
 			Ok(program) => program,
-			Err(err) => panic!("Type checking error: {:?}", err),
+			Err(err) => panic!("test {}: type checking error: {:?}", i, err),
 		};
 
 		let mut compiler = Compiler::new();
 		if let Err(err) = compiler.compile(program) {
-			panic!("compiler error: {}", err)
+			panic!("test {}: compiler error: {}", i, err)
 		}
 
 		let bytecode = compiler.bytecode();

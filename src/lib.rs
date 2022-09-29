@@ -36,7 +36,7 @@ pub fn build(input: &str) -> Result<Bytecode, String> {
 	};
 
 	let mut type_checker = TypeChecker::new();
-	let program = match type_checker.check(program) {
+	let program = match type_checker.check(program, true) {
 		Ok(program) => program,
 		Err(err) => {
 			return Err(format!("Type checking error: {:?}", err));

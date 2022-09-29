@@ -9,6 +9,7 @@ pub mod type_env;
 
 pub struct TypeChecker {
 	type_env: TypeEnv,
+	scope_return_types: Vec<Option<TypeExpr>>,
 }
 
 impl TypeChecker {
@@ -20,10 +21,15 @@ impl TypeChecker {
 
 		Self {
 			type_env,
+			scope_return_types: vec![],
 		}
 	}
 
-	pub fn check(&mut self, program: Program) -> TCResult<TypedProgram> {
+	pub fn check(&mut self, program: Program, new_scope: bool) -> TCResult<TypedProgram> {
+		if new_scope {
+			self.scope_return_types.push(None);
+		}
+
 		let statements = program.statements.into_iter()
 			.map(|stmt| self.check_statement(stmt))
 			.collect::<TCResult<Vec<TypedStatement>>>()?;
@@ -35,6 +41,11 @@ impl TypeChecker {
 			TypedStatement::Return(Some(e)) => TypeExpr::Return(Box::new(get_type(e))),
 			TypedStatement::Expression { expr, .. } => get_type(expr),
 		}).unwrap_or(TypeExpr::Void);
+
+		if new_scope {
+			self.check_scope_return_type(&return_type)?;
+			self.scope_return_types.pop();
+		}
 
 		Ok(TypedProgram {
 			statements,
@@ -60,8 +71,18 @@ impl TypeChecker {
 					value,
 				})
 			}
-			Statement::Return(None) => Ok(TypedStatement::Return(None)),
-			Statement::Return(Some(value)) => Ok(TypedStatement::Return(Some(self.check_expression(value)?))),
+			Statement::Return(None) => {
+				self.check_scope_return_type(&TypeExpr::Void)?;
+
+				Ok(TypedStatement::Return(None))
+			},
+			Statement::Return(Some(value)) => {
+				let returned = self.check_expression(value)?;
+
+				self.check_scope_return_type(&get_type(&returned))?;
+
+				Ok(TypedStatement::Return(Some(returned)))
+			},
 		}
 	}
 
@@ -125,18 +146,17 @@ impl TypeChecker {
 					return Err(TypeCheckError::Generic(format!("expected `bool`, found {:?}", condition_type)));
 				}
 
-				let consequence = self.check(consequence)?;
+				let consequence = self.check(consequence, false)?;
 				let cons_type = consequence.return_type.clone();
 
 				let alternative = match alternative {
-					Some(alternative) => Some(self.check(alternative)?),
+					Some(alternative) => Some(self.check(alternative, false)?),
 					None => None
 				};
 				let alt_type = alternative.as_ref().map(|a| &a.return_type);
 
 				//Checking if branches match
 				match (&cons_type, alt_type) {
-					//TODO Test that mismatching return in both branches get caught in outer scope
 					(TypeExpr::Return(_), _) |
 					(_, Some(TypeExpr::Return(_))) |
 					(TypeExpr::Void, None) => {}
@@ -176,7 +196,7 @@ impl TypeChecker {
 					});
 				}
 
-				let body = self.check(body)?;
+				let body = self.check(body, true)?;
 
 				let body_return_type = match &body.return_type {
 					TypeExpr::Return(returned_type) => returned_type.as_ref(),
@@ -279,6 +299,26 @@ impl TypeChecker {
 				Ok(TypedExpression::Hash(typed_pairs))
 			}
 		}
+	}
+
+	fn check_scope_return_type(&mut self, new_return_type: &TypeExpr) -> TCResult<()> {
+		let current = self.scope_return_types.last_mut().unwrap();
+		let new_return_type = match new_return_type {
+			TypeExpr::Return(returned) => &returned,
+			t => t,
+		};
+
+		match current {
+			None => *current = Some(new_return_type.clone()),
+			Some(current) => if current != new_return_type {
+				return Err(TypeCheckError::ReturnTypeMismatch {
+					scope_return_type: current.clone(),
+					mismatched_type: new_return_type.clone(),
+				})
+			}
+		}
+
+		Ok(())
 	}
 }
 
@@ -386,6 +426,10 @@ pub enum TypeCheckError {
 	CallArgTypeMismatch {
 		parameter_types: Vec<TypeExpr>,
 		argument_types: Vec<TypeExpr>,
+	},
+	ReturnTypeMismatch {
+		scope_return_type: TypeExpr,
+		mismatched_type: TypeExpr,
 	},
 	Generic(String),
 }

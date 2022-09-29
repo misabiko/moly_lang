@@ -53,7 +53,7 @@ pub fn start() {
 		};
 
 		let mut type_checker = TypeChecker::new();
-		let program = match type_checker.check(program) {
+		let program = match type_checker.check(program, true) {
 			Ok(program) => program,
 			Err(err) => {
 				eprintln!("Type checking error: {:?}", err);

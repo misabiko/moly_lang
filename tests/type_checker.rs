@@ -205,29 +205,31 @@ fn test_call_arg_type_mismatch() {
 #[test]
 fn test_return_statements() {
 	let tests = vec![
-		("return true;", TypedBlockStatement {
+		("return true;", Ok(TypedBlockStatement {
 			statements: vec![
 				TypedStatement::Return(Some(TypedExpression::Boolean(true))),
 			],
 			return_type: TypeExpr::Bool,
-		}),
+		})),
 		/*TODO Add (replace hashes with) block literal ("{return true;}", TypedBlockStatement {
 			statements: vec![
 				TypedStatement::Return(Some(TypedExpression::Boolean(true))),
 			],
 			return_type: TypeExpr::Bool,
 		}),*/
-			//TODO Warn about redundant if true/false {}
+		//TODO Warn about redundant if true/false {}
 		("
-			if true {
+			let if_result = if true {
 				return true;
 			}else {
 				0
-			}
-		", TypedBlockStatement {
+			};
+			false
+		", Ok(TypedBlockStatement {
 			statements: vec![
-				TypedStatement::Expression {
-					expr: TypedExpression::If {
+				TypedStatement::Let {
+					name: "if_result".into(),
+					value: TypedExpression::If {
 						condition: Box::new(TypedExpression::Boolean(true)),
 						type_expr: TypeExpr::Int(IntType::U8),
 						consequence: TypedBlockStatement {
@@ -244,15 +246,40 @@ fn test_return_statements() {
 							return_type: TypeExpr::Int(IntType::U8)
 						})
 					},
-					has_semicolon: false,
 				},
+				TypedStatement::Expression {
+					expr: TypedExpression::Boolean(false),
+					has_semicolon: false,
+				}
 			],
 			return_type: TypeExpr::Int(IntType::U8),
-		}),
+		})),
+		("
+			if true {
+				return true;
+			}else {
+				return 0;
+			}
+		", Err(MolyError::TypeCheck(TypeCheckError::ReturnTypeMismatch {
+			scope_return_type: TypeExpr::Bool,
+			mismatched_type: TypeExpr::Int(IntType::U8)
+		}))),
+		("
+			fn() {
+				if true {
+					return true;
+				}else {
+					return 0;
+				}
+			}
+		", Err(MolyError::TypeCheck(TypeCheckError::ReturnTypeMismatch {
+			scope_return_type: TypeExpr::Bool,
+			mismatched_type: TypeExpr::Int(IntType::U8)
+		}))),
 	];
 
 	for (input, expected_type) in tests {
-		let p = type_check(input).unwrap();
+		let p = type_check(input);
 
 		assert_eq!(p, expected_type);
 	}
@@ -265,7 +292,7 @@ fn type_check(input: &str) -> Result<TypedProgram, MolyError> {
 	};
 
 	let mut type_checker = TypeChecker::new();
-	match type_checker.check(program) {
+	match type_checker.check(program, true) {
 		Ok(program) => Ok(program),
 		Err(err) => return Err(MolyError::TypeCheck(err)),
 	}

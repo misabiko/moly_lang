@@ -408,5 +408,4 @@ pub struct EmittedInstruction {
 	pub position: usize,
 }
 
-//TODO Return Bytecode, Constants and SymbolTable?
 type CompilerResult = Result<(), String>;

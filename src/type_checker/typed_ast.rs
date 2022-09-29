@@ -79,8 +79,6 @@ pub enum TypedExpression {
 		parameters: Vec<(String, TypeExpr)>,
 		body: TypedBlockStatement,
 		name: Option<String>,
-		//TODO Remove return_type if it's stored in TypedBlockStatement
-		return_type: TypeExpr,
 	},
 	Call {
 		function: Box<TypedExpression>,
@@ -115,7 +113,7 @@ impl fmt::Display for TypedExpression {
 
 				write!(f, "if {} {}{})", condition, consequence, alt_str)
 			},
-			TypedExpression::Function { parameters, body, name, return_type } => {
+			TypedExpression::Function { parameters, body, name } => {
 				let name = if let Some(name) = name {
 					format!("<{}>", name)
 				}else {
@@ -125,7 +123,7 @@ impl fmt::Display for TypedExpression {
 					.map(|(i, t)| format!("{} {}", i, t))
 					.collect::<Vec<String>>()
 					.join(", ");
-				let return_type = match return_type {
+				let return_type = match &body.return_type {
 					TypeExpr::Void => "".into(),
 					r => format!(" {}", r),
 				};

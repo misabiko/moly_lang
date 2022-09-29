@@ -210,7 +210,7 @@ impl TypeChecker {
 					)));
 				}
 
-				Ok(TypedExpression::Function { name, parameters, body, return_type })
+				Ok(TypedExpression::Function { name, parameters, body })
 			}
 			Expression::Call { function, arguments } => {
 				let function = self.check_expression(*function)?;
@@ -328,9 +328,9 @@ pub fn get_type(expr: &TypedExpression) -> TypeExpr {
 		},
 		TypedExpression::Boolean(_) => TypeExpr::Bool,
 		TypedExpression::String(_) => TypeExpr::String,
-		TypedExpression::Function { parameters, return_type, .. } => TypeExpr::FnLiteral {
+		TypedExpression::Function { parameters, body, .. } => TypeExpr::FnLiteral {
 			parameter_types: parameters.iter().map(|p| p.1.clone()).collect(),
-			return_type: Box::new(return_type.clone())
+			return_type: Box::new(body.return_type.clone())
 		},
 		TypedExpression::Prefix {
 			operator: PrefixOperator::Minus,

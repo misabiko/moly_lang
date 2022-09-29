@@ -92,7 +92,6 @@ fn test_scoped_type_bindings() {
 					value: TypedExpression::Function {
 						name: Some("func".into()),
 						parameters: vec![("a".into(), TypeExpr::String)],
-						return_type: TypeExpr::String,
 						body: TypedBlockStatement {
 							statements: vec![
 								TypedStatement::Expression {

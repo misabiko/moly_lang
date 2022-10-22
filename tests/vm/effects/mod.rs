@@ -7,6 +7,7 @@ use moly::type_checker::TypeChecker;
 use moly::vm::VM;
 
 //TODO test_defer #[test]
+#[allow(dead_code)]
 fn test_defer() {
 	let tests = vec![
 		TestCase {

@@ -33,6 +33,20 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 			},
 			builtin: |args| {
 				for arg in args {
+					print!("{}", arg);
+				}
+
+				None
+			},
+		},
+		BuiltinInfo {
+			name: "println",
+			type_expr: TypeExpr::FnLiteral {
+				parameter_types: vec![TypeExpr::Any],
+				return_type: Box::new(TypeExpr::Void)
+			},
+			builtin: |args| {
+				for arg in args {
 					println!("{}", arg);
 				}
 

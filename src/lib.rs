@@ -1,12 +1,4 @@
-extern crate core;
-
 use std::path::PathBuf;
-use crate::compiler::{Bytecode, Compiler};
-use crate::lexer::Lexer;
-use crate::parser::{Parser, ParserError};
-use crate::token::TokenType;
-use crate::type_checker::{TypeChecker, TypeCheckError};
-use crate::vm::VM;
 
 pub mod token;
 pub mod lexer;
@@ -18,6 +10,13 @@ pub mod code;
 pub mod compiler;
 pub mod vm;
 pub mod type_checker;
+
+use crate::compiler::{Bytecode, Compiler};
+use crate::lexer::Lexer;
+use crate::parser::{Parser, ParserError};
+use crate::token::TokenType;
+use crate::type_checker::{TypeChecker, TypeCheckError};
+use crate::vm::VM;
 
 //TODO Error if returned value is not handled
 //TODO (Go-style) Skip struct initializing field names and depend on order

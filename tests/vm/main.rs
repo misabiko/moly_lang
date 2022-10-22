@@ -6,7 +6,9 @@ use moly::token::TokenType;
 use moly::type_checker::TypeChecker;
 use moly::vm::VM;
 
-//TODO Move tests to .moly files
+mod effects;
+
+//TODO Move global tests to .moly files
 
 #[test]
 fn test_integer_arithmetic() {

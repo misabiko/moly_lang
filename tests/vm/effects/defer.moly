@@ -1,0 +1,43 @@
+//Mimicking https://tour.dlang.org/tour/en/gems/scope-guards
+
+effect Defer {
+	ctl defer(deferred fn()) void;
+}
+
+fn main() Console str {
+	//TODO named return output
+	let output = "";
+	let defers = List(fn());
+
+	let println = fn (string str) {
+		output = output + string;
+	};
+
+	{
+		println("<html>");
+		defer(fn(){ println("</html>") });
+
+		{
+			println("\t<head>");
+			defer(println("\t</head>"));
+			println("\t<title>Hello</title>");
+		} // the defer on the previous line
+		// is executed here
+
+		println("\t<body>");
+		defer(println("\t</body>"));
+
+		println("\t\t<h1>Hello World!</h1>");
+	} handle Defer {
+		// ctl defer(deferred) => defers.add(deferred);
+		ctl defer(deferred) {
+			defers.add(deferred);
+		}
+	}
+
+	for defer in defers {
+		defer();
+	}
+
+	output
+}

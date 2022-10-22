@@ -46,6 +46,37 @@ fn test_program_parsing() {
 }
 
 #[test]
+fn test_comment_parsing() {
+	let tests = vec![
+		("fn main(){
+			// my comment
+		}", Ok(StatementBlock(vec![
+			Statement::Function(Function {
+				name: Some("main".into()),
+				parameters: vec![],
+				return_type: TypeExpr::Void,
+				body: StatementBlock(vec![]),
+			})
+		]))),
+		("/*pre fn*/fn /*pre main*/main(){/*
+		*/}/**/", Ok(StatementBlock(vec![
+			Statement::Function(Function {
+				name: Some("main".into()),
+				parameters: vec![],
+				return_type: TypeExpr::Void,
+				body: StatementBlock(vec![]),
+			})
+		]))),
+	];
+
+	for (input, expected) in tests {
+		let mut parser = Parser::new(Lexer::new(input));
+
+		assert_eq!(parser.parse_program(), expected);
+	}
+}
+
+#[test]
 fn test_operator_precedence_parsing() {
 	let tests = vec![
 		(

@@ -36,7 +36,13 @@ impl Parser {
 	}
 
 	pub fn next_token(&mut self) {
-		self.cur_token = std::mem::replace(&mut self.peek_token, self.lexer.next_token());
+		loop {
+			self.cur_token = std::mem::replace(&mut self.peek_token, self.lexer.next_token());
+
+			if !matches!(self.cur_token.token_type, TokenType::LineComment | TokenType::MultilineComment) {
+				break
+			}
+		}
 	}
 
 	pub fn parse_program(&mut self) -> Result<Program, ParserError> {

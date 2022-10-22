@@ -172,7 +172,7 @@ comment".into()), after_whitespace: true},
 	let mut lexer = Lexer::new(INPUT);
 
 	for expected in tests {
-		assert_eq!(lexer.next_token(), expected);
+		assert_eq!(lexer.next_token_with_comments(), expected);
 	}
 	let result = 2 + 2;
 	assert_eq!(result, 4);

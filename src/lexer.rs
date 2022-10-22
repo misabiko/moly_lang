@@ -42,6 +42,17 @@ impl Lexer {
 	}
 
 	pub fn next_token(&mut self) -> Token {
+		let mut token = self.next_token_with_comments();
+		loop {
+			if let TokenType::LineComment | TokenType::MultilineComment = token.token_type {
+				token = self.next_token_with_comments();
+			}else {
+				return token
+			}
+		}
+	}
+
+	pub fn next_token_with_comments(&mut self) -> Token {
 		let after_whitespace = self.skip_whitespace();
 
 		let token = match self.ch {

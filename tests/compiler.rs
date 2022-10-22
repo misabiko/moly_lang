@@ -989,6 +989,29 @@ fn test_global_program() {
 	run_compiler_tests(tests, false);
 }
 
+#[test]
+fn test_comments() {
+	let tests = vec![
+		TestCase {
+			input: "//",
+			expected_constants: vec![],
+			expected_instructions: vec![]
+		},
+		TestCase {
+			input: "//my comment",
+			expected_constants: vec![],
+			expected_instructions: vec![]
+		},
+		TestCase {
+			input: "/// my eventual doc comment",
+			expected_constants: vec![],
+			expected_instructions: vec![]
+		},
+	];
+
+	run_compiler_tests(tests, true);
+}
+
 struct TestCase {
 	input: &'static str,
 	expected_constants: Vec<Object>,

@@ -89,6 +89,8 @@ pub enum TokenType {
 	Str,
 
 	String,
+	LineComment,
+	MultilineComment,
 }
 
 impl fmt::Display for TokenType {
@@ -142,6 +144,8 @@ impl fmt::Display for TokenType {
 			TokenType::Str => "STR",
 
 			TokenType::String => "STRING",
+			TokenType::LineComment => "LINECOMMENT",
+			TokenType::MultilineComment => "MULTILINECOMMENT",
 		})
 	}
 }

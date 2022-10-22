@@ -62,7 +62,21 @@ impl Lexer {
 					Token { token_type: TokenType::Bang, literal: TokenLiteral::Static("!"), after_whitespace }
 				},
 				'*' => Token { token_type: TokenType::Asterisk, literal: TokenLiteral::Static("*"), after_whitespace },
-				'/' => Token { token_type: TokenType::Slash, literal: TokenLiteral::Static("/"), after_whitespace },
+				'/' => match self.peek_char() {
+					Some('=') => {
+						self.read_char();
+						Token { token_type: TokenType::Eq, literal: TokenLiteral::Static("=="), after_whitespace }
+					}
+					Some('/') => {
+						self.read_char();
+						Token { token_type: TokenType::LineComment, literal: TokenLiteral::String(self.read_line_comment()), after_whitespace }
+					}
+					Some('*') => {
+						self.read_char();
+						Token { token_type: TokenType::MultilineComment, literal: TokenLiteral::String(self.read_multiline_comment()), after_whitespace }
+					}
+					_ => Token { token_type: TokenType::Slash, literal: TokenLiteral::Static("/"), after_whitespace }
+				},
 				//TODO %
 				//TODO <= >=
 				'<' => Token { token_type: TokenType::LT, literal: TokenLiteral::Static("<"), after_whitespace },
@@ -133,12 +147,52 @@ impl Lexer {
 		loop {
 			self.read_char();
 			if let Some('"') | None = self.ch {
+				//TODO Throw on EOF mid string
 				break;
 			}
 		}
 		self.input.chars()
 			.skip(position)
 			.take(self.position - position)
+			.collect()
+	}
+
+	fn read_line_comment(&mut self) -> String {
+		let position = self.position + 1;
+		loop {
+			if let Some('\n') | None = self.peek_char() {
+				break;
+			}
+			self.read_char();
+		}
+
+		if position > self.position {
+			"".into()
+		}else {
+			self.input.chars()
+				.skip(position)
+				.take(self.position - position + 1)
+				.collect()
+		}
+	}
+
+	fn read_multiline_comment(&mut self) -> String {
+		let position = self.position + 1;
+		loop {
+			self.read_char();
+			match (self.ch, self.peek_char()) {
+				//TODO Throw on EOF mid multiline comment
+				(None, _) => {}
+				(Some('*'), Some('/')) => {
+					self.read_char();
+					break;
+				},
+				_ => {}
+			}
+		}
+		self.input.chars()
+			.skip(position)
+			.take(self.position - position - 1)
 			.collect()
 	}
 }

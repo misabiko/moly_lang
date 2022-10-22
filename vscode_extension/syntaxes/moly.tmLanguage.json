@@ -1,8 +1,13 @@
-//TODO Comments
 {
 	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
 	"name": "Moly",
 	"patterns": [
+        {
+            "include": "#block_comments"
+        },
+        {
+            "include": "#comments"
+        },
 		{
 			"include": "#keywords"
 		},
@@ -66,7 +71,7 @@
 			"match": "\\b\\d[\\d_]*(u8|u16|u32|u64|i8|i16|i32|i64)?\\b",
 			"captures": {
 				"1": {
-					"name": "entity.name.type.numeric.rust"
+					"name": "entity.name.type.numeric"
 				}
 			}
 		},
@@ -84,7 +89,52 @@
 		"identifiers": {
 			"name": "variable.other",
 			"match": "\\b[a-zA-Z][a-zA-Z0-9]*\\b"
-		}
+		},
+        "comments": {
+            "patterns": [
+                {
+                    "comment": "documentation comments",
+                    "name": "comment.line.documentation",
+                    "match": "^\\s*///.*"
+                },
+                {
+                    "comment": "line comments",
+                    "name": "comment.line.double-slash",
+                    "match": "\\s*//.*"
+                }
+            ]
+        },
+        "block_comments": {
+            "patterns": [
+                {
+                    "comment": "empty block comments",
+                    "name": "comment.block",
+                    "match": "/\\*\\*/"
+                },
+                {
+                    "comment": "block documentation comments",
+                    "name": "comment.block.documentation",
+                    "begin": "/\\*\\*",
+                    "end": "\\*/",
+                    "patterns": [
+                        {
+                            "include": "#block_comments"
+                        }
+                    ]
+                },
+                {
+                    "comment": "block comments",
+                    "name": "comment.block",
+                    "begin": "/\\*(?!\\*)",
+                    "end": "\\*/",
+                    "patterns": [
+                        {
+                            "include": "#block_comments"
+                        }
+                    ]
+                }
+            ]
+        }
 	},
 	"scopeName": "source.moly"
 }

@@ -57,11 +57,18 @@ impl Lexer {
 
 		let token = match self.ch {
 			Some(ch) => match ch {
-				'=' => if self.peek_char() == Some('=') {
-					self.read_char();
-					Token { token_type: TokenType::Eq, literal: TokenLiteral::Static("=="), after_whitespace }
-				} else {
-					Token { token_type: TokenType::Assign, literal: TokenLiteral::Static("="), after_whitespace }
+				'=' => match self.peek_char() {
+					Some('=') => {
+						self.read_char();
+						Token { token_type: TokenType::Eq, literal: TokenLiteral::Static("=="), after_whitespace }
+					}
+					Some('>') => {
+						self.read_char();
+						Token { token_type: TokenType::BigRightArrow, literal: TokenLiteral::Static("=>"), after_whitespace }
+					}
+					_ => {
+						Token { token_type: TokenType::Assign, literal: TokenLiteral::Static("="), after_whitespace }
+					}
 				},
 				//TODO += -= /= *= %=
 				'+' => Token { token_type: TokenType::Plus, literal: TokenLiteral::Static("+"), after_whitespace },
@@ -95,6 +102,7 @@ impl Lexer {
 				',' => Token { token_type: TokenType::Comma, literal: TokenLiteral::Static(","), after_whitespace },
 				';' => Token { token_type: TokenType::Semicolon, literal: TokenLiteral::Static(";"), after_whitespace },
 				':' => Token { token_type: TokenType::Colon, literal: TokenLiteral::Static(":"), after_whitespace },
+				'|' => Token { token_type: TokenType::VBar, literal: TokenLiteral::Static("|"), after_whitespace },
 				'(' => Token { token_type: TokenType::LParen, literal: TokenLiteral::Static("("), after_whitespace },
 				')' => Token { token_type: TokenType::RParen, literal: TokenLiteral::Static(")"), after_whitespace },
 				'{' => Token { token_type: TokenType::LBrace, literal: TokenLiteral::Static("{"), after_whitespace },

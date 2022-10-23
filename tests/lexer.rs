@@ -42,9 +42,21 @@ comment*/
 "foobar"
 "foo bar"
 [1, 2];
-{"foo": "bar"}
+
+struct MyStruct {
+	foo str,
+	bar u8,
+}
+MyStruct {foo: "bar", bar: 8}
+
+enum Fruits {
+	Apple,
+	Banana,
+	Cherry,
+}
+
+enum Fruits => Apple | Banana | Cherry;
 "#;
-//TODO Replace hash with struct
 
 	let tests = vec![
 		Token { token_type: TokenType::Let, literal: TokenLiteral::Static("let"), after_whitespace: false},
@@ -162,11 +174,48 @@ comment".into()), after_whitespace: true},
 		Token { token_type: TokenType::RBracket, literal: TokenLiteral::Static("]"), after_whitespace: false},
 		Token { token_type: TokenType::Semicolon, literal: TokenLiteral::Static(";"), after_whitespace: false},
 
+		Token { token_type: TokenType::Struct, literal: TokenLiteral::Static("struct"), after_whitespace: true},
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("MyStruct".into()), after_whitespace: true},
 		Token { token_type: TokenType::LBrace, literal: TokenLiteral::Static("{"), after_whitespace: true},
-		Token { token_type: TokenType::String, literal: TokenLiteral::String("foo".into()), after_whitespace: false},
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("foo".into()), after_whitespace: true},
+		Token { token_type: TokenType::Str, literal: TokenLiteral::Static("str"), after_whitespace: true},
+		Token { token_type: TokenType::Comma, literal: TokenLiteral::Static(","), after_whitespace: false},
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("bar".into()), after_whitespace: true},
+		Token { token_type: TokenType::IntegerType(IntType::U8), literal: TokenLiteral::Static("u8"), after_whitespace: true},
+		Token { token_type: TokenType::Comma, literal: TokenLiteral::Static(","), after_whitespace: false},
+		Token { token_type: TokenType::RBrace, literal: TokenLiteral::Static("}"), after_whitespace: true},
+
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("MyStruct".into()), after_whitespace: true},
+		Token { token_type: TokenType::LBrace, literal: TokenLiteral::Static("{"), after_whitespace: true},
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("foo".into()), after_whitespace: false},
 		Token { token_type: TokenType::Colon, literal: TokenLiteral::Static(":"), after_whitespace: false},
 		Token { token_type: TokenType::String, literal: TokenLiteral::String("bar".into()), after_whitespace: true},
+		Token { token_type: TokenType::Comma, literal: TokenLiteral::Static(","), after_whitespace: false},
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("bar".into()), after_whitespace: true},
+		Token { token_type: TokenType::Colon, literal: TokenLiteral::Static(":"), after_whitespace: false},
+		Token { token_type: TokenType::Int, literal: TokenLiteral::Integer(8), after_whitespace: true},
 		Token { token_type: TokenType::RBrace, literal: TokenLiteral::Static("}"), after_whitespace: false},
+
+		Token { token_type: TokenType::Enum, literal: TokenLiteral::Static("enum"), after_whitespace: true},
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("Fruits".into()), after_whitespace: true},
+		Token { token_type: TokenType::LBrace, literal: TokenLiteral::Static("{"), after_whitespace: true},
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("Apple".into()), after_whitespace: true},
+		Token { token_type: TokenType::Comma, literal: TokenLiteral::Static(","), after_whitespace: false},
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("Banana".into()), after_whitespace: true},
+		Token { token_type: TokenType::Comma, literal: TokenLiteral::Static(","), after_whitespace: false},
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("Cherry".into()), after_whitespace: true},
+		Token { token_type: TokenType::Comma, literal: TokenLiteral::Static(","), after_whitespace: false},
+		Token { token_type: TokenType::RBrace, literal: TokenLiteral::Static("}"), after_whitespace: true},
+
+		Token { token_type: TokenType::Enum, literal: TokenLiteral::Static("enum"), after_whitespace: true},
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("Fruits".into()), after_whitespace: true},
+		Token { token_type: TokenType::BigRightArrow, literal: TokenLiteral::Static("=>"), after_whitespace: true},
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("Apple".into()), after_whitespace: true},
+		Token { token_type: TokenType::VBar, literal: TokenLiteral::Static("|"), after_whitespace: true},
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("Banana".into()), after_whitespace: true},
+		Token { token_type: TokenType::VBar, literal: TokenLiteral::Static("|"), after_whitespace: true},
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("Cherry".into()), after_whitespace: true},
+		Token { token_type: TokenType::Semicolon, literal: TokenLiteral::Static(";"), after_whitespace: false},
 
 		Token { token_type: TokenType::EOF, literal: TokenLiteral::Static(""), after_whitespace: true},
 	];

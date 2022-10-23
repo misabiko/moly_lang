@@ -68,6 +68,7 @@ pub enum TokenType {
 	Comma,
 	Semicolon,
 	Colon,
+	VBar,
 
 	LParen,
 	RParen,
@@ -75,10 +76,13 @@ pub enum TokenType {
 	RBrace,
 	LBracket,
 	RBracket,
+	BigRightArrow,
 
 	// Keywords
 	Function,
 	Let,
+	Struct,
+	Enum,
 	True,
 	False,
 	If,
@@ -117,6 +121,7 @@ impl fmt::Display for TokenType {
 			TokenType::Comma => ",",
 			TokenType::Semicolon => ";",
 			TokenType::Colon => ":",
+			TokenType::VBar => "|",
 
 			TokenType::LParen => "(",
 			TokenType::RParen => ")",
@@ -124,9 +129,12 @@ impl fmt::Display for TokenType {
 			TokenType::RBrace => "}",
 			TokenType::LBracket => "[",
 			TokenType::RBracket => "]",
+			TokenType::BigRightArrow => "=>",
 
 			TokenType::Function => "FUNCTION",
 			TokenType::Let => "LET",
+			TokenType::Struct => "STRUCT",
+			TokenType::Enum => "ENUM",
 			TokenType::True => "TRUE",
 			TokenType::False => "FALSE",
 			TokenType::If => "IF",
@@ -160,6 +168,16 @@ pub fn lookup_ident(keyword: String, after_whitespace: bool) -> Token {
 		"let" => Token {
 			token_type: TokenType::Let,
 			literal: TokenLiteral::Static("let"),
+			after_whitespace,
+		},
+		"struct" => Token {
+			token_type: TokenType::Struct,
+			literal: TokenLiteral::Static("struct"),
+			after_whitespace,
+		},
+		"enum" => Token {
+			token_type: TokenType::Enum,
+			literal: TokenLiteral::Static("enum"),
 			after_whitespace,
 		},
 		"true" => Token {

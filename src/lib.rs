@@ -85,7 +85,10 @@ pub fn run_string(input: &str, full_program: bool) {
 }
 
 pub fn run_file(file: PathBuf) {
-	let input = std::fs::read_to_string(file).expect("failed to read file");
+	let input = match std::fs::read_to_string(file.clone()) {
+		Ok(ok) => ok,
+		Err(err) => panic!("failed to read {:?}:{}", std::env::current_dir().unwrap().join(file), err),
+	};
 
 	run_string(&input, true);
 }

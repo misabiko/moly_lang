@@ -63,7 +63,7 @@ fn prompt<R: BufRead, W: Write>(
 	};
 
 	let mut type_checker = TypeChecker::new();
-	let program = match type_checker.check(program, true) {
+	let program = match type_checker.check_block(program, true, false) {
 		Ok(program) => program,
 		Err(err) => return PromptResult::Err(format!("Type checking error: {:?}", err)),
 	};

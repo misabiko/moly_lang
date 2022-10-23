@@ -49,15 +49,18 @@ fn run_vm_tests(tests: Vec<TestCase>, compile_block: bool) {
 		};
 
 		let mut type_checker = TypeChecker::new();
-		let program = match type_checker.check(program, true) {
-			Ok(program) => program,
-			Err(err) => panic!("test {}: type checking error: {:?}", i, err),
-		};
-
 		let mut compiler = Compiler::new();
 		let compile_result = if compile_block {
+			let program = match type_checker.check_block(program, true, false) {
+				Ok(program) => program,
+				Err(err) => panic!("test {}: type checking error: {:?}", i, err),
+			};
 			compiler.compile_block(program)
 		}else {
+			let program = match type_checker.check(program, true) {
+				Ok(program) => program,
+				Err(err) => panic!("test {}: type checking error: {:?}", i, err),
+			};
 			compiler.compile(program)
 		};
 		if let Err(err) = compile_result {

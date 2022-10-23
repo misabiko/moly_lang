@@ -63,7 +63,7 @@ impl Compiler {
 	}
 
 	pub fn compile(&mut self, program: TypedProgram) -> CompilerResult {
-		for stmt in program.statements {
+		for stmt in program.0 {
 			self.compile_statement(stmt)?
 		}
 

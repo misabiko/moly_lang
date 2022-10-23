@@ -26,6 +26,57 @@ fn test_boolean_expression() {
 }
 
 #[test]
+fn test_global_functions() {
+	let tests = vec![
+		("
+fn globalFunc() {}
+
+fn main() {
+    globalFunc();
+}",
+		 TypedProgram(vec![
+			TypedStatement::Function(TypedFunction {
+				name: Some("globalFunc".into()),
+				parameters: vec![],
+				body: TypedStatementBlock {
+					statements: vec![],
+					return_type: TypeExpr::Void,
+				}
+			}),
+			TypedStatement::Function(TypedFunction {
+				name: Some("main".into()),
+				parameters: vec![],
+				body: TypedStatementBlock {
+					statements: vec![
+						TypedStatement::Expression {
+							expr: TypedExpression::Call {
+								function: Box::new(TypedExpression::Identifier {
+									name: "globalFunc".into(),
+									type_expr: TypeExpr::FnLiteral {
+										parameter_types: vec![],
+										return_type: Box::new(TypeExpr::Void),
+									},
+								}),
+								return_type: TypeExpr::Void,
+								arguments: vec![],
+							},
+							has_semicolon: true,
+						}
+					],
+					return_type: TypeExpr::Void,
+				}
+			})
+		])),
+	];
+
+	for (input, expected_type) in tests {
+		let p = type_check(input).unwrap();
+
+		assert_eq!(p, expected_type);
+	}
+}
+
+#[test]
 fn test_function_parameter_parsing() {
 	let tests = vec![
 		("fn(x u8, y str, z i16) {};", vec![
@@ -119,7 +170,7 @@ fn test_scoped_type_bindings() {
 	];
 
 	for (input, expected_type) in tests {
-		let p = type_check(input).unwrap();
+		let p = type_check_block(input).unwrap();
 
 		assert_eq!(p, expected_type);
 	}
@@ -171,7 +222,7 @@ fn test_call_arg_num() {
 	];
 
 	for (input, expected_error) in tests {
-		let program = type_check(input);
+		let program = type_check_block(input);
 		assert_eq!(program.expect_err("type check didn't return error"), expected_error)
 	}
 }
@@ -196,7 +247,7 @@ fn test_call_arg_type_mismatch() {
 	];
 
 	for (input, expected_error) in tests {
-		let program = type_check(input);
+		let program = type_check_block(input);
 		assert_eq!(program.expect_err("type check didn't return error"), expected_error)
 	}
 }
@@ -289,14 +340,14 @@ fn test_return_statements() {
 	];
 
 	for (input, expected_type) in tests {
-		let p = type_check(input);
+		let p = type_check_block(input);
 
 		assert_eq!(p, expected_type);
 	}
 }
 
 fn type_check(input: &str) -> Result<TypedProgram, MolyError> {
-	let program = match Parser::new(Lexer::new(input)).parse_block_statement(TokenType::EOF) {
+	let program = match Parser::new(Lexer::new(input)).parse_program() {
 		Ok(p) => p,
 		Err(err) => return Err(MolyError::Parse(err)),
 	};
@@ -308,8 +359,21 @@ fn type_check(input: &str) -> Result<TypedProgram, MolyError> {
 	}
 }
 
+fn type_check_block(input: &str) -> Result<TypedStatementBlock, MolyError> {
+	let program = match Parser::new(Lexer::new(input)).parse_block_statement(TokenType::EOF) {
+		Ok(p) => p,
+		Err(err) => return Err(MolyError::Parse(err)),
+	};
+
+	let mut type_checker = TypeChecker::new();
+	match type_checker.check_block(program, true, false) {
+		Ok(program) => Ok(program),
+		Err(err) => return Err(MolyError::TypeCheck(err)),
+	}
+}
+
 fn type_check_single_statement(input: &str) -> Result<TypedStatement, MolyError> {
-	let program = type_check(input)?;
+	let program = type_check_block(input)?;
 
 	assert_eq!(program.statements.len(), 1, "program.statements does not contain 1 statement");
 

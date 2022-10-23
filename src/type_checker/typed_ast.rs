@@ -2,7 +2,17 @@ use std::fmt;
 use crate::ast::{InfixOperator, IntExpr, PrefixOperator};
 use super::type_env::TypeExpr;
 
-pub type TypedProgram = TypedStatementBlock;
+#[derive(Debug, PartialEq)]
+pub struct TypedProgram(pub Vec<TypedStatement>);
+
+impl fmt::Display for TypedProgram {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		for stmt in &self.0 {
+			write!(f, "{}", stmt)?;
+		}
+		Ok(())
+	}
+}
 
 #[derive(Debug, PartialEq)]
 pub struct TypedStatementBlock {

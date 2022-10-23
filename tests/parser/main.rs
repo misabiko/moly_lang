@@ -3,7 +3,7 @@ use moly::{
 	lexer::Lexer,
 	parser::Parser,
 };
-use moly::ast::{Function, Program, StatementBlock};
+use moly::ast::{Expression, Function, Program, StatementBlock};
 use moly::parser::ParserError;
 use moly::token::{Token, TokenLiteral, TokenType};
 use moly::type_checker::type_env::TypeExpr;
@@ -35,6 +35,34 @@ fn test_program_parsing() {
 				return_type: TypeExpr::Void,
 				body: StatementBlock(vec![]),
 			})
+		]))),
+		("
+fn globalFunc() {}
+
+fn main() {
+    globalFunc();
+}",
+		 Ok(StatementBlock(vec![
+			Statement::Function(Function {
+				name: Some("globalFunc".into()),
+				parameters: vec![],
+				return_type: TypeExpr::Void,
+				body: StatementBlock(vec![]),
+			}),
+			Statement::Function(Function {
+				name: Some("main".into()),
+				parameters: vec![],
+				return_type: TypeExpr::Void,
+				body: StatementBlock(vec![
+					Statement::Expression {
+						expr: Expression::Call {
+							function: Box::new(Expression::Identifier("globalFunc".into())),
+							arguments: vec![],
+						},
+						has_semicolon: true,
+					}
+				]),
+			}),
 		]))),
 	];
 

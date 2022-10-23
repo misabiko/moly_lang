@@ -28,10 +28,7 @@ impl TypeChecker {
 	pub fn check(&mut self, program: Program, new_scope: bool) -> TCResult<TypedProgram> {
 		let block = self.check_block(program, new_scope, false)?;
 
-		Ok(TypedProgram {
-			statements: block.statements,
-			return_type: block.return_type,
-		})
+		Ok(TypedProgram(block.statements))
 	}
 
 	pub fn check_block(&mut self, block: StatementBlock, new_scope: bool, already_type_scoped: bool) -> TCResult<TypedStatementBlock> {
@@ -103,7 +100,7 @@ impl TypeChecker {
 
 				Ok(TypedStatement::Return(Some(returned)))
 			}
-			Statement::Function(func) => Ok(TypedStatement::Function(self.check_function(func)?)),
+			Statement::Function(func) => Ok(TypedStatement::Function(self.check_function(func, true)?)),
 		}
 	}
 
@@ -180,11 +177,11 @@ impl TypeChecker {
 					return Err(TypeCheckError::Generic(format!("expected `bool`, found {:?}", condition_type)));
 				}
 
-				let consequence = self.check(consequence, false)?;
+				let consequence = self.check_block(consequence, false, false)?;
 				let cons_type = consequence.return_type.clone();
 
 				let alternative = match alternative {
-					Some(alternative) => Some(self.check(alternative, false)?),
+					Some(alternative) => Some(self.check_block(alternative, false, false)?),
 					None => None
 				};
 				let alt_type = alternative.as_ref().map(|a| &a.return_type);
@@ -219,7 +216,7 @@ impl TypeChecker {
 				}, type_expr))
 			}
 			Expression::Function(func) => {
-				let func = self.check_function(func)?;
+				let func = self.check_function(func, false)?;
 				let type_expr = TypeExpr::FnLiteral {
 					parameter_types: func.parameters.iter().map(|p| p.1.clone()).collect(),
 					return_type: Box::new(func.body.return_type.clone()),
@@ -327,18 +324,29 @@ impl TypeChecker {
 		}
 	}
 
-	fn check_function(&mut self, function: Function) -> TCResult<TypedFunction> {
+	fn check_function(&mut self, function: Function, global: bool) -> TCResult<TypedFunction> {
+		if global {
+			if let Some(name) = &function.name {
+				self.type_env.define_identifier(name, TypeExpr::FnLiteral {
+					parameter_types: function.parameters.iter().map(|p| p.1.clone()).collect(),
+					return_type: Box::new(function.return_type.clone()),
+				});
+			}
+		}
+
 		self.type_env.push_scope();
 
 		for (param, param_type) in function.parameters.iter() {
 			self.type_env.define_identifier(&param, param_type.clone());
 		}
 
-		if let Some(name) = &function.name {
-			self.type_env.define_identifier(name, TypeExpr::FnLiteral {
-				parameter_types: function.parameters.iter().map(|p| p.1.clone()).collect(),
-				return_type: Box::new(function.return_type.clone()),
-			});
+		if !global {
+			if let Some(name) = &function.name {
+				self.type_env.define_identifier(name, TypeExpr::FnLiteral {
+					parameter_types: function.parameters.iter().map(|p| p.1.clone()).collect(),
+					return_type: Box::new(function.return_type.clone()),
+				});
+			}
 		}
 
 		let body = self.check_block(function.body, true, true)?;

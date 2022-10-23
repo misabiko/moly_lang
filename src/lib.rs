@@ -42,17 +42,23 @@ pub fn build(input: &str, full_program: bool) -> Result<Bytecode, String> {
 	};
 
 	let mut type_checker = TypeChecker::new();
-	let program = match type_checker.check(program, true) {
-		Ok(program) => program,
-		Err(err) => {
-			return Err(format!("Type checking error: {:?}", err));
-		}
-	};
 
 	let mut compiler = Compiler::new();
 	let compiled = if full_program {
+		let program = match type_checker.check(program, true) {
+			Ok(program) => program,
+			Err(err) => {
+				return Err(format!("Type checking error: {:?}", err));
+			}
+		};
 		compiler.compile(program)
 	}else {
+		let program = match type_checker.check_block(program, true, false) {
+			Ok(program) => program,
+			Err(err) => {
+				return Err(format!("Type checking error: {:?}", err));
+			}
+		};
 		compiler.compile_block(program)
 	};
 	if let Err(err) = compiled {

@@ -1,5 +1,4 @@
 use std::fmt;
-use std::fmt::Formatter;
 use crate::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Program, Statement, StatementBlock, StructConstructor, StructDecl};
 use crate::lexer::Lexer;
 use crate::token::{IntType, Token, TokenLiteral, TokenType};
@@ -439,11 +438,16 @@ impl Parser {
 	}
 
 	fn parse_field_expression(&mut self, left: Expression) -> PResult<Expression> {
-		self.expect_peek(TokenType::Ident)?;
-
-		let field = self.cur_token.literal
-			.get_string().cloned()
-			.expect("literal isn't string");
+		self.next_token();
+		let field = match self.cur_token.token_type {
+			TokenType::Ident => self.cur_token.literal.get_string().cloned().unwrap(),
+			TokenType::Int => {
+				self.cur_token.literal
+					.get_integer().cloned().unwrap()
+					.to_string()
+			}
+			_ => return Err(ParserError::Generic(format!("Unexpected field token {:?}", self.peek_token)))
+		};
 
 		Ok(Expression::Field {
 			left: Box::new(left),
@@ -678,7 +682,7 @@ pub enum ParserError {
 }
 
 impl fmt::Display for ParserError {
-	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
 			ParserError::ExpectedType { expected, found } => write!(f, "expected {}, found {}", expected, found),
 			_ => write!(f, "{:?}", self),

@@ -282,15 +282,34 @@ fn test_call_expression_parsing() {
 
 #[test]
 fn test_field_expression_parsing() {
-	let stmt = parse_single_statement("foo.bar").unwrap();
+	let tests = vec![
+		(
+			"foo.bar",
+			Statement::Expression {
+				expr: Expression::Field {
+					left: Box::new(Expression::Identifier("foo".into())),
+					field: "bar".into(),
+				},
+				has_semicolon: false,
+			}
+		),
+		(
+			"foo.0",
+			Statement::Expression {
+				expr: Expression::Field {
+					left: Box::new(Expression::Identifier("foo".into())),
+					field: "0".into(),
+				},
+				has_semicolon: false,
+			}
+		),
+	];
 
-	assert_eq!(stmt, Statement::Expression {
-		expr: Expression::Field {
-			left: Box::new(Expression::Identifier("foo".into())),
-			field: "bar".into(),
-		},
-		has_semicolon: false,
-	})
+	for (input, expected) in tests {
+		let stmt = parse_single_statement(input).unwrap();
+
+		assert_eq!(stmt, expected);
+	}
 }
 
 #[test]

@@ -125,6 +125,7 @@ impl TypeChecker {
 			Expression::String(value) => Ok((TypedExpression::String(value), TypeExpr::String)),
 			Expression::Identifier(name) => {
 				let type_expr = self.type_env.get_identifier_type(name.as_str())
+					.or_else(|| self.type_env.get_custom_type(name.as_str()))
 					.cloned()
 					.ok_or(TypeCheckError::Generic(format!("cannot find value `{}` in this scope", name)))?;
 
@@ -266,6 +267,32 @@ impl TypeChecker {
 						}
 
 						*return_type
+					}
+					TypeExpr::Struct { name, bindings } => {
+						if arguments.len() != bindings.len() {
+							return Err(TypeCheckError::CallArgCount {
+								parameter_count: bindings.len() as u8,
+								argument_count: arguments.len() as u8,
+							});
+						}
+
+						for (arg, binding) in argument_types.iter().zip(bindings.iter()) {
+							match &binding.type_expr {
+								TypeExpr::Array(elements) => if let TypeExpr::Any = elements.as_ref() {
+									continue;
+								}
+								TypeExpr::Any => continue,
+								_ => {}
+							}
+							if arg != &binding.type_expr {
+								return Err(TypeCheckError::CallArgTypeMismatch {
+									parameter_types: bindings.iter().map(|b| b.type_expr.clone()).collect(),
+									argument_types,
+								});
+							}
+						}
+
+						TypeExpr::Struct { name, bindings }
 					}
 					TypeExpr::Void => return Err(TypeCheckError::Generic("cannot call void type".into())),
 					t => return Err(TypeCheckError::Generic(format!("type {:?} not callable", t)))

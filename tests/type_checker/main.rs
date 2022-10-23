@@ -5,7 +5,7 @@ use moly::parser::Parser;
 use moly::token::{IntType, TokenType};
 use moly::type_checker::{TypeChecker, TypeCheckError};
 use moly::type_checker::typed_ast::{TypedStatementBlock, TypedExpression, TypedProgram, TypedStatement, TypedFunction};
-use moly::type_checker::type_env::TypeExpr;
+use moly::type_checker::type_env::{TypeBinding, TypeExpr};
 
 #[test]
 fn test_boolean_expression() {
@@ -343,6 +343,94 @@ fn test_return_statements() {
 		let p = type_check_block(input);
 
 		assert_eq!(p, expected_type);
+	}
+}
+
+#[test]
+fn test_struct_construction() {
+	let person_type = TypeExpr::Struct {
+		name: "Person".into(),
+		bindings: vec![
+			TypeBinding {
+				ident: "name".into(),
+				type_expr: TypeExpr::String,
+			},
+			TypeBinding {
+				ident: "age".into(),
+				type_expr: TypeExpr::Int(IntType::U8),
+			},
+		],
+	};
+	let pair_type = TypeExpr::Struct {
+		name: "Pair".into(),
+		bindings: vec![
+			TypeBinding {
+				ident: "0".into(),
+				type_expr: TypeExpr::Int(IntType::I32),
+			},
+			TypeBinding {
+				ident: "1".into(),
+				type_expr: TypeExpr::Int(IntType::U32),
+			},
+		],
+	};
+
+	let tests = vec![
+		(
+			r#"
+				struct Person {
+					name str,
+					age u8,
+				}
+				Person { name: "Bob", age: 24 }
+			"#,
+			Ok(TypedStatementBlock {
+				statements: vec![
+					TypedStatement::Expression {
+						expr: TypedExpression::Struct {
+							name: "Person".into(),
+							fields: vec![
+								("name".into(), TypedExpression::String("Bob".into())),
+								("age".into(), TypedExpression::Integer(IntExpr::U8(24))),
+							],
+							type_expr: person_type.clone(),
+						},
+						has_semicolon: false,
+					}
+				],
+				return_type: person_type,
+			}),
+		),
+		(
+			"
+				struct Pair(i32, u32)
+				Pair(10i32, 1u32)
+			",
+			Ok(TypedStatementBlock {
+				statements: vec![
+					TypedStatement::Expression {
+						expr: TypedExpression::Call {
+							function: Box::new(TypedExpression::Identifier {
+								name: "Pair".into(),
+								type_expr: pair_type.clone(),
+							}),
+							return_type: pair_type.clone(),
+							arguments: vec![
+								TypedExpression::Integer(IntExpr::I32(10)),
+								TypedExpression::Integer(IntExpr::U32(1)),
+							],
+						},
+						has_semicolon: false,
+					}
+				],
+				return_type: pair_type,
+			}),
+		),
+	];
+
+	for (input, expected) in tests {
+		let stmt = type_check_block(input);
+		assert_eq!(stmt, expected)
 	}
 }
 

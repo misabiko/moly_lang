@@ -1,4 +1,6 @@
-use moly::ast::{Expression, IntExpr, Statement};
+use moly::ast::{Expression, IntExpr, Statement, StructDecl};
+use moly::token::IntType;
+use moly::type_checker::type_env::TypeExpr;
 
 use crate::parse_single_statement;
 
@@ -38,5 +40,34 @@ fn test_return_statements() {
 			Ok(Statement::Return(None)) => panic!("missing returned value"),
 			Ok(stmt) => panic!("{:?} not Return", stmt),
 		}
+	}
+}
+
+#[test]
+fn test_struct_declaration() {
+	let tests = vec![
+		("struct Person {
+			name str,
+			age u8,
+		}", Statement::Struct {
+			name: "Person".into(),
+			decl: StructDecl::Block(vec![
+				("name".into(), TypeExpr::String),
+				("age".into(), TypeExpr::Int(IntType::U8)),
+			]),
+		}),
+		("struct Person(str, u8)", Statement::Struct {
+			name: "Person".into(),
+			decl: StructDecl::Tuple(vec![
+				TypeExpr::String,
+				TypeExpr::Int(IntType::U8)
+			]),
+		}),
+	];
+
+	for (input, expected_value) in tests {
+		let stmt = parse_single_statement(input).unwrap();
+
+		assert_eq!(stmt, expected_value);
 	}
 }

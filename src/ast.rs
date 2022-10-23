@@ -27,7 +27,11 @@ pub enum Statement {
 		has_semicolon: bool
 	},
 	/// Function::name should be Some, might split expr and stmt function later
-	Function(Function)
+	Function(Function),
+	Struct {
+		name: String,
+		decl: StructDecl,
+	},
 }
 
 impl fmt::Display for Statement {
@@ -39,6 +43,17 @@ impl fmt::Display for Statement {
 			Statement::Expression { expr, has_semicolon }
 				=> write!(f, "{}{}", expr, if *has_semicolon { ";" } else { "" }),
 			Statement::Function(func) => write!(f, "{}", func),
+			Statement::Struct { name, decl } => match decl {
+				StructDecl::Block(fields) => {
+					let fields = fields.iter()
+						.map(|(name, typ)| format!("{} {}", name, typ))
+						.collect::<Vec<String>>()
+						.join(", ");
+
+					write!(f, "struct {} {{ {} }}", name, fields)
+				},
+				StructDecl::Tuple(fields) => write!(f, "struct {}({})", name, join_type_expr_vec(fields))
+			}
 		}
 	}
 }
@@ -115,6 +130,13 @@ impl fmt::Display for Expression {
 }
 
 fn join_expression_vec(expressions: &[Expression]) -> String {
+	expressions.iter()
+		.map(|p| p.to_string())
+		.collect::<Vec<String>>()
+		.join(", ")
+}
+
+fn join_type_expr_vec(expressions: &[TypeExpr]) -> String {
 	expressions.iter()
 		.map(|p| p.to_string())
 		.collect::<Vec<String>>()
@@ -224,4 +246,10 @@ impl fmt::Display for Function {
 
 		write!(f, "fn{}({}) {} {}", name, parameters, return_type, self.body)
 	}
+}
+
+#[derive(Debug, PartialEq)]
+pub enum StructDecl {
+	Block (Vec<(String, TypeExpr)>),
+	Tuple(Vec<TypeExpr>),
 }

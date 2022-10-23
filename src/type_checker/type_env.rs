@@ -1,9 +1,11 @@
+use std::collections::HashMap;
 use std::fmt;
 use crate::token::IntType;
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct TypeBinding {
-	ident: String,
-	type_expr: TypeExpr,
+	pub ident: String,
+	pub type_expr: TypeExpr,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -16,6 +18,10 @@ pub enum TypeExpr {
 	FnLiteral {
 		parameter_types: Vec<TypeExpr>,
 		return_type: Box<TypeExpr>,
+	},
+	Struct {
+		name: String,
+		bindings: Vec<TypeBinding>,
 	},
 	/// Equivalent to Rust's never
 	Return(Box<TypeExpr>),
@@ -45,6 +51,7 @@ impl fmt::Display for TypeExpr {
 
 				write!(f, "fn({}) {} {{}}", parameter_types, return_type)
 			}
+			TypeExpr::Struct { name, .. } => write!(f, "{}", name),
 			TypeExpr::Array(element_type) => write!(f, "[{}]", element_type),
 			TypeExpr::Return(returned_type) => write!(f, "return {}", returned_type),
 			TypeExpr::Any => write!(f, "ANY"),
@@ -57,6 +64,7 @@ pub type TypeId = u32;
 pub struct TypeEnv {
 	bindings: Vec<TypeBinding>,
 	scope_stack: Vec<usize>,
+	custom_types: HashMap<String, TypeExpr>,
 }
 
 impl TypeEnv {
@@ -64,6 +72,7 @@ impl TypeEnv {
 		Self {
 			bindings: Vec::new(),
 			scope_stack: Vec::new(),
+			custom_types: HashMap::new(),
 		}
 	}
 
@@ -78,6 +87,16 @@ impl TypeEnv {
 			ident: name.into(),
 			type_expr,
 		})
+	}
+
+	pub fn get_custom_type(&self, ident: &str) -> Option<&TypeExpr> {
+		self.custom_types.get(ident)
+	}
+
+	pub fn define_type(&mut self, name: &str, type_expr: TypeExpr) {
+		if let Some(_) = self.custom_types.insert(name.into(), type_expr) {
+			//TODO Throw if type already exists
+		}
 	}
 
 	pub fn push_scope(&mut self) {

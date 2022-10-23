@@ -1,6 +1,6 @@
 use std::fmt;
 use std::fmt::Formatter;
-use crate::ast::{Expression, Function, InfixOperator, IntExpr, PrefixOperator, Program, Statement, StatementBlock};
+use crate::ast::{Expression, Function, InfixOperator, IntExpr, PrefixOperator, Program, Statement, StatementBlock, StructDecl};
 use crate::lexer::Lexer;
 use crate::token::{IntType, Token, TokenLiteral, TokenType};
 use crate::type_checker::type_env::TypeExpr;
@@ -28,19 +28,12 @@ impl Parser {
 		parser
 	}
 
-	fn no_prefix_parse_fn_error(&mut self) -> PResult<()> {
-		Err(ParserError::Generic(format!(
-			"no prefix parse function for {:?} found",
-			self.cur_token
-		)))
-	}
-
 	pub fn next_token(&mut self) {
 		loop {
 			self.cur_token = std::mem::replace(&mut self.peek_token, self.lexer.next_token());
 
 			if !matches!(self.cur_token.token_type, TokenType::LineComment | TokenType::MultilineComment) {
-				break
+				break;
 			}
 		}
 	}
@@ -74,11 +67,11 @@ impl Parser {
 			TokenType::Function => {
 				let func = self.parse_function_literal()?;
 				if func.name.is_none() {
-					return Err(ParserError::MissingGlobalFunctionName)
+					return Err(ParserError::MissingGlobalFunctionName);
 				}
 
 				Ok(Statement::Function(func))
-			},
+			}
 			_ => return Err(ParserError::InvalidGlobalToken(self.cur_token.clone())),
 		}
 	}
@@ -87,6 +80,7 @@ impl Parser {
 		match self.cur_token.token_type {
 			TokenType::Let => self.parse_let_statement(),
 			TokenType::Return => self.parse_return_statement(),
+			TokenType::Struct => self.parse_struct_decl(),
 			_ => self.parse_expression_statement(),
 		}
 	}
@@ -132,6 +126,55 @@ impl Parser {
 		}
 
 		Ok(Statement::Return(Some(return_value)))
+	}
+
+	fn parse_struct_decl(&mut self) -> PResult<Statement> {
+		self.expect_peek(TokenType::Ident)?;
+
+		let name = self.cur_token.literal
+			.get_string().cloned()
+			.expect("literal isn't string");
+
+		let decl = if self.peek_token_is(TokenType::LBrace) {
+			self.next_token();
+			self.parse_struct_block_decl()?
+		} else if self.peek_token_is(TokenType::LParen) {
+			self.next_token();
+			StructDecl::Tuple(self.parse_type_list(TokenType::RParen)?)
+		} else {
+			return Err(ParserError::Generic(format!(
+				"expected next token to be ( or {{, got {} instead",
+				self.peek_token.token_type
+			)));
+		};
+
+		Ok(Statement::Struct { name, decl })
+	}
+
+	fn parse_struct_block_decl(&mut self) -> PResult<StructDecl> {
+		let mut fields = vec![];
+
+		//We could skip a peek_token_is with a manual loop, but probably not worth it
+		while !self.peek_token_is(TokenType::RBrace) {
+			self.expect_peek(TokenType::Ident)?;
+
+			let field = self.cur_token.literal
+				.get_string().cloned()
+				.expect("literal isn't string");
+
+			self.next_token();
+			let field_type = self.parse_type_identifier()?;
+
+			fields.push((field, field_type));
+
+			if !self.peek_token_is(TokenType::RBrace) {
+				self.expect_peek(TokenType::Comma)?;
+			}
+		}
+
+		self.expect_peek(TokenType::RBrace)?;
+
+		Ok(StructDecl::Block(fields))
 	}
 
 	fn parse_expression_statement(&mut self) -> PResult<Statement> {
@@ -195,7 +238,10 @@ impl Parser {
 					return_transparent: false,
 				})
 			}
-			_ => Err(self.no_prefix_parse_fn_error().unwrap_err()),
+			_ => Err(ParserError::Generic(format!(
+				"no prefix parse function for {:?} found",
+				self.cur_token
+			))),
 		}?;
 
 		while !self.peek_token_is(TokenType::Semicolon) && precedence < self.peek_precedence() {
@@ -315,7 +361,7 @@ impl Parser {
 		let name = if self.peek_token_is(TokenType::Ident) {
 			self.next_token();
 			Some(self.cur_token.literal.get_string().unwrap().clone())
-		}else {
+		} else {
 			None
 		};
 
@@ -424,7 +470,7 @@ impl Parser {
 		}
 
 		if list.len() > u16::MAX as usize {
-			return Err(ParserError::ArrayTooLong(list.len()))
+			return Err(ParserError::ArrayTooLong(list.len()));
 		}
 
 		Ok(list)

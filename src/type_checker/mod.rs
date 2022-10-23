@@ -1,7 +1,8 @@
-use crate::ast::{Expression, Function, InfixOperator, IntExpr, PrefixOperator, Program, Statement, StatementBlock};
+use std::convert::identity;
+use crate::ast::{Expression, Function, InfixOperator, IntExpr, PrefixOperator, Program, Statement, StatementBlock, StructDecl};
 use crate::object::builtins::get_builtins;
 use crate::token::IntType;
-use crate::type_checker::type_env::{TypeEnv, TypeExpr};
+use crate::type_checker::type_env::{TypeBinding, TypeEnv, TypeExpr};
 use crate::type_checker::typed_ast::{TypedExpression, TypedFunction, TypedProgram, TypedStatement, TypedStatementBlock};
 
 pub mod typed_ast;
@@ -43,7 +44,9 @@ impl TypeChecker {
 
 		let statements = block.0.into_iter()
 			.map(|stmt| self.check_statement(stmt))
-			.collect::<TCResult<Vec<TypedStatement>>>()?;
+			.collect::<TCResult<Vec<Option<TypedStatement>>>>()?
+			.into_iter().filter_map(identity)
+			.collect::<Vec<TypedStatement>>();
 
 		let return_type = statements.last().map(|stmt| match stmt {
 			TypedStatement::Let { .. } |
@@ -70,10 +73,10 @@ impl TypeChecker {
 		})
 	}
 
-	pub fn check_statement(&mut self, stmt: Statement) -> TCResult<TypedStatement> {
+	pub fn check_statement(&mut self, stmt: Statement) -> TCResult<Option<TypedStatement>> {
 		match stmt {
 			Statement::Expression { expr, has_semicolon } => self.check_expression(expr)
-				.map(|(expr, _)| TypedStatement::Expression { expr, has_semicolon }),
+				.map(|(expr, _)| Some(TypedStatement::Expression { expr, has_semicolon })),
 			Statement::Let { name, value } => {
 				let (value, value_type) = self.check_expression(value)?;
 
@@ -83,24 +86,28 @@ impl TypeChecker {
 				};
 				self.type_env.define_identifier(&name, value_type);
 
-				Ok(TypedStatement::Let {
+				Ok(Some(TypedStatement::Let {
 					name,
 					value,
-				})
+				}))
 			}
 			Statement::Return(None) => {
 				self.check_scope_return_type(&TypeExpr::Void)?;
 
-				Ok(TypedStatement::Return(None))
+				Ok(Some(TypedStatement::Return(None)))
 			}
 			Statement::Return(Some(value)) => {
 				let (returned, returned_type) = self.check_expression(value)?;
 
 				self.check_scope_return_type(&returned_type)?;
 
-				Ok(TypedStatement::Return(Some(returned)))
+				Ok(Some(TypedStatement::Return(Some(returned))))
 			}
-			Statement::Function(func) => Ok(TypedStatement::Function(self.check_function(func, true)?)),
+			Statement::Function(func) => Ok(Some(TypedStatement::Function(self.check_function(func, true)?))),
+			Statement::Struct { name, decl } => {
+				self.check_struct_decl(name, decl)?;
+				Ok(None)
+			}
 		}
 	}
 
@@ -386,6 +393,26 @@ impl TypeChecker {
 				});
 			}
 		}
+
+		Ok(())
+	}
+
+	fn check_struct_decl(&mut self, name: String, decl: StructDecl) -> TCResult<()> {
+		self.type_env.define_type(&name, TypeExpr::Struct {
+			name: name.clone(),
+			bindings: match &decl {
+				StructDecl::Block(fields) => fields.iter().map(|f|
+					TypeBinding {
+						ident: f.0.clone(),
+						type_expr: f.1.clone(),
+					}).collect(),
+				StructDecl::Tuple(fields) => fields.iter().enumerate().map(|(i, f)|
+					TypeBinding {
+						ident: i.to_string(),
+						type_expr: f.clone(),
+					}).collect(),
+			}
+		});
 
 		Ok(())
 	}

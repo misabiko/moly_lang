@@ -35,6 +35,7 @@ if 5 < 10 {
 /* my multi
 line
 comment*/
+/* /**/ /* /**/ */*/
 
 10 == 10;
 10 != 9;
@@ -138,6 +139,7 @@ comment*/
 		Token { token_type: TokenType::MultilineComment, literal: TokenLiteral::String(" my multi
 line
 comment".into()), after_whitespace: true},
+		Token { token_type: TokenType::MultilineComment, literal: TokenLiteral::String(" /**/ /* /**/ */".into()), after_whitespace: true},
 
 		Token { token_type: TokenType::Int, literal: TokenLiteral::Integer(10), after_whitespace: true},
 		Token { token_type: TokenType::Eq, literal: TokenLiteral::Static("=="), after_whitespace: true},

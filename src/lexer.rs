@@ -189,14 +189,24 @@ impl Lexer {
 
 	fn read_multiline_comment(&mut self) -> String {
 		let position = self.position + 1;
+		let mut nest_levels = 0;
+
 		loop {
 			self.read_char();
 			match (self.ch, self.peek_char()) {
 				//TODO Throw on EOF mid multiline comment
 				(None, _) => {}
+				(Some('/'), Some('*')) => {
+					nest_levels += 1;
+					self.read_char();
+				},
 				(Some('*'), Some('/')) => {
 					self.read_char();
-					break;
+					if nest_levels == 0 {
+						break;
+					}else {
+						nest_levels -= 1;
+					}
 				},
 				_ => {}
 			}

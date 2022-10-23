@@ -48,6 +48,7 @@ struct MyStruct {
 	bar u8,
 }
 MyStruct {foo: "bar", bar: 8}
+s.foo
 
 enum Fruits {
 	Apple,
@@ -195,6 +196,10 @@ comment".into()), after_whitespace: true},
 		Token { token_type: TokenType::Colon, literal: TokenLiteral::Static(":"), after_whitespace: false},
 		Token { token_type: TokenType::Int, literal: TokenLiteral::Integer(8), after_whitespace: true},
 		Token { token_type: TokenType::RBrace, literal: TokenLiteral::Static("}"), after_whitespace: false},
+
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("s".into()), after_whitespace: true},
+		Token { token_type: TokenType::Dot, literal: TokenLiteral::Static("."), after_whitespace: false},
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("foo".into()), after_whitespace: false},
 
 		Token { token_type: TokenType::Enum, literal: TokenLiteral::Static("enum"), after_whitespace: true},
 		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("Fruits".into()), after_whitespace: true},

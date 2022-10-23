@@ -88,6 +88,13 @@ pub enum TypedExpression {
 		arguments: Vec<TypedExpression>,
 		return_type: TypeExpr,
 	},
+	Field {
+		left: Box<TypedExpression>,
+		field: String,
+		left_type: TypeExpr,
+		field_type: TypeExpr,
+		binding_index: usize,
+	},
 	Array {
 		elements: Vec<TypedExpression>,
 		type_expr: TypeExpr,
@@ -127,6 +134,7 @@ impl fmt::Display for TypedExpression {
 			},
 			TypedExpression::Function(func) => write!(f, "{}", func),
 			TypedExpression::Call { function, arguments, .. } => write!(f, "{}({})", function, join_expression_vec(arguments)),
+			TypedExpression::Field { left, field, .. } => write!(f, "{}.{}", left, field),
 			TypedExpression::Array { elements, .. } => write!(f, "[{}]", join_expression_vec(elements)),
 			TypedExpression::Index { left, index } => write!(f, "({}[{}])", left, index),
 			TypedExpression::Block { block, .. } => write!(f, "{{{}}}", block),

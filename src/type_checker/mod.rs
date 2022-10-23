@@ -278,6 +278,29 @@ impl TypeChecker {
 					return_type: return_type.clone(),
 				}, return_type))
 			}
+			Expression::Field { left, field } => {
+				let (left, left_type) = self.check_expression(*left)?;
+
+				//TODO Allow fields on primitive too (for methods)
+				if let TypeExpr::Struct { bindings, .. } = left_type.clone() {
+					if let Some(binding_index) = bindings.iter().position(|t| t.ident == field) {
+						let type_expr = bindings[binding_index].type_expr.clone();
+
+						Ok((TypedExpression::Field {
+							left: Box::new(left),
+							left_type,
+							binding_index,
+							field,
+							field_type: type_expr.clone(),
+						}, type_expr))
+					}else {
+						Err(TypeCheckError::UnknownField {left, field})
+					}
+				}else {
+					Err(TypeCheckError::Generic(format!("For now can't use dot notation on non struct. left={:?}", left)))
+				}
+
+			}
 			Expression::Array(elements) => {
 				let (elements, element_types): (Vec<TypedExpression>, Vec<TypeExpr>) = elements.into_iter()
 					.map(|arg| self.check_expression(arg))
@@ -508,6 +531,7 @@ pub fn get_type(expr: &TypedExpression) -> TypeExpr {
 		TypedExpression::Infix { type_expr, .. } => type_expr.clone(),
 		TypedExpression::If { type_expr, .. } => type_expr.clone(),
 		TypedExpression::Call { return_type, .. } => return_type.clone(),
+		TypedExpression::Field { field_type, .. } => field_type.clone(),
 		TypedExpression::Array { type_expr, .. } => TypeExpr::Array(Box::new(type_expr.clone())),
 		TypedExpression::Index { left, .. } => {
 			let left_type = get_type(left.as_ref());
@@ -573,5 +597,9 @@ pub enum TypeCheckError {
 		mismatched_type: TypeExpr,
 	},
 	UnknownType(String),
+	UnknownField {
+		left: TypedExpression,
+		field: String,
+	},
 	Generic(String),
 }

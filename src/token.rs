@@ -69,6 +69,7 @@ pub enum TokenType {
 	Semicolon,
 	Colon,
 	VBar,
+	Dot,
 
 	LParen,
 	RParen,
@@ -122,6 +123,7 @@ impl fmt::Display for TokenType {
 			TokenType::Semicolon => ";",
 			TokenType::Colon => ":",
 			TokenType::VBar => "|",
+			TokenType::Dot => ".",
 
 			TokenType::LParen => "(",
 			TokenType::RParen => ")",

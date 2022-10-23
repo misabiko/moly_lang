@@ -281,6 +281,19 @@ fn test_call_expression_parsing() {
 }
 
 #[test]
+fn test_field_expression_parsing() {
+	let stmt = parse_single_statement("foo.bar").unwrap();
+
+	assert_eq!(stmt, Statement::Expression {
+		expr: Expression::Field {
+			left: Box::new(Expression::Identifier("foo".into())),
+			field: "bar".into(),
+		},
+		has_semicolon: false,
+	})
+}
+
+#[test]
 fn test_string_literal_expression() {
 	let input = r#""hello world";"#;
 

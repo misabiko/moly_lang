@@ -262,14 +262,13 @@ impl Compiler {
 
 				self.emit(Opcode::Call, &[length]);
 			}
+			TypedExpression::Field { .. } => todo!(),
 			TypedExpression::Block { block, .. } => {
 				for stmt in block.statements {
 					self.compile_statement(stmt)?
 				}
 			}
-			TypedExpression::Struct { .. } => {
-				todo!()
-			}
+			TypedExpression::Struct { .. } => todo!(),
 		}
 
 		Ok(())

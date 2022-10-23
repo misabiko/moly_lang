@@ -256,6 +256,7 @@ impl Parser {
 				Token { token_type: TokenType::LT, .. } |
 				Token { token_type: TokenType::GT, .. } => Parser::parse_infix_expression,
 				Token { token_type: TokenType::LParen, .. } => Parser::parse_call_expression,
+				Token { token_type: TokenType::Dot, .. } => Parser::parse_field_expression,
 				Token { token_type: TokenType::LBracket, .. } => Parser::parse_index_expression,
 				Token { token_type: TokenType::LBrace, .. } => if let Expression::Identifier(_) = left_exp {
 					Parser::parse_brace_infix
@@ -434,6 +435,19 @@ impl Parser {
 		Ok(Expression::Call {
 			function: Box::new(function),
 			arguments: self.parse_expression_list(TokenType::RParen)?,
+		})
+	}
+
+	fn parse_field_expression(&mut self, left: Expression) -> PResult<Expression> {
+		self.expect_peek(TokenType::Ident)?;
+
+		let field = self.cur_token.literal
+			.get_string().cloned()
+			.expect("literal isn't string");
+
+		Ok(Expression::Field {
+			left: Box::new(left),
+			field,
 		})
 	}
 
@@ -641,7 +655,8 @@ const fn precedences(token_type: TokenType) -> Option<Precedence> {
 		TokenType::Minus => Some(Precedence::Sum),
 		TokenType::Slash |
 		TokenType::Asterisk => Some(Precedence::Product),
-		TokenType::LParen => Some(Precedence::Call),
+		TokenType::LParen |
+		TokenType::Dot => Some(Precedence::Call),
 		TokenType::LBracket => Some(Precedence::Index),
 		_ => None,
 	}

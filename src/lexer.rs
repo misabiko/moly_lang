@@ -103,6 +103,7 @@ impl Lexer {
 				';' => Token { token_type: TokenType::Semicolon, literal: TokenLiteral::Static(";"), after_whitespace },
 				':' => Token { token_type: TokenType::Colon, literal: TokenLiteral::Static(":"), after_whitespace },
 				'|' => Token { token_type: TokenType::VBar, literal: TokenLiteral::Static("|"), after_whitespace },
+				'.' => Token { token_type: TokenType::Dot, literal: TokenLiteral::Static("."), after_whitespace },
 				'(' => Token { token_type: TokenType::LParen, literal: TokenLiteral::Static("("), after_whitespace },
 				')' => Token { token_type: TokenType::RParen, literal: TokenLiteral::Static(")"), after_whitespace },
 				'{' => Token { token_type: TokenType::LBrace, literal: TokenLiteral::Static("{"), after_whitespace },

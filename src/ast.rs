@@ -83,6 +83,10 @@ pub enum Expression {
 		function: Box<Expression>,
 		arguments: Vec<Expression>,
 	},
+	Field {
+		left: Box<Expression>,
+		field: String,
+	},
 	Array(Vec<Expression>),
 	Index {
 		left: Box<Expression>,
@@ -126,6 +130,7 @@ impl fmt::Display for Expression {
 			},
 			Expression::Function(func) => write!(f, "{}", func),
 			Expression::Call { function, arguments } => write!(f, "{}({})", function, join_expression_vec(arguments)),
+			Expression::Field { left, field } => write!(f, "{}.{}", left, field),
 			Expression::Array(elements) => write!(f, "[{}]", join_expression_vec(elements)),
 			Expression::Index { left, index } => write!(f, "({}[{}])", left, index),
 			Expression::Block { statements, .. } => write!(f, "{{{}}}", statements),

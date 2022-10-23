@@ -3,7 +3,7 @@ use moly::{
 	lexer::Lexer,
 	parser::Parser,
 };
-use moly::ast::{Expression, Function, Program, StatementBlock};
+use moly::ast::{Expression, Function, ParsedType, Program, StatementBlock};
 use moly::parser::ParserError;
 use moly::token::{Token, TokenLiteral, TokenType};
 use moly::type_checker::type_env::TypeExpr;
@@ -24,7 +24,7 @@ fn test_program_parsing() {
 			Statement::Function(Function {
 				name: Some("myFunc".into()),
 				parameters: vec![],
-				return_type: TypeExpr::Void,
+				return_type: ParsedType::Primitive(TypeExpr::Void),
 				body: StatementBlock(vec![]),
 			})
 		]))),
@@ -32,7 +32,7 @@ fn test_program_parsing() {
 			Statement::Function(Function {
 				name: Some("main".into()),
 				parameters: vec![],
-				return_type: TypeExpr::Void,
+				return_type: ParsedType::Primitive(TypeExpr::Void),
 				body: StatementBlock(vec![]),
 			})
 		]))),
@@ -46,13 +46,13 @@ fn main() {
 			Statement::Function(Function {
 				name: Some("globalFunc".into()),
 				parameters: vec![],
-				return_type: TypeExpr::Void,
+				return_type: ParsedType::Primitive(TypeExpr::Void),
 				body: StatementBlock(vec![]),
 			}),
 			Statement::Function(Function {
 				name: Some("main".into()),
 				parameters: vec![],
-				return_type: TypeExpr::Void,
+				return_type: ParsedType::Primitive(TypeExpr::Void),
 				body: StatementBlock(vec![
 					Statement::Expression {
 						expr: Expression::Call {
@@ -82,7 +82,7 @@ fn test_comment_parsing() {
 			Statement::Function(Function {
 				name: Some("main".into()),
 				parameters: vec![],
-				return_type: TypeExpr::Void,
+				return_type: ParsedType::Primitive(TypeExpr::Void),
 				body: StatementBlock(vec![]),
 			})
 		]))),
@@ -91,7 +91,7 @@ fn test_comment_parsing() {
 			Statement::Function(Function {
 				name: Some("main".into()),
 				parameters: vec![],
-				return_type: TypeExpr::Void,
+				return_type: ParsedType::Primitive(TypeExpr::Void),
 				body: StatementBlock(vec![]),
 			})
 		]))),

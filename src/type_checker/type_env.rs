@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fmt;
 use crate::token::IntType;
 
@@ -63,8 +62,13 @@ pub type TypeId = u32;
 
 pub struct TypeEnv {
 	bindings: Vec<TypeBinding>,
-	scope_stack: Vec<usize>,
-	custom_types: HashMap<String, TypeExpr>,
+	scope_stack: Vec<TypeScope>,
+	custom_types: Vec<(String, TypeExpr)>,
+}
+
+struct TypeScope {
+	binding_top: usize,
+	custom_type_top: usize,
 }
 
 impl TypeEnv {
@@ -72,7 +76,7 @@ impl TypeEnv {
 		Self {
 			bindings: Vec::new(),
 			scope_stack: Vec::new(),
-			custom_types: HashMap::new(),
+			custom_types: Vec::new(),
 		}
 	}
 
@@ -90,22 +94,27 @@ impl TypeEnv {
 	}
 
 	pub fn get_custom_type(&self, ident: &str) -> Option<&TypeExpr> {
-		self.custom_types.get(ident)
+		self.custom_types.iter()
+			.rfind(|t| t.0 == ident)
+			.map(|t| &t.1)
 	}
 
 	pub fn define_type(&mut self, name: &str, type_expr: TypeExpr) {
-		if let Some(_) = self.custom_types.insert(name.into(), type_expr) {
-			//TODO Throw if type already exists
-		}
+		//TODO Throw if type already exists
+		self.custom_types.push((name.into(), type_expr));
 	}
 
 	pub fn push_scope(&mut self) {
-		self.scope_stack.push(self.bindings.len());
+		self.scope_stack.push(TypeScope {
+			binding_top: self.bindings.len(),
+			custom_type_top: self.custom_types.len()
+		});
 	}
 
 	pub fn pop_scope(&mut self) {
-		if let Some(last_scope_top) = self.scope_stack.pop() {
-			self.bindings.truncate(last_scope_top);
+		if let Some(scope) = self.scope_stack.pop() {
+			self.bindings.truncate(scope.binding_top);
+			self.custom_types.truncate(scope.custom_type_top);
 		}
 	}
 }

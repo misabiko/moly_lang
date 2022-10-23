@@ -52,7 +52,7 @@ impl fmt::Display for Statement {
 
 					write!(f, "struct {} {{ {} }}", name, fields)
 				},
-				StructDecl::Tuple(fields) => write!(f, "struct {}({})", name, join_type_expr_vec(fields))
+				StructDecl::Tuple(fields) => write!(f, "struct {}({})", name, join_type_vec(fields))
 			}
 		}
 	}
@@ -136,7 +136,7 @@ fn join_expression_vec(expressions: &[Expression]) -> String {
 		.join(", ")
 }
 
-fn join_type_expr_vec(expressions: &[TypeExpr]) -> String {
+fn join_type_vec(expressions: &[ParsedType]) -> String {
 	expressions.iter()
 		.map(|p| p.to_string())
 		.collect::<Vec<String>>()
@@ -222,10 +222,10 @@ impl fmt::Display for IntExpr {
 
 #[derive(Debug, PartialEq)]
 pub struct Function {
-	pub parameters: Vec<(String, TypeExpr)>,
+	pub parameters: Vec<(String, ParsedType)>,
 	pub body: StatementBlock,
 	pub name: Option<String>,
-	pub return_type: TypeExpr,
+	pub return_type: ParsedType,
 }
 
 impl fmt::Display for Function {
@@ -240,7 +240,7 @@ impl fmt::Display for Function {
 			.collect::<Vec<String>>()
 			.join(", ");
 		let return_type = match &self.return_type {
-			TypeExpr::Void => "".into(),
+			ParsedType::Primitive(TypeExpr::Void) => "".into(),
 			r => format!(" {}", r),
 		};
 
@@ -250,6 +250,33 @@ impl fmt::Display for Function {
 
 #[derive(Debug, PartialEq)]
 pub enum StructDecl {
-	Block (Vec<(String, TypeExpr)>),
-	Tuple(Vec<TypeExpr>),
+	Block (Vec<(String, ParsedType)>),
+	Tuple(Vec<ParsedType>),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum ParsedType {
+	Primitive(TypeExpr),
+	FnLiteral {
+		parameter_types: Vec<ParsedType>,
+		return_type: Box<ParsedType>,
+	},
+	Custom(String),
+}
+
+impl fmt::Display for ParsedType {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		match self {
+			ParsedType::Primitive(t) => t.fmt(f),
+			ParsedType::FnLiteral { parameter_types, return_type } => {
+				let parameter_types = parameter_types.iter()
+					.map(|t| t.to_string())
+					.collect::<Vec<String>>()
+					.join(", ");
+
+				write!(f, "fn({}) {} {{}}", parameter_types, return_type)
+			}
+			ParsedType::Custom(name) => write!(f, "{}", name),
+		}
+	}
 }

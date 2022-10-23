@@ -1,5 +1,5 @@
 use std::convert::identity;
-use crate::ast::{Expression, Function, InfixOperator, IntExpr, PrefixOperator, Program, Statement, StatementBlock, StructDecl};
+use crate::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Program, Statement, StatementBlock, StructDecl};
 use crate::object::builtins::get_builtins;
 use crate::token::IntType;
 use crate::type_checker::type_env::{TypeBinding, TypeEnv, TypeExpr};
@@ -332,28 +332,24 @@ impl TypeChecker {
 	}
 
 	fn check_function(&mut self, function: Function, global: bool) -> TCResult<TypedFunction> {
+		let return_type = self.check_parsed_type(function.return_type)?;
+		let parameters = function.parameters.iter()
+			.map(|p| self.check_parsed_type(p.1.clone()))
+			.collect::<TCResult<Vec<TypeExpr>>>()?;
+
 		if global {
-			if let Some(name) = &function.name {
-				self.type_env.define_identifier(name, TypeExpr::FnLiteral {
-					parameter_types: function.parameters.iter().map(|p| p.1.clone()).collect(),
-					return_type: Box::new(function.return_type.clone()),
-				});
-			}
+			self.register_function_type(function.name.as_ref(), parameters.clone(), return_type.clone());
 		}
 
 		self.type_env.push_scope();
 
 		for (param, param_type) in function.parameters.iter() {
-			self.type_env.define_identifier(&param, param_type.clone());
+			let type_expr = self.check_parsed_type(param_type.clone())?;
+			self.type_env.define_identifier(&param, type_expr);
 		}
 
 		if !global {
-			if let Some(name) = &function.name {
-				self.type_env.define_identifier(name, TypeExpr::FnLiteral {
-					parameter_types: function.parameters.iter().map(|p| p.1.clone()).collect(),
-					return_type: Box::new(function.return_type.clone()),
-				});
-			}
+			self.register_function_type(function.name.as_ref(), parameters.clone(), return_type.clone());
 		}
 
 		let body = self.check_block(function.body, true, true)?;
@@ -362,19 +358,30 @@ impl TypeChecker {
 			TypeExpr::Return(returned_type) => returned_type.as_ref(),
 			t => t,
 		};
-		if &function.return_type != body_return_type {
+		if &return_type != body_return_type {
 			return Err(TypeCheckError::Generic(format!(
 				"function body return type {:?} doesn't match declared return type {:?}",
 				body_return_type,
-				function.return_type
+				return_type
 			)));
 		}
 
 		Ok(TypedFunction {
 			name: function.name,
-			parameters: function.parameters,
+			parameters: function.parameters.iter().zip(parameters.into_iter())
+				.map(|((param, _), param_type)| (param.clone(), param_type))
+				.collect(),
 			body,
 		})
+	}
+
+	fn register_function_type(&mut self, name: Option<&String>, parameter_types: Vec<TypeExpr>, return_type: TypeExpr) {
+		if let Some(name) = name {
+			self.type_env.define_identifier(name, TypeExpr::FnLiteral {
+				parameter_types,
+				return_type: Box::new(return_type.clone()),
+			});
+		}
 	}
 
 	fn check_scope_return_type(&mut self, new_return_type: &TypeExpr) -> TCResult<()> {
@@ -398,23 +405,50 @@ impl TypeChecker {
 	}
 
 	fn check_struct_decl(&mut self, name: String, decl: StructDecl) -> TCResult<()> {
-		self.type_env.define_type(&name, TypeExpr::Struct {
+		let type_expr = TypeExpr::Struct {
 			name: name.clone(),
 			bindings: match &decl {
-				StructDecl::Block(fields) => fields.iter().map(|f|
-					TypeBinding {
-						ident: f.0.clone(),
-						type_expr: f.1.clone(),
-					}).collect(),
-				StructDecl::Tuple(fields) => fields.iter().enumerate().map(|(i, f)|
-					TypeBinding {
-						ident: i.to_string(),
-						type_expr: f.clone(),
-					}).collect(),
+				StructDecl::Block(fields) => {
+					let types = fields.iter()
+						.map(|(_, t)| self.check_parsed_type(t.clone()))
+						.collect::<TCResult<Vec<TypeExpr>>>()?;
+					fields.iter().zip(types.into_iter())
+						.map(|(f, type_expr)|
+							TypeBinding {
+								ident: f.0.clone(),
+								type_expr,
+							}).collect()
+				},
+				StructDecl::Tuple(fields) => fields.iter()
+					.map(|t| self.check_parsed_type(t.clone())).collect::<TCResult<Vec<TypeExpr>>>()?
+					.into_iter().enumerate()
+					.map(|(i, type_expr)|
+						TypeBinding {
+							ident: i.to_string(),
+							type_expr,
+						}
+					).collect(),
 			}
-		});
+		};
+		self.type_env.define_type(&name, type_expr);
 
 		Ok(())
+	}
+
+	fn check_parsed_type(&mut self, parsed_type: ParsedType) -> TCResult<TypeExpr> {
+		match parsed_type {
+			ParsedType::Primitive(t) => Ok(t),
+			ParsedType::FnLiteral { parameter_types, return_type } => Ok(TypeExpr::FnLiteral {
+				parameter_types: parameter_types.into_iter()
+					.map(|t| self.check_parsed_type(t))
+					.collect::<TCResult<Vec<TypeExpr>>>()?,
+				return_type: Box::new(self.check_parsed_type(*return_type)?)
+			}),
+			ParsedType::Custom(name) => match self.type_env.get_custom_type(&name) {
+				Some(t) => Ok(t.clone()),
+				None => Err(TypeCheckError::UnknownType(name)),
+			}
+		}
 	}
 }
 
@@ -517,5 +551,6 @@ pub enum TypeCheckError {
 		scope_return_type: TypeExpr,
 		mismatched_type: TypeExpr,
 	},
+	UnknownType(String),
 	Generic(String),
 }

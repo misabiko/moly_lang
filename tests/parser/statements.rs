@@ -1,4 +1,4 @@
-use moly::ast::{Expression, IntExpr, Statement, StructDecl};
+use moly::ast::{Expression, IntExpr, ParsedType, Statement, StructDecl};
 use moly::token::IntType;
 use moly::type_checker::type_env::TypeExpr;
 
@@ -52,15 +52,15 @@ fn test_struct_declaration() {
 		}", Statement::Struct {
 			name: "Person".into(),
 			decl: StructDecl::Block(vec![
-				("name".into(), TypeExpr::String),
-				("age".into(), TypeExpr::Int(IntType::U8)),
+				("name".into(), ParsedType::Primitive(TypeExpr::String)),
+				("age".into(), ParsedType::Primitive(TypeExpr::Int(IntType::U8))),
 			]),
 		}),
 		("struct Person(str, u8)", Statement::Struct {
 			name: "Person".into(),
 			decl: StructDecl::Tuple(vec![
-				TypeExpr::String,
-				TypeExpr::Int(IntType::U8)
+				ParsedType::Primitive(TypeExpr::String),
+				ParsedType::Primitive(TypeExpr::Int(IntType::U8))
 			]),
 		}),
 	];

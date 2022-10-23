@@ -1,6 +1,6 @@
 use std::fmt;
 use std::fmt::Formatter;
-use crate::ast::{Expression, Function, InfixOperator, IntExpr, PrefixOperator, Program, Statement, StatementBlock, StructDecl};
+use crate::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Program, Statement, StatementBlock, StructDecl};
 use crate::lexer::Lexer;
 use crate::token::{IntType, Token, TokenLiteral, TokenType};
 use crate::type_checker::type_env::TypeExpr;
@@ -72,6 +72,7 @@ impl Parser {
 
 				Ok(Statement::Function(func))
 			}
+			TokenType::Struct => self.parse_struct_decl(),
 			_ => return Err(ParserError::InvalidGlobalToken(self.cur_token.clone())),
 		}
 	}
@@ -373,7 +374,7 @@ impl Parser {
 			self.next_token();
 			self.parse_type_identifier()?
 		} else {
-			TypeExpr::Void
+			ParsedType::Primitive(TypeExpr::Void)
 		};
 
 		self.expect_peek(TokenType::LBrace)?;
@@ -389,7 +390,7 @@ impl Parser {
 		})
 	}
 
-	fn parse_function_parameters(&mut self) -> PResult<Vec<(String, TypeExpr)>> {
+	fn parse_function_parameters(&mut self) -> PResult<Vec<(String, ParsedType)>> {
 		let mut identifiers = vec![];
 
 		if self.peek_token_is(TokenType::RParen) {
@@ -488,7 +489,7 @@ impl Parser {
 		})
 	}
 
-	fn parse_type_identifier(&mut self) -> PResult<TypeExpr> {
+	fn parse_type_identifier(&mut self) -> PResult<ParsedType> {
 		match &self.cur_token.token_type {
 			TokenType::Function => {
 				self.expect_peek(TokenType::LParen)?;
@@ -499,29 +500,30 @@ impl Parser {
 					self.next_token();
 					self.parse_type_identifier()?
 				} else {
-					TypeExpr::Void
+					ParsedType::Primitive(TypeExpr::Void)
 				};
 
-				Ok(TypeExpr::FnLiteral {
+				Ok(ParsedType::FnLiteral {
 					parameter_types,
 					return_type: Box::new(return_type),
 				})
 			}
-			TokenType::IntegerType(IntType::U8) => Ok(TypeExpr::Int(IntType::U8)),
-			TokenType::IntegerType(IntType::U16) => Ok(TypeExpr::Int(IntType::U16)),
-			TokenType::IntegerType(IntType::U32) => Ok(TypeExpr::Int(IntType::U32)),
-			TokenType::IntegerType(IntType::U64) => Ok(TypeExpr::Int(IntType::U64)),
-			TokenType::IntegerType(IntType::I8) => Ok(TypeExpr::Int(IntType::I8)),
-			TokenType::IntegerType(IntType::I16) => Ok(TypeExpr::Int(IntType::I16)),
-			TokenType::IntegerType(IntType::I32) => Ok(TypeExpr::Int(IntType::I32)),
-			TokenType::IntegerType(IntType::I64) => Ok(TypeExpr::Int(IntType::I64)),
-			TokenType::Bool => Ok(TypeExpr::Bool),
-			TokenType::Str => Ok(TypeExpr::String),
+			TokenType::IntegerType(IntType::U8) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::U8))),
+			TokenType::IntegerType(IntType::U16) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::U16))),
+			TokenType::IntegerType(IntType::U32) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::U32))),
+			TokenType::IntegerType(IntType::U64) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::U64))),
+			TokenType::IntegerType(IntType::I8) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::I8))),
+			TokenType::IntegerType(IntType::I16) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::I16))),
+			TokenType::IntegerType(IntType::I32) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::I32))),
+			TokenType::IntegerType(IntType::I64) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::I64))),
+			TokenType::Bool => Ok(ParsedType::Primitive(TypeExpr::Bool)),
+			TokenType::Str => Ok(ParsedType::Primitive(TypeExpr::String)),
+			TokenType::Ident => Ok(ParsedType::Custom(self.cur_token.literal.get_string().unwrap().clone())),
 			_ => Err(ParserError::Generic(format!("unrecognized type: {:?}", self.cur_token))),
 		}
 	}
 
-	fn parse_type_list(&mut self, end: TokenType) -> PResult<Vec<TypeExpr>> {
+	fn parse_type_list(&mut self, end: TokenType) -> PResult<Vec<ParsedType>> {
 		let mut list = vec![];
 
 		if self.peek_token_is(end) {

@@ -1,4 +1,4 @@
-use moly::ast::{Expression, Function, InfixOperator, IntExpr, PrefixOperator, Statement, StatementBlock};
+use moly::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Statement, StatementBlock};
 use moly::token::IntType;
 use moly::type_checker::type_env::TypeExpr;
 
@@ -192,10 +192,10 @@ fn test_function_literal_parsing() {
 
 			assert_eq!(parameters.len(), 2, "function parameters wrong, want 2. ({:?})", parameters);
 
-			assert_eq!(parameters[0], ("x".into(), TypeExpr::Int(IntType::U8)));
-			assert_eq!(parameters[1], ("y".into(), TypeExpr::Int(IntType::U8)));
+			assert_eq!(parameters[0], ("x".into(), ParsedType::Primitive(TypeExpr::Int(IntType::U8))));
+			assert_eq!(parameters[1], ("y".into(), ParsedType::Primitive(TypeExpr::Int(IntType::U8))));
 
-			assert_eq!(return_type, expected_return, "wrong return type");
+			assert_eq!(return_type, ParsedType::Primitive(expected_return), "wrong return type");
 
 			assert_eq!(body.0.len(), 1, "body.statements doesn't have 1 statement. ({:?})", body.0);
 
@@ -224,12 +224,12 @@ fn test_function_parameter_parsing() {
 	let tests = vec![
 		("fn() {};", vec![]),
 		("fn(x u8) {};", vec![
-			("x".into(), TypeExpr::Int(IntType::U8))
+			("x".into(), ParsedType::Primitive(TypeExpr::Int(IntType::U8)))
 		]),
 		("fn(x u8, y str, z i16) {};", vec![
-			("x".into(), TypeExpr::Int(IntType::U8)),
-			("y".into(), TypeExpr::String),
-			("z".into(), TypeExpr::Int(IntType::I16)),
+			("x".into(), ParsedType::Primitive(TypeExpr::Int(IntType::U8))),
+			("y".into(), ParsedType::Primitive(TypeExpr::String)),
+			("z".into(), ParsedType::Primitive(TypeExpr::Int(IntType::I16))),
 		]),
 	];
 

@@ -93,6 +93,10 @@ pub enum Expression {
 		/// true if return statement go affect the outer block instead (e.g. if)
 		return_transparent: bool,
 	},
+	Struct {
+		name: String,
+		constructor: StructConstructor,
+	},
 }
 
 impl fmt::Display for Expression {
@@ -125,6 +129,16 @@ impl fmt::Display for Expression {
 			Expression::Array(elements) => write!(f, "[{}]", join_expression_vec(elements)),
 			Expression::Index { left, index } => write!(f, "({}[{}])", left, index),
 			Expression::Block { statements, .. } => write!(f, "{{{}}}", statements),
+			Expression::Struct { name, constructor: StructConstructor::Block(fields) } => {
+				let fields = fields.iter()
+					.map(|(name, typ)| format!("{}: {}", name, typ))
+					.collect::<Vec<String>>()
+					.join(", ");
+
+				write!(f, "{} {{ {} }}", name, fields)
+			}
+			Expression::Struct { name, constructor: StructConstructor::Tuple(fields) }
+				=> write!(f, "{} ({})", name, join_expression_vec(fields)),
 		}
 	}
 }
@@ -252,6 +266,12 @@ impl fmt::Display for Function {
 pub enum StructDecl {
 	Block (Vec<(String, ParsedType)>),
 	Tuple(Vec<ParsedType>),
+}
+
+#[derive(Debug, PartialEq)]
+pub enum StructConstructor {
+	Block (Vec<(String, Expression)>),
+	Tuple(Vec<Expression>),
 }
 
 #[derive(Debug, PartialEq, Clone)]

@@ -1,4 +1,4 @@
-use moly::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Statement, StatementBlock};
+use moly::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Statement, StatementBlock, StructConstructor};
 use moly::token::IntType;
 use moly::type_checker::type_env::TypeExpr;
 
@@ -324,10 +324,10 @@ fn test_parsing_array_literals() {
 			assert_eq!(value.len(), expected.len(), "wrong array length");
 
 			assert_eq!(
-			value,
-			expected,
-			"wrong array elements"
-		);
+				value,
+				expected,
+				"wrong array elements"
+			);
 		} else {
 			panic!("{:?} is not Statement::Expression(Array)", stmt);
 		}
@@ -396,12 +396,12 @@ fn test_block_expression() {
 				statements: StatementBlock(vec![
 					Statement::Expression {
 						expr: Expression::Integer(IntExpr::U8(0)),
-						has_semicolon: true
+						has_semicolon: true,
 					}
 				]),
 				return_transparent: false,
 			},
-			has_semicolon: false
+			has_semicolon: false,
 		}),
 		("let x = { 0 }", Statement::Let {
 			name: "x".into(),
@@ -409,11 +409,11 @@ fn test_block_expression() {
 				statements: StatementBlock(vec![
 					Statement::Expression {
 						expr: Expression::Integer(IntExpr::U8(0)),
-						has_semicolon: false
+						has_semicolon: false,
 					}
 				]),
 				return_transparent: false,
-			}
+			},
 		}),
 	];
 
@@ -421,5 +421,56 @@ fn test_block_expression() {
 		let stmt = parse_single_statement(input).unwrap();
 
 		assert_eq!(stmt, expected);
+	}
+}
+
+#[test]
+fn test_struct_constructor() {
+	let tests = vec![
+		(
+			r#"Person { name: "Bob", age: 24 }"#,
+			Statement::Expression {
+				expr: Expression::Struct {
+					name: "Person".into(),
+					constructor: StructConstructor::Block(vec![
+						("name".into(), Expression::String("Bob".into())),
+						("age".into(), Expression::Integer(IntExpr::U8(24))),
+					]),
+				},
+				has_semicolon: false,
+			},
+		),
+		(
+			r#"Person { name, age }"#,
+			Statement::Expression {
+				expr: Expression::Struct {
+					name: "Person".into(),
+					constructor: StructConstructor::Block(vec![
+						("name".into(), Expression::Identifier("name".into())),
+						("age".into(), Expression::Identifier("age".into())),
+					]),
+				},
+				has_semicolon: false,
+			},
+		),
+		(
+			r#"Person ("Bob", 24)"#,
+			Statement::Expression {
+				expr: Expression::Call {
+					function: Box::new(Expression::Identifier("Person".into())),
+					arguments: vec![
+						(Expression::String("Bob".into())),
+						(Expression::Integer(IntExpr::U8(24))),
+					],
+				},
+				has_semicolon: false,
+			},
+		),
+	];
+
+	for (input, expected) in tests {
+		let stmt = parse_single_statement(input).unwrap();
+
+		assert_eq!(stmt, expected)
 	}
 }

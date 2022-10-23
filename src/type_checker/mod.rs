@@ -1,5 +1,5 @@
 use std::convert::identity;
-use crate::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Program, Statement, StatementBlock, StructDecl};
+use crate::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Program, Statement, StatementBlock, StructConstructor, StructDecl};
 use crate::object::builtins::get_builtins;
 use crate::token::IntType;
 use crate::type_checker::type_env::{TypeBinding, TypeEnv, TypeExpr};
@@ -328,6 +328,26 @@ impl TypeChecker {
 					return_transparent,
 				}, type_expr))
 			}
+			Expression::Struct { name, constructor } => {
+				match self.type_env.get_custom_type(&name).cloned() {
+					Some(type_expr) => {
+						let parsed_fields = match constructor {
+							StructConstructor::Block(fields) => fields,
+							StructConstructor::Tuple(fields) => fields.into_iter().enumerate()
+								.map(|(i, t)| (i.to_string(), t))
+								.collect(),
+						};
+
+						let mut fields = vec![];
+						for (name, value) in parsed_fields {
+							fields.push((name, self.check_expression(value)?.0));
+						}
+
+						Ok((TypedExpression::Struct { name, fields, type_expr: type_expr.clone() }, type_expr))
+					}
+					None => Err(TypeCheckError::UnknownType(name))
+				}
+			}
 		}
 	}
 
@@ -499,6 +519,7 @@ pub fn get_type(expr: &TypedExpression) -> TypeExpr {
 			}
 		}
 		TypedExpression::Block { block, .. } => block.return_type.clone(),
+		TypedExpression::Struct { type_expr, .. } => type_expr.clone(),
 	}
 }
 

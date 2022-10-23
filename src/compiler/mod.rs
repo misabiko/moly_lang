@@ -267,6 +267,9 @@ impl Compiler {
 					self.compile_statement(stmt)?
 				}
 			}
+			TypedExpression::Struct { .. } => {
+				todo!()
+			}
 		}
 
 		Ok(())

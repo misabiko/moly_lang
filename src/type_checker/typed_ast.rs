@@ -99,6 +99,11 @@ pub enum TypedExpression {
 	Block {
 		block: TypedStatementBlock,
 		return_transparent: bool,
+	},
+	Struct {
+		name: String,
+		fields: Vec<(String, TypedExpression)>,
+		type_expr: TypeExpr,
 	}
 }
 
@@ -125,6 +130,15 @@ impl fmt::Display for TypedExpression {
 			TypedExpression::Array { elements, .. } => write!(f, "[{}]", join_expression_vec(elements)),
 			TypedExpression::Index { left, index } => write!(f, "({}[{}])", left, index),
 			TypedExpression::Block { block, .. } => write!(f, "{{{}}}", block),
+			TypedExpression::Struct { name, fields, .. } => {
+				//Could take note of block vs tuple
+				let fields = fields.iter()
+					.map(|(name, typ)| format!("{}: {}", name, typ))
+					.collect::<Vec<String>>()
+					.join(", ");
+
+				write!(f, "{} {{ {} }}", name, fields)
+			}
 		}
 	}
 }

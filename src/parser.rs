@@ -1,6 +1,6 @@
 use std::fmt;
 use std::fmt::Formatter;
-use crate::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Program, Statement, StatementBlock, StructDecl};
+use crate::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Program, Statement, StatementBlock, StructConstructor, StructDecl};
 use crate::lexer::Lexer;
 use crate::token::{IntType, Token, TokenLiteral, TokenType};
 use crate::type_checker::type_env::TypeExpr;
@@ -247,16 +247,21 @@ impl Parser {
 
 		while !self.peek_token_is(TokenType::Semicolon) && precedence < self.peek_precedence() {
 			let infix = match self.peek_token {
-				Token { token_type: TokenType::Plus, literal: TokenLiteral::Static(_), .. } |
-				Token { token_type: TokenType::Minus, literal: TokenLiteral::Static(_), .. } |
-				Token { token_type: TokenType::Slash, literal: TokenLiteral::Static(_), .. } |
-				Token { token_type: TokenType::Asterisk, literal: TokenLiteral::Static(_), .. } |
-				Token { token_type: TokenType::Eq, literal: TokenLiteral::Static(_), .. } |
-				Token { token_type: TokenType::NotEq, literal: TokenLiteral::Static(_), .. } |
-				Token { token_type: TokenType::LT, literal: TokenLiteral::Static(_), .. } |
-				Token { token_type: TokenType::GT, literal: TokenLiteral::Static(_), .. } => Parser::parse_infix_expression,
-				Token { token_type: TokenType::LParen, literal: TokenLiteral::Static(_), .. } => Parser::parse_call_expression,
-				Token { token_type: TokenType::LBracket, literal: TokenLiteral::Static(_), .. } => Parser::parse_index_expression,
+				Token { token_type: TokenType::Plus, .. } |
+				Token { token_type: TokenType::Minus, .. } |
+				Token { token_type: TokenType::Slash, .. } |
+				Token { token_type: TokenType::Asterisk, .. } |
+				Token { token_type: TokenType::Eq, .. } |
+				Token { token_type: TokenType::NotEq, .. } |
+				Token { token_type: TokenType::LT, .. } |
+				Token { token_type: TokenType::GT, .. } => Parser::parse_infix_expression,
+				Token { token_type: TokenType::LParen, .. } => Parser::parse_call_expression,
+				Token { token_type: TokenType::LBracket, .. } => Parser::parse_index_expression,
+				Token { token_type: TokenType::LBrace, .. } => if let Expression::Identifier(_) = left_exp {
+					Parser::parse_brace_infix
+				}else {
+					return Ok(left_exp)
+				},
 				_ => return Ok(left_exp)
 			};
 
@@ -489,6 +494,44 @@ impl Parser {
 		})
 	}
 
+	fn parse_brace_infix(&mut self, left: Expression) -> PResult<Expression> {
+		if let Expression::Identifier(left) = left {
+			let mut fields = vec![];
+
+			//We could skip a peek_token_is with a manual loop, but probably not worth it
+			while !self.peek_token_is(TokenType::RBrace) {
+				self.expect_peek(TokenType::Ident)?;
+
+				let field = self.cur_token.literal
+					.get_string().cloned()
+					.expect("literal isn't string");
+
+				if self.peek_token_is(TokenType::Colon) {
+					self.next_token();
+					self.next_token();
+					let field_value = self.parse_expression(Precedence::Lowest)?;
+
+					fields.push((field, field_value));
+				} else {
+					fields.push((field.clone(), Expression::Identifier(field)));
+				}
+
+				if !self.peek_token_is(TokenType::RBrace) {
+					self.expect_peek(TokenType::Comma)?;
+				}
+			}
+
+			self.expect_peek(TokenType::RBrace)?;
+
+			Ok(Expression::Struct {
+				name: left,
+				constructor: StructConstructor::Block(fields),
+			})
+		}else {
+			Err(ParserError::Generic(format!("unexpected {{ token after {:?}", left)))
+		}
+	}
+
 	fn parse_type_identifier(&mut self) -> PResult<ParsedType> {
 		match &self.cur_token.token_type {
 			TokenType::Function => {
@@ -577,6 +620,7 @@ impl Parser {
 #[derive(PartialOrd, Ord, PartialEq, Eq, Copy, Clone)]
 enum Precedence {
 	Lowest,
+	BlockDef,
 	Equals,
 	LessGreater,
 	Sum,
@@ -588,6 +632,7 @@ enum Precedence {
 
 const fn precedences(token_type: TokenType) -> Option<Precedence> {
 	match token_type {
+		TokenType::LBrace => Some(Precedence::BlockDef),
 		TokenType::Eq |
 		TokenType::NotEq => Some(Precedence::Equals),
 		TokenType::LT |

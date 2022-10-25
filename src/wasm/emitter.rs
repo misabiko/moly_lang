@@ -57,11 +57,11 @@ pub fn compile_block_with_header(/*block: TypedStatementBlock*/) -> Result<Vec<u
 	code.extend(create_section(
 		Section::Code,
 		&encode_vectors(vec![
-			encode_vectors(vec![
-				vec![EMPTY_ARRAY],
-				//code from ast
+			encode_vector(&flatten(vec![
+				vec![EMPTY_ARRAY],	//locals
+				compile_block(block)?,
 				vec![Opcodes::End as u8],
-			])
+			]))
 		]),
 	));
 

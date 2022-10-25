@@ -5,7 +5,7 @@ use moly::token::TokenType;
 use moly::type_checker::type_env::TypeExpr;
 use moly::type_checker::TypeChecker;
 use moly::type_checker::typed_ast::TypedStatementBlock;
-use moly::wasm::emitter::compile_block_with_header;
+use moly::wasm::compile_block_with_header;
 
 #[test]
 fn test_empty_program() {
@@ -43,8 +43,8 @@ fn test_print() {
 			"[ 43 ]",
 		),
 		(
-			"print(8); print(43);",
-			"[ 8, 43 ]"
+			"print(8); print(300); print(70000); ",
+			"[ 8, 300, 70000 ]"
 		),
 	];
 
@@ -54,6 +54,7 @@ fn test_print() {
 			Ok(p) => p,
 			Err(err) => panic!("test {}: parse error: {}", i, err),
 		};
+//		print(60); print(61); print(62); print(63); print(64); print(65); print(66); print(67); print(68); print(69);
 
 		let mut type_checker = TypeChecker::new();
 		let program = match type_checker.check_block(program, true, false) {

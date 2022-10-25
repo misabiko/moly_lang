@@ -1,7 +1,7 @@
 use byteorder::{ByteOrder, LittleEndian};
-use ieee754::Ieee754;
 use crate::ast::IntExpr;
 use crate::type_checker::typed_ast::{TypedExpression, TypedStatement, TypedStatementBlock};
+use crate::wasm::encoding::*;
 
 pub fn compile_block_with_header(block: TypedStatementBlock) -> Result<Vec<u8>, String> {
 	let mut code = vec![];
@@ -20,6 +20,7 @@ pub fn compile_block_with_header(block: TypedStatementBlock) -> Result<Vec<u8>, 
 		vec![EMPTY_ARRAY]
 	]);
 
+	//TODO Only add compiled types
 	// the type section is a vector of function types
 	code.extend(create_section(
 		Section::Type,
@@ -101,12 +102,32 @@ fn compile_statement(mut code: &mut Vec<u8>, stmt: TypedStatement) -> CompilerRe
 
 fn compile_expression(mut code: &mut Vec<u8>, expr: TypedExpression) -> CompilerResult {
 	match expr {
-		TypedExpression::Integer(IntExpr::U8(value)) => {
-			code.push(Opcodes::I32Const as u8);
-			let mut buf = [0; 4];
-			LittleEndian::write_i32(&mut buf, value as i32/*(value as f32).bits()*/);
+		TypedExpression::Integer(int_expr) => {
+			let (value, opcode) = match int_expr {
+				IntExpr::U8(value) => (value as i64, Opcodes::I32Const),
+				IntExpr::U16(value) => (value as i64, Opcodes::I32Const),
+				IntExpr::U32(value) => (value as i64, Opcodes::I32Const),
+				IntExpr::U64(value) => (value as i64, Opcodes::I64Const),
+				IntExpr::I8(value) => (value as i64, Opcodes::I32Const),
+				IntExpr::I16(value) => (value as i64, Opcodes::I32Const),
+				IntExpr::I32(value) => (value as i64, Opcodes::I32Const),
+				IntExpr::I64(value) => (value as i64, Opcodes::I64Const),
+			};
+
+			code.push(opcode as u8);
+
+			let mut buf = vec![];
+			//TODO Try using write_u16_into with code slice
+			leb128::write::signed(&mut buf, value as i64).unwrap();
 			code.extend(buf);
 		}
+		//TODO Add floats
+		/*TypedExpression::Float(value) => {
+			code.push(Opcodes::F32Const as u8);
+			let mut buf = [0; 4];
+			LittleEndian::write_u32(&mut buf, (value as f32).bits());
+			code.extend(buf);
+		}*/
 		TypedExpression::Call { function, mut arguments, .. } => {
 			if let TypedExpression::Identifier { name, .. } = *function {
 				if name == "print" {
@@ -132,42 +153,6 @@ fn compile_print(mut code: &mut Vec<u8>, arguments: &mut Vec<TypedExpression>) -
 	return Ok(())
 }
 
-// https://webassembly.github.io/spec/core/binary/modules.html#sections
-// sections are encoded by their type followed by their vector contents
-fn create_section(section: Section, data: &[u8]) -> Vec<u8> {
-	let mut output = vec![section as u8];
-	output.extend(encode_vector(data));
-	output
-}
-
-// https://webassembly.github.io/spec/core/binary/conventions.html#binary-vec
-// Vectors are encoded with their length followed by their element sequence
-fn encode_vector(data: &[u8]) -> Vec<u8> {
-	let mut len = vec![];
-	leb128::write::unsigned(&mut len, data.len() as u64).unwrap();
-	let mut output = vec![len[0]];
-	output.extend(data);
-	output
-}
-
-fn encode_vectors(data: Vec<Vec<u8>>) -> Vec<u8> {
-	let mut len = vec![];
-	leb128::write::unsigned(&mut len, data.len() as u64).unwrap();
-	let mut output = vec![len[0]];
-	output.extend(flatten(data));
-	output
-}
-
-fn encode_string(s: &str) -> Vec<u8> {
-	let mut e = vec![s.len() as u8];
-	e.extend(s.bytes().collect::<Vec<u8>>());
-	e
-}
-
-fn flatten(data: Vec<Vec<u8>>) -> Vec<u8> {
-	data.into_iter().flatten().collect()
-}
-
 type CompilerResult = Result<(), String>;
 
 // http://webassembly.github.io/spec/core/binary/types.html#function-types
@@ -178,6 +163,14 @@ const MAGIC_MODULE_HEADER: [u8; 4] = [0x00, 0x61, 0x73, 0x6d];
 const MODULE_VERSION: [u8; 4] = [0x01, 0x00, 0x00, 0x00];
 
 const VOID_VOID_TYPE: [u8; 3] = [FUNCTION_TYPE, EMPTY_ARRAY, EMPTY_ARRAY];
+
+// https://webassembly.github.io/spec/core/binary/modules.html#sections
+// sections are encoded by their type followed by their vector contents
+fn create_section(section: Section, data: &[u8]) -> Vec<u8> {
+	let mut output = vec![section as u8];
+	output.extend(encode_vector(data));
+	output
+}
 
 // https://webassembly.github.io/spec/core/binary/modules.html#sections
 #[repr(u8)]
@@ -199,17 +192,19 @@ enum Section {
 // https://webassembly.github.io/spec/core/binary/types.html
 #[repr(u8)]
 enum Valtype {
-	I32 = 0x7f,
-	F32 = 0x7d,
+	I32 = 0x7F,
+	// I64 = 0x7E,
+	F32 = 0x7D,
+	// F64 = 0x7C,
 }
 
 // http://webassembly.github.io/spec/core/binary/modules.html#export-section
 #[repr(u8)]
 enum ExportType {
 	Func = 0x00,
-	Table = 0x01,
-	Mem = 0x02,
-	Global = 0x03,
+	// Table = 0x01,
+	// Mem = 0x02,
+	// Global = 0x03,
 }
 
 // https://webassembly.github.io/spec/core/binary/instructions.html
@@ -219,6 +214,8 @@ enum Opcodes {
 	Call = 0x10,
 	GetLocal = 0x20,
 	I32Const = 0x41,
+	I64Const = 0x42,
 	F32Const = 0x43,
+	F64Const = 0x44,
 	F32Add = 0x92,
 }

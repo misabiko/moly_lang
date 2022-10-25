@@ -14,12 +14,19 @@ pub fn compile_block_with_header(block: TypedStatementBlock) -> Result<Vec<u8>, 
 		vec![EMPTY_ARRAY]
 	]);
 
+	let int_void_type = flatten(vec![
+		vec![FUNCTION_TYPE],
+		encode_vector(&[Valtype::I32 as u8]),
+		vec![EMPTY_ARRAY]
+	]);
+
 	// the type section is a vector of function types
 	code.extend(create_section(
 		Section::Type,
 		&encode_vectors(vec![
 			VOID_VOID_TYPE.to_vec(),
 			float_void_type,
+			int_void_type,
 		])
 	));
 
@@ -31,7 +38,7 @@ pub fn compile_block_with_header(block: TypedStatementBlock) -> Result<Vec<u8>, 
 			encode_string("print"),
 			vec![
 				ExportType::Func as u8,
-				0x01, // type index
+				0x02, // type index
 			],
 		])])
 	));
@@ -95,9 +102,9 @@ fn compile_statement(mut code: &mut Vec<u8>, stmt: TypedStatement) -> CompilerRe
 fn compile_expression(mut code: &mut Vec<u8>, expr: TypedExpression) -> CompilerResult {
 	match expr {
 		TypedExpression::Integer(IntExpr::U8(value)) => {
-			code.push(Opcodes::F32Const as u8);
+			code.push(Opcodes::I32Const as u8);
 			let mut buf = [0; 4];
-			LittleEndian::write_u32(&mut buf, (value as f32).bits());
+			LittleEndian::write_i32(&mut buf, value as i32/*(value as f32).bits()*/);
 			code.extend(buf);
 		}
 		TypedExpression::Call { function, mut arguments, .. } => {
@@ -175,18 +182,18 @@ const VOID_VOID_TYPE: [u8; 3] = [FUNCTION_TYPE, EMPTY_ARRAY, EMPTY_ARRAY];
 // https://webassembly.github.io/spec/core/binary/modules.html#sections
 #[repr(u8)]
 enum Section {
-	Custom = 0,
+	// Custom = 0,
 	Type = 1,
 	Import = 2,
 	Func = 3,
-	Table = 4,
-	Memory = 5,
-	Global = 6,
+	// Table = 4,
+	// Memory = 5,
+	// Global = 6,
 	Export = 7,
-	Start = 8,
-	Element = 9,
+	// Start = 8,
+	// Element = 9,
 	Code = 10,
-	Data = 11,
+	// Data = 11,
 }
 
 // https://webassembly.github.io/spec/core/binary/types.html
@@ -211,6 +218,7 @@ enum Opcodes {
 	End = 0x0b,
 	Call = 0x10,
 	GetLocal = 0x20,
+	I32Const = 0x41,
 	F32Const = 0x43,
 	F32Add = 0x92,
 }

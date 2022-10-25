@@ -1,6 +1,7 @@
 extern crate core;
 
 use std::path::PathBuf;
+use crate::ast::Program;
 
 pub mod token;
 pub mod lexer;
@@ -14,12 +15,12 @@ pub mod vm;
 pub mod type_checker;
 pub mod wasm;
 
-use crate::compiler::{Bytecode, Compiler};
-use crate::lexer::Lexer;
-use crate::parser::{Parser, ParserError};
-use crate::token::TokenType;
-use crate::type_checker::{TypeChecker, TypeCheckError};
-use crate::vm::VM;
+use compiler::{Bytecode, Compiler};
+use lexer::Lexer;
+use parser::{Parser, ParserError};
+use token::TokenType;
+use type_checker::{TypeChecker, TypeCheckError};
+use vm::VM;
 
 //TODO Error if returned value is not handled
 //TODO (Go-style) Skip struct initializing field names and depend on order
@@ -29,15 +30,18 @@ use crate::vm::VM;
 //TODO Store line number in Result type for better stack trace
 //Destructure struct directly fn parameters
 
-pub fn build(input: &str, full_program: bool) -> Result<Bytecode, String> {
+pub fn parse(input: &str, full_program: bool) -> Result<Program, ParserError> {
 	let mut parser = Parser::new(Lexer::new(input));
 
-	let program = if full_program {
+	if full_program {
 		parser.parse_program()
 	}else {
 		parser.parse_block_statement(TokenType::EOF)
-	};
-	let program = match program {
+	}
+}
+
+pub fn build(input: &str, full_program: bool) -> Result<Bytecode, String> {
+	let program = match parse(input, full_program) {
 		Ok(program) => program,
 		Err(err) => {
 			return Err(format!("Parsing error: {}", err));
@@ -71,6 +75,41 @@ pub fn build(input: &str, full_program: bool) -> Result<Bytecode, String> {
 	}
 }
 
+pub fn build_wasm(input: &str, full_program: bool) -> Result<Vec<u8>, String> {
+	let program = match parse(input, full_program) {
+		Ok(program) => program,
+		Err(err) => {
+			return Err(format!("Parsing error: {}", err));
+		}
+	};
+
+	let mut type_checker = TypeChecker::new();
+
+	let bytecode = /*if full_program {
+		let program = match type_checker.check(program, true) {
+			Ok(program) => program,
+			Err(err) => {
+				return Err(format!("Type checking error: {:?}", err));
+			}
+		};
+		compiler.compile(program)
+	}else */{
+		let program = match type_checker.check_block(program, true, false) {
+			Ok(program) => program,
+			Err(err) => {
+				return Err(format!("Type checking error: {:?}", err));
+			}
+		};
+		wasm::compile_block_with_header(program)
+	};
+	match bytecode {
+		Ok(b) => Ok(b),
+		Err(err) => {
+			Err(format!("Compilation failed:\n{}", err))
+		}
+	}
+}
+
 pub fn run_string(input: &str, full_program: bool) {
 	let bytecode = match build(input, full_program) {
 		Ok(b) => b,
@@ -100,6 +139,26 @@ pub fn run_file(file: PathBuf) {
 	};
 
 	run_string(&input, true);
+}
+
+pub fn build_to_wat(input: &str, full_program: bool) -> Result<String, String> {
+	let bytecode = match build_wasm(input, full_program) {
+		Ok(b) => b,
+		Err(err) => return Err(err)
+	};
+
+	let wat = wabt::wasm2wat(bytecode);
+	match wat {
+		Ok(w) => Ok(w),
+		Err(err) => Err(err.to_string()),
+	}
+}
+
+pub fn print_wat(input: &str, full_program: bool) {
+	match build_to_wat(input, full_program) {
+		Ok(b) => println!("{}", b),
+		Err(err) => eprintln!("{}", err),
+	}
 }
 
 #[derive(Debug, PartialEq)]

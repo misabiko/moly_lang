@@ -1,9 +1,18 @@
 use std::process::{Command};
+use moly::lexer::Lexer;
+use moly::parser::Parser;
+use moly::token::TokenType;
+use moly::type_checker::type_env::TypeExpr;
+use moly::type_checker::TypeChecker;
+use moly::type_checker::typed_ast::TypedStatementBlock;
 use moly::wasm::emitter::compile_block_with_header;
 
 #[test]
 fn test_empty_program() {
-	let wasm = compile_block_with_header().unwrap();
+	let wasm = compile_block_with_header(TypedStatementBlock {
+		statements: vec![],
+		return_type: TypeExpr::Void
+	}).unwrap();
 	assert_eq!(wasm, [
 		//header
 		0, 97, 115, 109,
@@ -29,15 +38,30 @@ fn test_print() {
 			"",
 			"[]",
 		),
-		/*(
-			"print(8)",
-			"[8]",
-		),*/
-		// ("print(8); print(24);", vec![8, 24]),
+		(
+			"print(43)",
+			"[ 43 ]",
+		),
+		(
+			"print(8); print(43);",
+			"[ 8, 43 ]"
+		),
 	];
 
-	for (input, expected) in tests {
-		let bytecode = compile_block_with_header().unwrap();
+	for (i, (input, expected)) in tests.into_iter().enumerate() {
+		let program = Parser::new(Lexer::new(input)).parse_block_statement(TokenType::EOF);
+		let program = match program {
+			Ok(p) => p,
+			Err(err) => panic!("test {}: parse error: {}", i, err),
+		};
+
+		let mut type_checker = TypeChecker::new();
+		let program = match type_checker.check_block(program, true, false) {
+			Ok(program) => program,
+			Err(err) => panic!("test {}: type checking error: {:?}", i, err),
+		};
+
+		let bytecode = compile_block_with_header(program).unwrap();
 		let bytecode = bytecode.into_iter()
 			.map(|b| format!("{:#x}", b))
 			.collect::<Vec<String>>()

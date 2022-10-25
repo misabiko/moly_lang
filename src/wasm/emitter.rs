@@ -1,6 +1,9 @@
+use byteorder::{ByteOrder, LittleEndian};
+use ieee754::Ieee754;
+use crate::ast::IntExpr;
 use crate::type_checker::typed_ast::{TypedExpression, TypedStatement, TypedStatementBlock};
 
-pub fn compile_block_with_header(/*block: TypedStatementBlock*/) -> Result<Vec<u8>, String> {
+pub fn compile_block_with_header(block: TypedStatementBlock) -> Result<Vec<u8>, String> {
 	let mut code = vec![];
 	code.extend(MAGIC_MODULE_HEADER);
 	code.extend(MODULE_VERSION);
@@ -65,35 +68,61 @@ pub fn compile_block_with_header(/*block: TypedStatementBlock*/) -> Result<Vec<u
 		]),
 	));
 
-	// compile_block(&mut code, block)?;
-
 	Ok(code)
 }
 
-fn compile_block(code: &mut Vec<u8>, block: TypedStatementBlock) -> CompilerResult {
+fn compile_block(block: TypedStatementBlock) -> Result<Vec<u8>, String> {
 	let mut code = vec![];
 
 	for stmt in block.statements {
 		compile_statement(&mut code, stmt)?
 	}
 
-	Ok(())
+	Ok(code)
 }
 
-fn compile_statement(code: &mut Vec<u8>, stmt: TypedStatement) -> CompilerResult {
+fn compile_statement(mut code: &mut Vec<u8>, stmt: TypedStatement) -> CompilerResult {
 	match stmt {
-		_ => {}
+		TypedStatement::Expression { expr, .. } => {
+			compile_expression(&mut code, expr)?;
+		}
+		_ => println!("compile statement:{:?}", stmt)
 	}
 
 	Ok(())
 }
 
-fn compile_expression(code: &mut Vec<u8>, expr: TypedExpression) -> CompilerResult {
+fn compile_expression(mut code: &mut Vec<u8>, expr: TypedExpression) -> CompilerResult {
 	match expr {
-		_ => {}
+		TypedExpression::Integer(IntExpr::U8(value)) => {
+			code.push(Opcodes::F32Const as u8);
+			let mut buf = [0; 4];
+			LittleEndian::write_u32(&mut buf, (value as f32).bits());
+			code.extend(buf);
+		}
+		TypedExpression::Call { function, mut arguments, .. } => {
+			if let TypedExpression::Identifier { name, .. } = *function {
+				if name == "print" {
+					return compile_print(&mut code, &mut arguments);
+				}
+			}
+		}
+		_ => println!("compile expression:{:?}", expr)
 	}
 
 	Ok(())
+}
+
+fn compile_print(mut code: &mut Vec<u8>, arguments: &mut Vec<TypedExpression>) -> CompilerResult {
+	assert_eq!(arguments.len(), 1, "wrong arg count for print()");
+
+	let arg = arguments.remove(0);
+	compile_expression(&mut code, arg)?;
+
+	code.push(Opcodes::Call as u8);
+	code.push(0);
+
+	return Ok(())
 }
 
 // https://webassembly.github.io/spec/core/binary/modules.html#sections

@@ -1,3 +1,5 @@
+extern crate core;
+
 use std::path::PathBuf;
 
 pub mod token;
@@ -10,6 +12,7 @@ pub mod code;
 pub mod compiler;
 pub mod vm;
 pub mod type_checker;
+pub mod wasm;
 
 use crate::compiler::{Bytecode, Compiler};
 use crate::lexer::Lexer;

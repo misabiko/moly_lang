@@ -27,13 +27,16 @@ fn test_print() {
 	let tests = vec![
 		(
 			"",
-			"an empty program"
+			"[]",
 		),
-		// ("print(8)", vec![8]),
+		/*(
+			"print(8)",
+			"[8]",
+		),*/
 		// ("print(8); print(24);", vec![8, 24]),
 	];
 
-	for (input, test_name) in tests {
+	for (input, expected) in tests {
 		let bytecode = compile_block_with_header().unwrap();
 		let bytecode = bytecode.into_iter()
 			.map(|b| format!("{:#x}", b))
@@ -41,13 +44,17 @@ fn test_print() {
 			.join(" ");
 
 		let cmd_output = Command::new("deno")
-			.args(["test", "wasmTest.ts", "--filter", test_name, "--", &bytecode])
+			.args(["run", "executeWasm.ts", &bytecode])
 			.output()
 			.expect("failed to execute command");
 
 		//println!("{:#?}", cmd_output);
-		println!("{}", std::str::from_utf8(cmd_output.stdout.as_slice()).unwrap());
 
-		assert!(cmd_output.status.success(), "deno tests failed:\n{}", std::str::from_utf8(cmd_output.stderr.as_slice()).unwrap());
+		assert!(cmd_output.status.success(), "failed to execute wasm:\n{}", std::str::from_utf8(cmd_output.stderr.as_slice()).unwrap());
+
+		assert_eq!(
+			std::str::from_utf8(cmd_output.stdout.as_slice()).unwrap(),
+			format!("{}\n", expected)
+		);
 	}
 }

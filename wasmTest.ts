@@ -12,7 +12,7 @@ Deno.test("a print statement", async () => {
 	assertEquals(output, [8])
 })
 
-async function executeCode(): Promise<any[]> {
+export async function executeCode(): Promise<any[]> {
 	const output: any[] = [];
 
 	const bytecode = Uint8Array.from(Deno.args[0].split(' ').map(b => parseInt(b, 16)));

@@ -1,4 +1,4 @@
-use crate::ast::{IntExpr, PrefixOperator};
+use crate::ast::{InfixOperator, IntExpr, PrefixOperator};
 use crate::type_checker::typed_ast::{TypedExpression, TypedStatement, TypedStatementBlock};
 use crate::wasm::encoding::*;
 
@@ -93,7 +93,7 @@ fn compile_statement(mut code: &mut Vec<u8>, stmt: TypedStatement) -> CompilerRe
 		TypedStatement::Expression { expr, .. } => {
 			compile_expression(&mut code, expr)?;
 		}
-		_ => eprintln!("compile statement:{:?}", stmt)
+		_ => eprintln!("compile statement:{:?}", stmt)	//TODO stmt rest
 	}
 
 	Ok(())
@@ -128,16 +128,31 @@ fn compile_expression(mut code: &mut Vec<u8>, expr: TypedExpression) -> Compiler
 			code.extend(buf);
 		}*/
 		TypedExpression::Prefix { operator, right } => {
-
 			match operator {
 				PrefixOperator::Minus => {
+					//https://github.com/WebAssembly/design/issues/379
 					code.push(Opcodes::I32Const as u8);
 					code.push(0);
 					compile_expression(&mut code, *right)?;
 					code.push(Opcodes::I32Sub as u8);
 				}
-				_ => eprintln!("prefix {:?}", operator)
+				_ => eprintln!("prefix {:?}", operator)	//TODO prefix rest
 			};
+		}
+		TypedExpression::Infix { left, right, operator, .. } => {
+			compile_expression(&mut code, *left)?;
+			compile_expression(&mut code, *right)?;
+
+			match operator {
+				InfixOperator::Plus => code.push(Opcodes::I32Add as u8),
+				InfixOperator::Minus => code.push(Opcodes::I32Sub as u8),
+				InfixOperator::Mul => code.push(Opcodes::I32Mul as u8),
+				InfixOperator::Div => code.push(Opcodes::I32DivSigned as u8),
+				InfixOperator::Equal => code.push(Opcodes::I32Eq as u8),
+				InfixOperator::Unequal => code.push(Opcodes::I32NotEq as u8),
+				InfixOperator::GreaterThan => code.push(Opcodes::I32GTSigned as u8),
+				InfixOperator::LessThan => code.push(Opcodes::I32LTSigned as u8),
+			}
 		}
 		TypedExpression::Call { function, mut arguments, .. } => {
 			if let TypedExpression::Identifier { name, .. } = *function {
@@ -146,7 +161,7 @@ fn compile_expression(mut code: &mut Vec<u8>, expr: TypedExpression) -> Compiler
 				}
 			}
 		}
-		_ => eprintln!("compile expression:{:?}", expr)
+		_ => eprintln!("compile expression:{:?}", expr)	//TODO expr rest
 	}
 
 	Ok(())
@@ -224,10 +239,55 @@ enum Opcodes {
 	End = 0x0b,
 	Call = 0x10,
 	GetLocal = 0x20,
+
 	I32Const = 0x41,
 	I64Const = 0x42,
 	F32Const = 0x43,
 	F64Const = 0x44,
+
+	//I32EqZero = 0x45,
+	I32Eq = 0x46,
+	I32NotEq = 0x47,
+	I32LTSigned = 0x48,
+	// I32LTUnsigned = 0x49,
+	I32GTSigned = 0x4A,
+	// I32GTUnsigned = 0x4B,
+	// I32LESigned = 0x4C,
+	// I32LEUnsigned = 0x4D,
+	// I32GESigned = 0x4E,
+	// I32GEUnsigned = 0x4F,
+
+	//I64EqZero = 0x50,
+	// I64Eq = 0x51,
+	// I64NotEq = 0x52,
+	// I64LTSigned = 0x53,
+	// I64LTUnsigned = 0x54,
+	// I64GTSigned = 0x55,
+	// I64GTUnsigned = 0x56,
+	// I64LESigned = 0x57,
+	// I64LEUnsigned = 0x58,
+	// I64GESigned = 0x59,
+	// I64GEUnsigned = 0x5A,
+
+	// F32Eq = 0x5B,
+	// F32NotEq = 0x5C,
+	// F32LT = 0x5D,
+	// F32GT = 0x5E,
+	// F32LE = 0x5F,
+	// F32GE = 0x60,
+
+	// F64Eq = 0x61,
+	// F64NotEq = 0x62,
+	// F64LT = 0x63,
+	// F64GT = 0x64,
+	// F64LE = 0x65,
+	// F64GE = 0x66,
+
+	I32Add = 0x6A,
 	I32Sub = 0x6B,
-	F32Add = 0x92,
+	I32Mul = 0x6C,
+	I32DivSigned = 0x6D,
+	// I32DivUnsigned = 0x6E,
+
+	// F32Add = 0x92,
 }

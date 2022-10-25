@@ -1,5 +1,4 @@
-use byteorder::{ByteOrder, LittleEndian};
-use crate::ast::IntExpr;
+use crate::ast::{IntExpr, PrefixOperator};
 use crate::type_checker::typed_ast::{TypedExpression, TypedStatement, TypedStatementBlock};
 use crate::wasm::encoding::*;
 
@@ -94,7 +93,7 @@ fn compile_statement(mut code: &mut Vec<u8>, stmt: TypedStatement) -> CompilerRe
 		TypedStatement::Expression { expr, .. } => {
 			compile_expression(&mut code, expr)?;
 		}
-		_ => println!("compile statement:{:?}", stmt)
+		_ => eprintln!("compile statement:{:?}", stmt)
 	}
 
 	Ok(())
@@ -128,6 +127,18 @@ fn compile_expression(mut code: &mut Vec<u8>, expr: TypedExpression) -> Compiler
 			LittleEndian::write_u32(&mut buf, (value as f32).bits());
 			code.extend(buf);
 		}*/
+		TypedExpression::Prefix { operator, right } => {
+
+			match operator {
+				PrefixOperator::Minus => {
+					code.push(Opcodes::I32Const as u8);
+					code.push(0);
+					compile_expression(&mut code, *right)?;
+					code.push(Opcodes::I32Sub as u8);
+				}
+				_ => eprintln!("prefix {:?}", operator)
+			};
+		}
 		TypedExpression::Call { function, mut arguments, .. } => {
 			if let TypedExpression::Identifier { name, .. } = *function {
 				if name == "print" {
@@ -135,7 +146,7 @@ fn compile_expression(mut code: &mut Vec<u8>, expr: TypedExpression) -> Compiler
 				}
 			}
 		}
-		_ => println!("compile expression:{:?}", expr)
+		_ => eprintln!("compile expression:{:?}", expr)
 	}
 
 	Ok(())
@@ -217,5 +228,6 @@ enum Opcodes {
 	I64Const = 0x42,
 	F32Const = 0x43,
 	F64Const = 0x44,
+	I32Sub = 0x6B,
 	F32Add = 0x92,
 }

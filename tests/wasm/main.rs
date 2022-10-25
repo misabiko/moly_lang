@@ -46,6 +46,10 @@ fn test_print() {
 			"print(8); print(300); print(70000); ",
 			"[ 8, 300, 70000 ]"
 		),
+		(
+			"print(-8); print(-300); print(-70000); ",
+			"[ -8, -300, -70000 ]"
+		),
 	];
 
 	for (i, (input, expected)) in tests.into_iter().enumerate() {

@@ -34,6 +34,7 @@ pub enum TypedStatement {
 	Let {
 		name: String,
 		value: TypedExpression,
+		type_expr: TypeExpr,
 	},
 	Return(Option<TypedExpression>),
 	Expression {
@@ -47,7 +48,7 @@ pub enum TypedStatement {
 impl fmt::Display for TypedStatement {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match self {
-			TypedStatement::Let { name, value } => write!(f, "let {} = {};", name, value),
+			TypedStatement::Let { name, value, .. } => write!(f, "let {} = {};", name, value),
 			TypedStatement::Return(Some(value)) => write!(f, "return {};", value),
 			TypedStatement::Return(None) => write!(f, "return;"),
 			TypedStatement::Expression { expr, has_semicolon }

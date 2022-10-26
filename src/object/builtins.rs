@@ -113,6 +113,17 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 				}
 			},
 		},
+		//Temporary hard coded function to print floats
+		BuiltinInfo {
+			name: "printf",
+			type_expr: TypeExpr::FnLiteral {
+				parameter_types: vec![TypeExpr::Float],
+				return_type: Box::new(TypeExpr::Void)
+			},
+			builtin: |_args| {
+				None
+			},
+		},
 	]
 }
 

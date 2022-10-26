@@ -137,6 +137,7 @@ fn test_scoped_type_bindings() {
 				TypedStatement::Let {
 					name: "a".into(),
 					value: TypedExpression::Integer(IntExpr::U8(10)),
+					type_expr: TypeExpr::Int(IntType::U8),
 				},
 				TypedStatement::Let {
 					name: "func".into(),
@@ -155,7 +156,11 @@ fn test_scoped_type_bindings() {
 							],
 							return_type: TypeExpr::String,
 						}
-					})
+					}),
+					type_expr: TypeExpr::FnLiteral {
+						parameter_types: vec![TypeExpr::String],
+						return_type: Box::new(TypeExpr::String),
+					},
 				},
 				TypedStatement::Expression {
 					expr: TypedExpression::Identifier {
@@ -307,6 +312,7 @@ fn test_return_statements() {
 							return_type: TypeExpr::Int(IntType::U8)
 						})
 					},
+					type_expr: TypeExpr::Int(IntType::U8),
 				},
 				TypedStatement::Expression {
 					expr: TypedExpression::Boolean(false),

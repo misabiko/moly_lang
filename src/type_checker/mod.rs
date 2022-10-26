@@ -84,11 +84,12 @@ impl TypeChecker {
 					TypeExpr::Void => return Err(TypeCheckError::Generic(format!("cannot assign void type to a variable"))),
 					type_expr => type_expr,
 				};
-				self.type_env.define_identifier(&name, value_type);
+				self.type_env.define_identifier(&name, value_type.clone());
 
 				Ok(Some(TypedStatement::Let {
 					name,
 					value,
+					type_expr: value_type,
 				}))
 			}
 			Statement::Return(None) => {

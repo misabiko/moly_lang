@@ -12,13 +12,15 @@ Deno.test("a print statement", async () => {
 	assertEquals(output, [8])
 })
 
-export async function executeCode(): Promise<any[]> {
-	const output: any[] = [];
+export async function executeCode(): Promise<number[]> {
+	const output: number[] = [];
 
 	const bytecode = Uint8Array.from(Deno.args[0].split(' ').map(b => parseInt(b, 16)));
 	const result = await WebAssembly.instantiate(bytecode, {
 		env: {
-			print: (d: any) => output.push(d)
+			print: (d: number) => output.push(d),
+			print2: (d: number) => output.push(d),
+			printf: (d: number) => output.push(d),
 		}
 	});
 

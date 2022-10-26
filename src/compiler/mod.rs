@@ -100,7 +100,7 @@ impl Compiler {
 					self.emit(Opcode::Pop, &[]);
 				}
 			}
-			TypedStatement::Let { name, value } => {
+			TypedStatement::Let { name, value, .. } => {
 				let (index, scope) = {
 					let mut table = self.symbol_table.borrow_mut();
 					let symbol = table.define(name.as_str());

@@ -24,6 +24,10 @@ fn test_print() {
 			"print(-8); print(-300); print(-70000); ",
 			"[ -8, -300, -70000 ]"
 		),
+		(
+			"printf(22.5)",
+			"[ 22.5 ]",
+		),
 	];
 
 	for (i, (input, expected)) in tests.into_iter().enumerate() {
@@ -53,13 +57,13 @@ fn test_infix() {
 fn test_variables() {
 	let tests = vec![
 		(
-			"let f = 22i32; print(f);",
+			"let f = 22; print(f);",
 			"[ 22 ]",
 		),
-		/*(
-			"let f = 22.5; print(f);",
+		(
+			"let f = 22.5; printf(f);",
 			"[ 22.5 ]",
-		),*/
+		),
 	];
 
 	for (i, (input, expected)) in tests.into_iter().enumerate() {
@@ -97,11 +101,13 @@ fn run_test(i: usize, input: &'static str, expected: &'static str) {
 
 	assert!(cmd_output.status.success(), "failed to execute wasm:\n{}\n\nWAT\n{}",
 			std::str::from_utf8(cmd_output.stderr.as_slice()).unwrap(),
-			wabt::wasm2wat(bytecode).unwrap(),
+			wabt::wasm2wat(bytecode.clone()).unwrap(),
 	);
 
 	assert_eq!(
 		std::str::from_utf8(cmd_output.stdout.as_slice()).unwrap(),
-		format!("{}\n", expected)
+		format!("{}\n", expected),
+		"output mismatched\n\nWAT:\n{}",
+		wabt::wasm2wat(bytecode).unwrap(),
 	);
 }

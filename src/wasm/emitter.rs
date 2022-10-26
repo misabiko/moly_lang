@@ -1,6 +1,10 @@
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use byteorder::{ByteOrder, LittleEndian};
+use ieee754::Ieee754;
 use crate::ast::{InfixOperator, IntExpr, PrefixOperator};
+use crate::token::IntType;
+use crate::type_checker::type_env::TypeExpr;
 use crate::type_checker::typed_ast::{TypedExpression, TypedStatement, TypedStatementBlock};
 use crate::wasm::encoding::*;
 
@@ -35,21 +39,33 @@ pub fn compile_block_with_header(block: TypedStatementBlock) -> Result<Vec<u8>, 
 	// the import section is a vector of imported functions
 	code.extend(create_section(
 		Section::Import,
-		&encode_vectors(vec![flatten(vec![
-			encode_string("env"),
-			encode_string("print"),
-			vec![
-				ExportType::Func as u8,
-				0x02, // type index
-			],
-		])])
+		&encode_vectors(vec![
+			flatten(vec![
+				encode_string("env"),
+				encode_string("print"),
+				vec![
+					ExportType::Func as u8,
+					0x02, // type index
+				],
+			]),
+			flatten(vec![
+				encode_string("env"),
+				encode_string("printf"),
+				vec![
+					ExportType::Func as u8,
+					0x01, // type index
+				],
+			]),
+		])
 	));
 
 	// the function section is a vector of type indices that indicate the type of each function
 	// in the code section
 	code.extend(create_section(
 		Section::Func,
-		&encode_vector(&[0x00 /* type index */])
+		&encode_vector(&[
+			0x00 /* type index */,
+		])
 	));
 
 	// the export section is a vector of exported functions
@@ -60,24 +76,28 @@ pub fn compile_block_with_header(block: TypedStatementBlock) -> Result<Vec<u8>, 
 				encode_string("run"),
 				vec![
 					ExportType::Func as u8,
-					0x01,	// function index
+					//Needs to count from import index, for some reason
+					0x02,	// function index
 				]
 			])
 		])
 	));
 
-	let (block_code, local_count) = compile_block(block)?;
+	let (block_code, locals) = compile_block(block)?;
 
-	let locals = match local_count {
-		0 => vec![],
-		c => vec![encode_local(c, Valtype::I32)]
-	};
+	let mut local_section = vec![];
+	for (val_type, count) in locals {
+		let mut e = vec![];
+		leb128::write::unsigned(&mut e, count as u64).unwrap();
+		e.push(val_type);
+		local_section.push(e);
+	}
 
 	let code_section = create_section(
 		Section::Code,
 		&encode_vectors(vec![
 			encode_vector(&flatten(vec![
-				encode_vectors(locals),
+				encode_vectors(local_section),
 				block_code,
 				vec![Opcodes::End as u8],
 			]))
@@ -89,19 +109,29 @@ pub fn compile_block_with_header(block: TypedStatementBlock) -> Result<Vec<u8>, 
 	Ok(code)
 }
 
-fn compile_block(block: TypedStatementBlock) -> Result<(Vec<u8>, usize), String> {
+fn compile_block(block: TypedStatementBlock) -> Result<(Vec<u8>, HashMap<u8, usize>), String> {
 	let mut emitter = WasmEmitter::new();
 
 	for stmt in block.statements {
 		emitter.compile_statement(stmt)?
 	}
 
-	Ok((emitter.code, emitter.symbols.len()))
+	let mut locals = HashMap::new();
+	for (val_type, _) in emitter.symbols.values() {
+		match locals.entry(*val_type as u8) {
+			Entry::Occupied(mut e) => *e.get_mut() += 1,
+			Entry::Vacant(e) => {
+				e.insert(1);
+			}
+		}
+	}
+
+	Ok((emitter.code, locals))
 }
 
 struct WasmEmitter {
 	code: Vec<u8>,
-	symbols: HashMap<String, usize>,
+	symbols: HashMap<String, (Valtype, usize)>,
 }
 
 impl WasmEmitter {
@@ -112,15 +142,14 @@ impl WasmEmitter {
 		}
 	}
 
-	fn local_index_for_symbol(&mut self, name: String) -> usize {
+	fn set_local(&mut self, name: String, valtype: Valtype) -> usize {
 		let size = self.symbols.len();
-		match self.symbols.entry(name.clone()) {
-			Entry::Occupied(e) => *e.get(),
-			Entry::Vacant(e) => {
-				e.insert(size);
-				size
-			}
-		}
+		self.symbols.insert(name, (valtype, size));
+		size
+	}
+
+	fn get_local(&mut self, name: String) -> usize {
+		self.symbols.get(&name).unwrap().1
 	}
 
 	fn compile_statement(&mut self, stmt: TypedStatement) -> CompilerResult {
@@ -128,10 +157,17 @@ impl WasmEmitter {
 			TypedStatement::Expression { expr, .. } => {
 				self.compile_expression(expr)?;
 			}
-			TypedStatement::Let { name, value } => {
+			TypedStatement::Let { name, value, type_expr } => {
+				let val_type = match type_expr {
+					TypeExpr::Int(IntType::U64) |
+					TypeExpr::Int(IntType::I64) => Valtype::I64,
+					TypeExpr::Int(_) => Valtype::I32,
+					TypeExpr::Float => Valtype::F32,
+					_ => return Err(format!("local {:?} not implemented", type_expr)),
+				};
 				self.compile_expression(value)?;
 				self.emit_opcode(Opcodes::SetLocal);
-				let index = self.local_index_for_symbol(name);
+				let index = self.set_local(name, val_type);
 				self.emit_u64(index as u64);
 			}
 			_ => eprintln!("compile statement:{:?}", stmt)	//TODO stmt rest
@@ -157,16 +193,15 @@ impl WasmEmitter {
 				self.emit_opcode(opcode);
 				self.emit_i64(value);
 			}
-			//TODO Add floats
-			/*TypedExpression::Float(value) => {
-				code.push(Opcodes::F32Const);
+			TypedExpression::Float(value) => {
+				self.emit_opcode(Opcodes::F32Const);
 				let mut buf = [0; 4];
-				LittleEndian::write_u32(&mut buf, (value as f32).bits());
+				LittleEndian::write_u32(&mut buf, value.bits());
 				self.code.extend(buf);
-			}*/
+			}
 			TypedExpression::Identifier { name, .. } => {
 				self.emit_opcode(Opcodes::GetLocal);
-				let index = self.local_index_for_symbol(name);
+				let index = self.get_local(name);
 				self.emit_u64(index as u64);
 			}
 			TypedExpression::Prefix { operator, right } => {
@@ -199,7 +234,11 @@ impl WasmEmitter {
 			TypedExpression::Call { function, mut arguments, .. } => {
 				if let TypedExpression::Identifier { name, .. } = *function {
 					if name == "print" {
-						return self.compile_print(&mut arguments);
+						return self.compile_builtin(&mut arguments, 0);
+					} else if name == "printf" {
+						return self.compile_builtin(&mut arguments, 1);
+					} else {
+						panic!("function {} not supported", name);
 					}
 				}
 			}
@@ -209,14 +248,14 @@ impl WasmEmitter {
 		Ok(())
 	}
 
-	fn compile_print(&mut self, arguments: &mut Vec<TypedExpression>) -> CompilerResult {
-		assert_eq!(arguments.len(), 1, "wrong arg count for print()");
+	fn compile_builtin(&mut self, arguments: &mut Vec<TypedExpression>, index: u8) -> CompilerResult {
+		assert_eq!(arguments.len(), 1, "wrong arg count for builtin function");
 
 		let arg = arguments.remove(0);
 		self.compile_expression(arg)?;
 
 		self.emit_opcode(Opcodes::Call);
-		self.code.push(0);
+		self.emit_u64(index as u64);
 
 		return Ok(())
 	}
@@ -278,9 +317,10 @@ enum Section {
 
 // https://webassembly.github.io/spec/core/binary/types.html
 #[repr(u8)]
+#[derive(Copy, Clone)]
 pub enum Valtype {
 	I32 = 0x7F,
-	// I64 = 0x7E,
+	I64 = 0x7E,
 	F32 = 0x7D,
 	// F64 = 0x7C,
 }
@@ -305,7 +345,7 @@ enum Opcodes {
 	I32Const = 0x41,
 	I64Const = 0x42,
 	F32Const = 0x43,
-	F64Const = 0x44,
+	// F64Const = 0x44,
 
 	//I32EqZero = 0x45,
 	I32Eq = 0x46,

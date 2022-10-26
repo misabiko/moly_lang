@@ -21,3 +21,6 @@ Decisions
 
 Later features
 - Removing semicolons, for now it's much easier to parse and make sense of
+
+Wasm bytecode
+https://blog.scottlogic.com/2019/05/17/webassembly-compiler.html

@@ -1,3 +1,5 @@
+[![CI@main](https://github.com/misabiko/moly_lang/actions/workflows/ci.yml/badge.svg?branch=main "CI@main")](https://github.com/misabiko/moly_lang/actions/workflows/ci.yml)
+
 A toy language.
 
 Currently this README serves mostly as personal notes, so it might not make sense.

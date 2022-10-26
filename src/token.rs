@@ -14,6 +14,7 @@ pub enum TokenLiteral {
 	String(String),
 	//Minus is parsed as a separate token, so we store positive only
 	Integer(usize),
+	Float(usize, usize),
 }
 
 impl TokenLiteral {
@@ -50,6 +51,8 @@ pub enum TokenType {
 	// Identifiers + literals
 	Ident, // add, foobar, x, y, ...
 	Int,  // 1343456
+	//Could move to parser
+	Float,
 
 	// Operators
 	Assign,
@@ -106,6 +109,7 @@ impl fmt::Display for TokenType {
 
 			TokenType::Ident => "IDENT",
 			TokenType::Int => "INT",
+			TokenType::Float => "FLOAT",
 
 			TokenType::Assign => "=",
 			TokenType::Plus => "+",

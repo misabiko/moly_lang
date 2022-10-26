@@ -64,6 +64,7 @@ pub enum TypedExpression {
 		type_expr: TypeExpr,
 	},
 	Integer(IntExpr),
+	Float(f32),
 	Boolean(bool),
 	String(String),
 	Prefix {
@@ -119,6 +120,7 @@ impl fmt::Display for TypedExpression {
 		match self {
 			TypedExpression::Identifier {name, .. } => write!(f, "{}", name),
 			TypedExpression::Integer(value) => write!(f, "{}", value),
+			TypedExpression::Float(value) => write!(f, "{}", value),
 			TypedExpression::Boolean(value) => write!(f, "{}", value),
 			TypedExpression::String(value) => write!(f, "{}", value),
 			TypedExpression::Prefix { operator, right } => write!(f, "({}{})", operator, right),

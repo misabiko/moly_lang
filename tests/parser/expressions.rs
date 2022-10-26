@@ -45,6 +45,26 @@ fn test_integer_literal_expression() {
 }
 
 #[test]
+fn test_float_literal_expression() {
+	let tests = vec![
+		("43.5;", Expression::Float(43.5)),
+		//("43.;", Expression::Float(43.)),
+	];
+
+	for (input, expected) in tests {
+		let stmt = parse_single_statement(input).unwrap();
+
+		if let Statement::Expression { expr, has_semicolon } = stmt {
+			assert_eq!(expr, expected);
+
+			assert_eq!(has_semicolon, true, "missing semicolon");
+		} else {
+			panic!("{:?} not Statement::Expression", stmt)
+		}
+	}
+}
+
+#[test]
 fn test_boolean_expression() {
 	let tests = vec![
 		("true;", true),

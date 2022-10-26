@@ -115,7 +115,7 @@ impl Lexer {
 					//Returning early to skip the read_char() at the end
 					return lookup_ident(self.read_identifier(), after_whitespace);
 				} else if is_digit(self.ch) {
-					return Token { token_type: TokenType::Int, literal: TokenLiteral::Integer(self.read_number()), after_whitespace };
+					return self.read_number(after_whitespace);
 				} else {
 					Token { token_type: TokenType::Illegal, literal: TokenLiteral::Static(""), after_whitespace }
 				}
@@ -149,7 +149,20 @@ impl Lexer {
 			.collect()
 	}
 
-	fn read_number(&mut self) -> usize {
+	fn read_number(&mut self, after_whitespace: bool) -> Token {
+		let number = self.read_integer();
+
+		if self.ch == Some('.') && is_digit(self.peek_char()) {
+			self.read_char();
+			let decimals = self.read_integer();
+
+			Token { token_type: TokenType::Float, literal: TokenLiteral::Float(number, decimals), after_whitespace }
+		} else {
+			Token { token_type: TokenType::Int, literal: TokenLiteral::Integer(number), after_whitespace }
+		}
+	}
+
+	fn read_integer(&mut self) -> usize {
 		let position = self.position;
 		while is_digit(self.ch) {
 			self.read_char();

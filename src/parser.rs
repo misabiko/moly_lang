@@ -222,6 +222,14 @@ impl Parser {
 					}
 				}
 			}
+			Token { token_type: TokenType::Float, literal: TokenLiteral::Float(int, decimals), .. } => {
+				//Probably is a smarter way to do this
+				let mut decimals = *decimals as f32;
+				while decimals > 1.0 {
+					decimals /= 10.0;
+				}
+				Ok(Expression::Float(*int as f32 + decimals))
+			}
 			Token { token_type: TokenType::True, .. } => Ok(Expression::Boolean(true)),
 			Token { token_type: TokenType::False, .. } => Ok(Expression::Boolean(false)),
 			Token { token_type: TokenType::Bang, .. } |

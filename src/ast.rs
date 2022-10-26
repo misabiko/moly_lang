@@ -62,6 +62,7 @@ impl fmt::Display for Statement {
 pub enum Expression {
 	Identifier(String),
 	Integer(IntExpr),
+	Float(f32),
 	Boolean(bool),
 	String(String),
 	Prefix {
@@ -115,6 +116,7 @@ impl fmt::Display for Expression {
 			Expression::Integer(IntExpr::I16(value)) => write!(f, "{}", value),
 			Expression::Integer(IntExpr::I32(value)) => write!(f, "{}", value),
 			Expression::Integer(IntExpr::I64(value)) => write!(f, "{}", value),
+			Expression::Float(value) => write!(f, "{}", value),
 			Expression::Boolean(value) => write!(f, "{}", value),
 			Expression::String(value) => write!(f, "{}", value),
 			Expression::Prefix { operator, right } => write!(f, "({}{})", operator, right),

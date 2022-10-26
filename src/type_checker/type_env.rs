@@ -11,6 +11,8 @@ pub struct TypeBinding {
 pub enum TypeExpr {
 	Void,
 	Int(IntType),
+	///Just f32 for now
+	Float,
 	Bool,
 	String,
 	Array(Box<TypeExpr>),
@@ -40,6 +42,7 @@ impl fmt::Display for TypeExpr {
 			TypeExpr::Int(IntType::I16) => write!(f, "i16"),
 			TypeExpr::Int(IntType::I32) => write!(f, "i32"),
 			TypeExpr::Int(IntType::I64) => write!(f, "i64"),
+			TypeExpr::Float => write!(f, "f32"),
 			TypeExpr::Bool => write!(f, "bool"),
 			TypeExpr::String => write!(f, "str"),
 			TypeExpr::FnLiteral { parameter_types, return_type } => {

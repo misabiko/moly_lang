@@ -122,6 +122,7 @@ impl TypeChecker {
 			Expression::Integer(IntExpr::I16(value)) => Ok((TypedExpression::Integer(IntExpr::I16(value)), TypeExpr::Int(IntType::I16))),
 			Expression::Integer(IntExpr::I32(value)) => Ok((TypedExpression::Integer(IntExpr::I32(value)), TypeExpr::Int(IntType::I32))),
 			Expression::Integer(IntExpr::I64(value)) => Ok((TypedExpression::Integer(IntExpr::I64(value)), TypeExpr::Int(IntType::I64))),
+			Expression::Float(value) => Ok((TypedExpression::Float(value), TypeExpr::Float)),
 			Expression::String(value) => Ok((TypedExpression::String(value), TypeExpr::String)),
 			Expression::Identifier(name) => {
 				let type_expr = self.type_env.get_identifier_type(name.as_str())
@@ -535,6 +536,7 @@ pub fn get_type(expr: &TypedExpression) -> TypeExpr {
 			IntExpr::I32(_) => TypeExpr::Int(IntType::I32),
 			IntExpr::I64(_) => TypeExpr::Int(IntType::I64),
 		},
+		TypedExpression::Float(_) => TypeExpr::Float,
 		TypedExpression::Boolean(_) => TypeExpr::Bool,
 		TypedExpression::String(_) => TypeExpr::String,
 		TypedExpression::Function(TypedFunction { parameters, body, .. }) => TypeExpr::FnLiteral {

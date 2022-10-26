@@ -396,11 +396,15 @@ impl VM {
 	fn execute_bang_operator(&mut self) -> VMResult {
 		let operand = self.pop().unwrap();
 
-		match *operand {
-			TRUE_OBJ => self.push(FALSE_OBJ),
-			FALSE_OBJ => self.push(TRUE_OBJ),
-			_ => return Err(format!("unsupported type for bang operator: {:?}", operand)),
+		if *operand == TRUE_OBJ {
+			self.push(FALSE_OBJ)?;
+		}else if *operand == FALSE_OBJ {
+			self.push(TRUE_OBJ)?;
+		}else {
+			return Err(format!("unsupported type for bang operator: {:?}", operand));
 		}
+
+		Ok(())
 	}
 
 	fn execute_minus_operator(&mut self) -> VMResult {

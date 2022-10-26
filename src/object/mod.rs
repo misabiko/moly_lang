@@ -4,7 +4,7 @@ use crate::code::Instructions;
 
 pub mod builtins;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Object {
 	U8(u8),
 	U16(u16),
@@ -14,6 +14,7 @@ pub enum Object {
 	I16(i16),
 	I32(i32),
 	I64(i64),
+	Float(f32),
 	Boolean(bool),
 	String(String),
 	Array(Vec<Object>),
@@ -34,6 +35,7 @@ impl fmt::Display for Object {
 			Object::I16(value) => write!(f, "{}", value),
 			Object::I32(value) => write!(f, "{}", value),
 			Object::I64(value) => write!(f, "{}", value),
+			Object::Float(value) => write!(f, "{}", value),
 			Object::Boolean(value) => write!(f, "{}", value),
 			Object::String(value) => write!(f, "{}", value),
 			Object::Array(elements) => write!(f, "[{}]", join_object_vec(elements)),
@@ -52,7 +54,7 @@ fn join_object_vec(objs: &[Object]) -> String {
 		.join(", ")
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Function {
 	pub instructions: Instructions,
 	/// Number of local symbols, includes num_parameters
@@ -62,7 +64,7 @@ pub struct Function {
 
 pub type Builtin = fn(Vec<Object>) -> Option<Object>;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Closure {
 	pub func: Function,
 	pub free: Vec<Object>,

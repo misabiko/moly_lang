@@ -8,6 +8,7 @@ use moly::token::{IntType, Token, TokenLiteral};
 fn test_next_token() {
 	const INPUT: &str = r#"let five = 5;
 let ten10 = 10;
+float43.field = 43.0;
 
 u8 u16 u32 u64
 i8 i16 i32 i64
@@ -70,6 +71,13 @@ enum Fruits => Apple | Banana | Cherry;
 		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("ten10".into()), after_whitespace: true},
 		Token { token_type: TokenType::Assign, literal: TokenLiteral::Static("="), after_whitespace: true},
 		Token { token_type: TokenType::Int, literal: TokenLiteral::Integer(10), after_whitespace: true},
+		Token { token_type: TokenType::Semicolon, literal: TokenLiteral::Static(";"), after_whitespace: false},
+
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("float43".into()), after_whitespace: true},
+		Token { token_type: TokenType::Dot, literal: TokenLiteral::Static("."), after_whitespace: false},
+		Token { token_type: TokenType::Ident, literal: TokenLiteral::String("field".into()), after_whitespace: false},
+		Token { token_type: TokenType::Assign, literal: TokenLiteral::Static("="), after_whitespace: true},
+		Token { token_type: TokenType::Float, literal: TokenLiteral::Float(43, 0), after_whitespace: true},
 		Token { token_type: TokenType::Semicolon, literal: TokenLiteral::Static(";"), after_whitespace: false},
 
 		Token { token_type: TokenType::IntegerType(IntType::U8), literal: TokenLiteral::Static("u8"), after_whitespace: true},

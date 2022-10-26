@@ -160,6 +160,10 @@ impl Compiler {
 				};
 				self.emit(Opcode::Constant, &[operand]);
 			}
+			TypedExpression::Float(value) => {
+				let operand = self.add_constant(Object::Float(value));
+				self.emit(Opcode::Constant, &[operand]);
+			}
 			TypedExpression::Boolean(value) => if value {
 				self.emit(Opcode::True, &[]);
 			} else {

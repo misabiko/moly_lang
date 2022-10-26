@@ -27,10 +27,13 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: npm ci
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
       - run: cargo test
 
       - name: Deploy 🚀

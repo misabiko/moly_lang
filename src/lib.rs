@@ -141,6 +141,8 @@ pub fn run_file(file: PathBuf) {
 	run_string(&input, true);
 }
 
+//TODO Switch to wastprinter
+#[cfg(not(target_arch = "wasm32"))]
 pub fn build_to_wat(input: &str, full_program: bool) -> Result<String, String> {
 	let bytecode = match build_wasm(input, full_program) {
 		Ok(b) => b,
@@ -154,6 +156,7 @@ pub fn build_to_wat(input: &str, full_program: bool) -> Result<String, String> {
 	}
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn print_wat(input: &str, full_program: bool) {
 	match build_to_wat(input, full_program) {
 		Ok(b) => println!("{}", b),

@@ -1,7 +1,10 @@
 use std::cell::RefCell;
 use std::io::{BufRead, Write};
 use std::rc::Rc;
+
+#[cfg(not(target_arch = "wasm32"))]
 use ctrlc;
+
 use crate::lexer::Lexer;
 use crate::compiler::Compiler;
 use crate::compiler::symbol_table::SymbolTable;
@@ -14,6 +17,7 @@ use crate::vm::{GLOBALS_SIZE, VM};
 
 const PROMPT: &'static str = ">> ";
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn start() {
 	ctrlc::set_handler(|| std::process::exit(0))
 		.expect("Error setting Ctrl-C handler");

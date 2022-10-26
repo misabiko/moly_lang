@@ -1,0 +1,28 @@
+<html lang='en'>
+<head>
+	<meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+	<title>moly-lang</title>
+	<script src='out.js'></script>
+	<style>
+		#editors {
+            display: flex;
+            align-content: stretch;
+            align-items: stretch;
+		}
+
+		#editors > div {
+			flex-grow: 1;
+		}
+	</style>
+</head>
+<body>
+	<div id='controls'>
+		<button id='run' title='Run code'>Run</button>
+	</div>
+	<div id='editors'>
+		<div id='editor'></div>
+		<div id='output'></div>
+	</div>
+	<div id='result'>Output: </div>
+</body>
+</html>

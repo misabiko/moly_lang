@@ -141,22 +141,19 @@ pub fn run_file(file: PathBuf) {
 	run_string(&input, true);
 }
 
-//TODO Switch to wastprinter
-#[cfg(not(target_arch = "wasm32"))]
 pub fn build_to_wat(input: &str, full_program: bool) -> Result<String, String> {
 	let bytecode = match build_wasm(input, full_program) {
 		Ok(b) => b,
 		Err(err) => return Err(err)
 	};
 
-	let wat = wabt::wasm2wat(bytecode);
+	let wat = wasmprinter::print_bytes(bytecode);
 	match wat {
 		Ok(w) => Ok(w),
 		Err(err) => Err(err.to_string()),
 	}
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 pub fn print_wat(input: &str, full_program: bool) {
 	match build_to_wat(input, full_program) {
 		Ok(b) => println!("{}", b),

@@ -4,12 +4,17 @@ version = "0.1.0"
 authors = ["misabiko"]
 edition = "2021"
 repository = "https://github.com/misabiko/moly_lang"
-default-run = "moly"
+default-run = "moly_bin"
+
+[[bin]]
+name = "moly_bin"
+path = "src/main.rs"
 
 [[bin]]
 name = "benchmark"
 
 [lib]
+name = "moly"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
@@ -33,4 +38,3 @@ features = [
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 ctrlc = "3.2.3"
-wabt = "0.10.0"

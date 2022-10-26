@@ -64,6 +64,28 @@ fn test_variables() {
 			"let f = 22.5; printf(f);",
 			"[ 22.5 ]",
 		),
+		(
+			"let f = 22; f = (f+1); printf(f);",
+			"[ 23 ]",
+		),
+		(
+			"let f = 22.5; f = (f+1.5); print(f);",
+			"[ 24 ]",
+		),
+	];
+
+	for (i, (input, expected)) in tests.into_iter().enumerate() {
+		run_test(i, input, expected);
+	}
+}
+
+#[test]
+fn test_while() {
+	let tests = vec![
+		(
+			"let f = 0; while f < 5 {f = (f + 1); print(f);}",
+			"[ 1, 2, 3, 4, 5 ]",
+		),
 	];
 
 	for (i, (input, expected)) in tests.into_iter().enumerate() {

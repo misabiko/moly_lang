@@ -32,6 +32,10 @@ pub enum Statement {
 		name: String,
 		decl: StructDecl,
 	},
+	While {
+		condition: Expression,
+		block: StatementBlock,
+	}
 }
 
 impl fmt::Display for Statement {
@@ -54,6 +58,7 @@ impl fmt::Display for Statement {
 				},
 				StructDecl::Tuple(fields) => write!(f, "struct {}({})", name, join_type_vec(fields))
 			}
+			Statement::While { condition, block} => write!(f, "while {} {})", condition, block),
 		}
 	}
 }

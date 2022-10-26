@@ -15,13 +15,13 @@ pub fn compile_block_with_header(block: TypedStatementBlock) -> Result<Vec<u8>, 
 
 	let float_void_type = flatten(vec![
 		vec![FUNCTION_TYPE],
-		encode_vector(&[Valtype::F32 as u8]),
+		encode_vector(&[ValType::F32 as u8]),
 		vec![EMPTY_ARRAY]
 	]);
 
 	let int_void_type = flatten(vec![
 		vec![FUNCTION_TYPE],
-		encode_vector(&[Valtype::I32 as u8]),
+		encode_vector(&[ValType::I32 as u8]),
 		vec![EMPTY_ARRAY]
 	]);
 
@@ -112,9 +112,7 @@ pub fn compile_block_with_header(block: TypedStatementBlock) -> Result<Vec<u8>, 
 fn compile_block(block: TypedStatementBlock) -> Result<(Vec<u8>, HashMap<u8, usize>), String> {
 	let mut emitter = WasmEmitter::new();
 
-	for stmt in block.statements {
-		emitter.compile_statement(stmt)?
-	}
+	emitter.compile_block(block)?;
 
 	let mut locals = HashMap::new();
 	for (val_type, _) in emitter.symbols.values() {
@@ -131,7 +129,7 @@ fn compile_block(block: TypedStatementBlock) -> Result<(Vec<u8>, HashMap<u8, usi
 
 struct WasmEmitter {
 	code: Vec<u8>,
-	symbols: HashMap<String, (Valtype, usize)>,
+	symbols: HashMap<String, (ValType, usize)>,
 }
 
 impl WasmEmitter {
@@ -142,7 +140,7 @@ impl WasmEmitter {
 		}
 	}
 
-	fn set_local(&mut self, name: String, valtype: Valtype) -> usize {
+	fn set_local(&mut self, name: String, valtype: ValType) -> usize {
 		let size = self.symbols.len();
 		self.symbols.insert(name, (valtype, size));
 		size
@@ -150,6 +148,14 @@ impl WasmEmitter {
 
 	fn get_local(&mut self, name: String) -> usize {
 		self.symbols.get(&name).unwrap().1
+	}
+
+	fn compile_block(&mut self, block: TypedStatementBlock) -> CompilerResult {
+		for stmt in block.statements {
+			self.compile_statement(stmt)?;
+		}
+
+		Ok(())
 	}
 
 	fn compile_statement(&mut self, stmt: TypedStatement) -> CompilerResult {
@@ -160,15 +166,38 @@ impl WasmEmitter {
 			TypedStatement::Let { name, value, type_expr } => {
 				let val_type = match type_expr {
 					TypeExpr::Int(IntType::U64) |
-					TypeExpr::Int(IntType::I64) => Valtype::I64,
-					TypeExpr::Int(_) => Valtype::I32,
-					TypeExpr::Float => Valtype::F32,
+					TypeExpr::Int(IntType::I64) => ValType::I64,
+					TypeExpr::Int(_) => ValType::I32,
+					TypeExpr::Float => ValType::F32,
 					_ => return Err(format!("local {:?} not implemented", type_expr)),
 				};
 				self.compile_expression(value)?;
 				self.emit_opcode(Opcodes::SetLocal);
 				let index = self.set_local(name, val_type);
 				self.emit_u64(index as u64);
+			}
+			TypedStatement::While { condition, block } => {
+				// outer block
+				self.emit_opcode(Opcodes::Block);
+				self.code.push(BlockType::Void as u8);
+				// inner loop
+				self.emit_opcode(Opcodes::Loop);
+				self.code.push(BlockType::Void as u8);
+				// compute the while expression
+				self.compile_expression(condition)?;
+				self.emit_opcode(Opcodes::I32EqZero);
+				// br_if $label0
+				self.emit_opcode(Opcodes::BrIf);
+				self.emit_i64(1);
+				// the nested logic
+				self.compile_block(block)?;
+				// br $label1
+				self.emit_opcode(Opcodes::Br);
+				self.emit_i64(0);
+				// end loop
+				self.emit_opcode(Opcodes::End);
+				// end block
+				self.emit_opcode(Opcodes::End);
 			}
 			_ => eprintln!("compile statement:{:?}", stmt)	//TODO stmt rest
 		}
@@ -318,11 +347,17 @@ enum Section {
 // https://webassembly.github.io/spec/core/binary/types.html
 #[repr(u8)]
 #[derive(Copy, Clone)]
-pub enum Valtype {
+pub enum ValType {
 	I32 = 0x7F,
 	I64 = 0x7E,
 	F32 = 0x7D,
 	// F64 = 0x7C,
+}
+
+// https://webassembly.github.io/spec/core/binary/types.html#binary-blocktype
+#[repr(u8)]
+enum BlockType {
+	Void = 0x40,
 }
 
 // http://webassembly.github.io/spec/core/binary/modules.html#export-section
@@ -337,7 +372,14 @@ enum ExportType {
 // https://webassembly.github.io/spec/core/binary/instructions.html
 #[repr(u8)]
 enum Opcodes {
-	End = 0x0b,
+	Block = 0x02,
+	Loop = 0x03,
+	If = 0x04,
+	Else = 0x05,
+
+	End = 0x0B,
+	Br = 0x0C,
+	BrIf = 0x0D,
 	Call = 0x10,
 	GetLocal = 0x20,
 	SetLocal = 0x21,
@@ -347,7 +389,7 @@ enum Opcodes {
 	F32Const = 0x43,
 	// F64Const = 0x44,
 
-	//I32EqZero = 0x45,
+	I32EqZero = 0x45,
 	I32Eq = 0x46,
 	I32NotEq = 0x47,
 	I32LTSigned = 0x48,

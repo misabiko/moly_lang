@@ -89,8 +89,14 @@ pub enum TokenType {
 	Enum,
 	True,
 	False,
+
 	If,
 	Else,
+	Unless,
+	While,
+	Until,
+	For,
+
 	Return,
 	IntegerType(IntType),
 	Bool,
@@ -143,8 +149,14 @@ impl fmt::Display for TokenType {
 			TokenType::Enum => "ENUM",
 			TokenType::True => "TRUE",
 			TokenType::False => "FALSE",
+
 			TokenType::If => "IF",
 			TokenType::Else => "ELSE",
+			TokenType::Unless => "UNLESS",
+			TokenType::While => "WHILE",
+			TokenType::Until => "UNTIL",
+			TokenType::For => "FOR",
+
 			TokenType::Return => "RETURN",
 			TokenType::IntegerType(IntType::U8) => "U8",
 			TokenType::IntegerType(IntType::U16) => "U16",
@@ -204,6 +216,26 @@ pub fn lookup_ident(keyword: String, after_whitespace: bool) -> Token {
 		"else" => Token {
 			token_type: TokenType::Else,
 			literal: TokenLiteral::Static("else"),
+			after_whitespace,
+		},
+		"unless" => Token {
+			token_type: TokenType::Unless,
+			literal: TokenLiteral::Static("unless"),
+			after_whitespace,
+		},
+		"while" => Token {
+			token_type: TokenType::While,
+			literal: TokenLiteral::Static("while"),
+			after_whitespace,
+		},
+		"until" => Token {
+			token_type: TokenType::Until,
+			literal: TokenLiteral::Static("until"),
+			after_whitespace,
+		},
+		"for" => Token {
+			token_type: TokenType::For,
+			literal: TokenLiteral::Static("for"),
 			after_whitespace,
 		},
 		"return" => Token {

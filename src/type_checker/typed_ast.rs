@@ -43,6 +43,10 @@ pub enum TypedStatement {
 	},
 	/// TypedFunction::name should be Some
 	Function(TypedFunction),
+	While {
+		condition: TypedExpression,
+		block: TypedStatementBlock,
+	}
 }
 
 impl fmt::Display for TypedStatement {
@@ -54,6 +58,7 @@ impl fmt::Display for TypedStatement {
 			TypedStatement::Expression { expr, has_semicolon }
 				=> write!(f, "{}{}", expr, if *has_semicolon { ";" } else { "" }),
 			TypedStatement::Function(func) => write!(f, "{}", func),
+			TypedStatement::While { condition, block } => write!(f, "while {} {}", condition, block),
 		}
 	}
 }

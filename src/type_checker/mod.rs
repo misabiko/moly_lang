@@ -51,7 +51,8 @@ impl TypeChecker {
 		let return_type = statements.last().map(|stmt| match stmt {
 			TypedStatement::Let { .. } |
 			TypedStatement::Function(_) |
-			TypedStatement::Return(None) => TypeExpr::Void,
+			TypedStatement::Return(None) |
+			TypedStatement::While { .. } => TypeExpr::Void,
 			TypedStatement::Expression { has_semicolon: true, .. } => TypeExpr::Void,
 			TypedStatement::Return(Some(e)) => if new_scope {
 				get_type(e)
@@ -108,6 +109,19 @@ impl TypeChecker {
 			Statement::Struct { name, decl } => {
 				self.check_struct_decl(name, decl)?;
 				Ok(None)
+			}
+			Statement::While { condition, block } => {
+				let (condition, condition_type) = self.check_expression(condition)?;
+				if !matches!(condition_type, TypeExpr::Bool) {
+					return Err(TypeCheckError::Generic(format!("expected `bool`, found {:?}", condition_type)));
+				}
+
+				let block = self.check_block(block, false, false)?;
+
+				Ok(Some(TypedStatement::While {
+					condition,
+					block,
+				}))
 			}
 		}
 	}

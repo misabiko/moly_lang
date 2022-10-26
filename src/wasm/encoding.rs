@@ -10,7 +10,6 @@ pub fn encode_vector(data: &[u8]) -> Vec<u8> {
 pub fn encode_vectors(data: Vec<Vec<u8>>) -> Vec<u8> {
 	let mut output = vec![];
 	leb128::write::unsigned(&mut output, data.len() as u64).unwrap();
-	//TODO Try keeping rest of len
 	output.extend(flatten(data));
 	output
 }

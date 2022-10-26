@@ -28,6 +28,8 @@ if 5 < 10 {
     return false;
 }
 
+unless while until for
+
 //
 // my comment
 /**/
@@ -152,6 +154,12 @@ enum Fruits => Apple | Banana | Cherry;
 		Token { token_type: TokenType::False, literal: TokenLiteral::Static("false"), after_whitespace: true},
 		Token { token_type: TokenType::Semicolon, literal: TokenLiteral::Static(";"), after_whitespace: false},
 		Token { token_type: TokenType::RBrace, literal: TokenLiteral::Static("}"), after_whitespace: true},
+
+		Token { token_type: TokenType::Unless, literal: TokenLiteral::Static("unless"), after_whitespace: true},
+		Token { token_type: TokenType::While, literal: TokenLiteral::Static("while"), after_whitespace: true},
+		Token { token_type: TokenType::Until, literal: TokenLiteral::Static("until"), after_whitespace: true},
+		Token { token_type: TokenType::For, literal: TokenLiteral::Static("for"), after_whitespace: true},
+
 
 		Token { token_type: TokenType::LineComment, literal: TokenLiteral::String("".into()), after_whitespace: true},
 		Token { token_type: TokenType::LineComment, literal: TokenLiteral::String(" my comment".into()), after_whitespace: true},

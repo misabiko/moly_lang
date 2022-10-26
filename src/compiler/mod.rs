@@ -140,6 +140,9 @@ impl Compiler {
 					self.emit(Opcode::SetLocal, &[index]);
 				}
 			},
+			TypedStatement::While { .. } => {
+				todo!()
+			}
 		}
 
 		Ok(())

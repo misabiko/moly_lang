@@ -10,28 +10,28 @@ fn test_print() {
 	let tests = vec![
 		(
 			"",
-			"[]",
+			"[]\n",
 		),
 		(
 			"print(43)",
-			"[ 43 ]",
+			"[ 43 ]\n",
 		),
 		(
 			"print(8); print(300); print(70000); ",
-			"[ 8, 300, 70000 ]"
+			"[ 8, 300, 70000 ]\n"
 		),
 		(
 			"print(-8); print(-300); print(-70000); ",
-			"[ -8, -300, -70000 ]"
+			"[ -8, -300, -70000 ]\n"
 		),
 		(
 			"printf(22.5)",
-			"[ 22.5 ]",
+			"[ 22.5 ]\n",
 		),
 	];
 
 	for (i, (input, expected)) in tests.into_iter().enumerate() {
-		run_test(i, input, expected);
+		run_test(i, input, expected, "tests/wasm/executeWasm.ts");
 	}
 }
 
@@ -40,16 +40,16 @@ fn test_infix() {
 	let tests = vec![
 		(
 			"print(2 + 4)",
-			"[ 6 ]",
+			"[ 6 ]\n",
 		),
 		(
 			"print((6 - 4) + 10)",
-			"[ 12 ]",
+			"[ 12 ]\n",
 		),
 	];
 
 	for (i, (input, expected)) in tests.into_iter().enumerate() {
-		run_test(i, input, expected);
+		run_test(i, input, expected, "tests/wasm/executeWasm.ts");
 	}
 }
 
@@ -58,24 +58,24 @@ fn test_variables() {
 	let tests = vec![
 		(
 			"let f = 22; print(f);",
-			"[ 22 ]",
+			"[ 22 ]\n",
 		),
 		(
 			"let f = 22.5; printf(f);",
-			"[ 22.5 ]",
+			"[ 22.5 ]\n",
 		),
 		(
 			"let f = 22; f = (f+1); print(f);",
-			"[ 23 ]",
+			"[ 23 ]\n",
 		),
 		(
 			"let f = 22.5; f = (f+1.5); printf(f);",
-			"[ 24 ]",
+			"[ 24 ]\n",
 		),
 	];
 
 	for (i, (input, expected)) in tests.into_iter().enumerate() {
-		run_test(i, input, expected);
+		run_test(i, input, expected, "tests/wasm/executeWasm.ts");
 	}
 }
 
@@ -84,16 +84,30 @@ fn test_while() {
 	let tests = vec![
 		(
 			"let f = 0; while f < 5 {f = (f + 1); print(f);}",
-			"[ 1, 2, 3, 4, 5 ]",
+			"[ 1, 2, 3, 4, 5 ]\n",
 		),
 	];
 
 	for (i, (input, expected)) in tests.into_iter().enumerate() {
-		run_test(i, input, expected);
+		run_test(i, input, expected, "tests/wasm/executeWasm.ts");
 	}
 }
 
-fn run_test(i: usize, input: &'static str, expected: &'static str) {
+#[test]
+fn test_graphics() {
+	let tests = vec![
+		(
+			"setpixel(1.0, 2.0, 3.0)",
+			"[]\n[ [ 201, 3 ] ]\n",
+		),
+	];
+
+	for (i, (input, expected)) in tests.into_iter().enumerate() {
+		run_test(i, input, expected, "tests/wasm/executeGraphicsWasm.ts");
+	}
+}
+
+fn run_test(i: usize, input: &'static str, expected: &'static str, executer: &'static str) {
 	let program = Parser::new(Lexer::new(input)).parse_block_statement(TokenType::EOF);
 	let program = match program {
 		Ok(p) => p,
@@ -115,7 +129,7 @@ fn run_test(i: usize, input: &'static str, expected: &'static str) {
 	// println!("{:?}", bytecode);
 
 	let cmd_output = Command::new("deno")
-		.args(["run", "executeWasm.ts", &bytecode_str])
+		.args(["run", executer, &bytecode_str])
 		.output()
 		.expect("failed to execute command");
 
@@ -128,7 +142,7 @@ fn run_test(i: usize, input: &'static str, expected: &'static str) {
 
 	assert_eq!(
 		std::str::from_utf8(cmd_output.stdout.as_slice()).unwrap(),
-		format!("{}\n", expected),
+		expected,
 		"output mismatched\n\nWAT:\n{}",
 		wabt::wasm2wat(bytecode).unwrap(),
 	);

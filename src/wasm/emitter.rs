@@ -56,6 +56,17 @@ pub fn compile_block_with_header(block: TypedStatementBlock) -> Result<Vec<u8>, 
 					0x01, // type index
 				],
 			]),
+			flatten(vec![
+				encode_string("env"),
+				encode_string("memory"),
+				vec![
+					ExportType::Mem as u8,
+					/* limits https://webassembly.github.io/spec/core/binary/types.html#limits -
+  indicates a min memory size of one page */
+					0x00,
+					0x01,
+				],
+			]),
 		])
 	));
 
@@ -221,9 +232,7 @@ impl WasmEmitter {
 			}
 			TypedExpression::Float(value) => {
 				self.emit_opcode(Opcodes::F32Const);
-				let mut buf = [0; 4];
-				LittleEndian::write_u32(&mut buf, value.bits());
-				self.code.extend(buf);
+				self.emit_f32(value);
 			}
 			TypedExpression::Identifier { name, .. } => {
 				self.emit_opcode(Opcodes::GetLocal);
@@ -276,6 +285,8 @@ impl WasmEmitter {
 						return self.compile_builtin(&mut arguments, 0);
 					} else if name == "printf" {
 						return self.compile_builtin(&mut arguments, 1);
+					} else if name == "setpixel" {
+						return self.compile_set_pixel(&mut arguments);
 					} else {
 						panic!("function {} not supported", name);
 					}
@@ -306,6 +317,53 @@ impl WasmEmitter {
 		return Ok(())
 	}
 
+	fn compile_set_pixel(&mut self, arguments: &mut Vec<TypedExpression>) -> CompilerResult {
+		let x = arguments.remove(0);
+		let y = arguments.remove(0);
+		let color = arguments.remove(0);
+
+		// compute and cache the setpixel parameters
+		self.compile_expression(x)?;
+		self.emit_opcode(Opcodes::SetLocal);
+		let index_x = self.create_local_index("x".into(), ValType::F32);
+		self.emit_u64(index_x as u64);
+
+		self.compile_expression(y)?;
+		self.emit_opcode(Opcodes::SetLocal);
+		let index_y = self.create_local_index("y".into(), ValType::F32);
+		self.emit_u64(index_y as u64);
+
+		self.compile_expression(color)?;
+		self.emit_opcode(Opcodes::SetLocal);
+		let index_color = self.create_local_index("color".into(), ValType::F32);
+		self.emit_u64(index_color as u64);
+
+		// compute the offset (x * 100) + y
+		self.emit_opcode(Opcodes::GetLocal);
+		self.emit_u64(index_y as u64);
+		self.emit_opcode(Opcodes::F32Const);
+		self.emit_f32(100.);
+		self.emit_opcode(Opcodes::F32Mul);
+
+		self.emit_opcode(Opcodes::GetLocal);
+		self.emit_u64(index_x as u64);
+		self.emit_opcode(Opcodes::F32Add);
+
+		// convert to an integer
+		self.emit_opcode(Opcodes::I32TruncF32Signed);
+
+		// fetch the color
+		self.emit_opcode(Opcodes::GetLocal);
+		self.emit_u64(index_color as u64);
+		self.emit_opcode(Opcodes::I32TruncF32Signed);
+
+		// write
+		self.emit_opcode(Opcodes::I32Store8);
+		self.code.extend_from_slice(&[0x00, 0x00]); // align and offset
+
+		Ok(())
+	}
+
 	fn emit_i64(&mut self, value: i64) {
 		let mut buf = vec![];
 		//TODO Try writing directly on code slice
@@ -317,6 +375,12 @@ impl WasmEmitter {
 		let mut buf = vec![];
 		//TODO Try writing directly on code slice
 		leb128::write::unsigned(&mut buf, value).unwrap();
+		self.code.extend(buf);
+	}
+
+	fn emit_f32(&mut self, value: f32) {
+		let mut buf = [0; 4];
+		LittleEndian::write_u32(&mut buf, value.bits());
 		self.code.extend(buf);
 	}
 
@@ -392,7 +456,7 @@ enum BlockType {
 enum ExportType {
 	Func = 0x00,
 	// Table = 0x01,
-	// Mem = 0x02,
+	Mem = 0x02,
 	// Global = 0x03,
 }
 
@@ -410,6 +474,8 @@ enum Opcodes {
 	Call = 0x10,
 	GetLocal = 0x20,
 	SetLocal = 0x21,
+
+	I32Store8 = 0x3A,
 
 	I32Const = 0x41,
 	I64Const = 0x42,
@@ -464,4 +530,6 @@ enum Opcodes {
 	F32Sub = 0x93,
 	F32Mul = 0x94,
 	F32Div = 0x95,
+
+	I32TruncF32Signed = 0xA8,
 }

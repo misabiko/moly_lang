@@ -113,11 +113,21 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 				}
 			},
 		},
-		//Temporary hard coded function to print floats
+		//Temporary hard coded functions for wasm
 		BuiltinInfo {
 			name: "printf",
 			type_expr: TypeExpr::FnLiteral {
 				parameter_types: vec![TypeExpr::Float],
+				return_type: Box::new(TypeExpr::Void)
+			},
+			builtin: |_args| {
+				None
+			},
+		},
+		BuiltinInfo {
+			name: "setpixel",
+			type_expr: TypeExpr::FnLiteral {
+				parameter_types: vec![TypeExpr::Any, TypeExpr::Any, TypeExpr::Any],
 				return_type: Box::new(TypeExpr::Void)
 			},
 			builtin: |_args| {

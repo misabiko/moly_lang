@@ -118,6 +118,11 @@ pub enum TypedExpression {
 		name: String,
 		fields: Vec<(String, TypedExpression)>,
 		type_expr: TypeExpr,
+	},
+	Assignment {
+		ident: String,
+		new_value: Box<TypedExpression>,
+		type_expr: TypeExpr,
 	}
 }
 
@@ -155,6 +160,7 @@ impl fmt::Display for TypedExpression {
 
 				write!(f, "{} {{ {} }}", name, fields)
 			}
+			TypedExpression::Assignment { ident, new_value, .. } => write!(f, "{} = {}", ident, new_value),
 		}
 	}
 }

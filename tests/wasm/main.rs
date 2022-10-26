@@ -65,11 +65,11 @@ fn test_variables() {
 			"[ 22.5 ]",
 		),
 		(
-			"let f = 22; f = (f+1); printf(f);",
+			"let f = 22; f = (f+1); print(f);",
 			"[ 23 ]",
 		),
 		(
-			"let f = 22.5; f = (f+1.5); print(f);",
+			"let f = 22.5; f = (f+1.5); printf(f);",
 			"[ 24 ]",
 		),
 	];

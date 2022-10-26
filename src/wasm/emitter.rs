@@ -140,7 +140,7 @@ impl WasmEmitter {
 		}
 	}
 
-	fn set_local(&mut self, name: String, valtype: ValType) -> usize {
+	fn create_local_index(&mut self, name: String, valtype: ValType) -> usize {
 		let size = self.symbols.len();
 		self.symbols.insert(name, (valtype, size));
 		size
@@ -164,16 +164,13 @@ impl WasmEmitter {
 				self.compile_expression(expr)?;
 			}
 			TypedStatement::Let { name, value, type_expr } => {
-				let val_type = match type_expr {
-					TypeExpr::Int(IntType::U64) |
-					TypeExpr::Int(IntType::I64) => ValType::I64,
-					TypeExpr::Int(_) => ValType::I32,
-					TypeExpr::Float => ValType::F32,
-					_ => return Err(format!("local {:?} not implemented", type_expr)),
+				let val_type = match val_type_from_type(&type_expr) {
+					Ok(t) => t,
+					Err(err) => return Err(err),
 				};
 				self.compile_expression(value)?;
 				self.emit_opcode(Opcodes::SetLocal);
-				let index = self.set_local(name, val_type);
+				let index = self.create_local_index(name, val_type);
 				self.emit_u64(index as u64);
 			}
 			TypedStatement::While { condition, block } => {
@@ -245,19 +242,32 @@ impl WasmEmitter {
 					_ => eprintln!("prefix {:?}", operator)	//TODO prefix rest
 				};
 			}
-			TypedExpression::Infix { left, right, operator, .. } => {
+			TypedExpression::Infix { left, right, operator, type_expr } => {
 				self.compile_expression(*left)?;
 				self.compile_expression(*right)?;
 
-				match operator {
-					InfixOperator::Plus => self.emit_opcode(Opcodes::I32Add),
-					InfixOperator::Minus => self.emit_opcode(Opcodes::I32Sub),
-					InfixOperator::Mul => self.emit_opcode(Opcodes::I32Mul),
-					InfixOperator::Div => self.emit_opcode(Opcodes::I32DivSigned),
-					InfixOperator::Equal => self.emit_opcode(Opcodes::I32Eq),
-					InfixOperator::Unequal => self.emit_opcode(Opcodes::I32NotEq),
-					InfixOperator::GreaterThan => self.emit_opcode(Opcodes::I32GTSigned),
-					InfixOperator::LessThan => self.emit_opcode(Opcodes::I32LTSigned),
+				match type_expr {
+					TypeExpr::Int(_) => match operator {
+						InfixOperator::Plus => self.emit_opcode(Opcodes::I32Add),
+						InfixOperator::Minus => self.emit_opcode(Opcodes::I32Sub),
+						InfixOperator::Mul => self.emit_opcode(Opcodes::I32Mul),
+						InfixOperator::Div => self.emit_opcode(Opcodes::I32DivSigned),
+						InfixOperator::Equal => self.emit_opcode(Opcodes::I32Eq),
+						InfixOperator::Unequal => self.emit_opcode(Opcodes::I32NotEq),
+						InfixOperator::GreaterThan => self.emit_opcode(Opcodes::I32GTSigned),
+						InfixOperator::LessThan => self.emit_opcode(Opcodes::I32LTSigned),
+					},
+					TypeExpr::Float => match operator {
+						InfixOperator::Plus => self.emit_opcode(Opcodes::F32Add),
+						InfixOperator::Minus => self.emit_opcode(Opcodes::F32Sub),
+						InfixOperator::Mul => self.emit_opcode(Opcodes::F32Mul),
+						InfixOperator::Div => self.emit_opcode(Opcodes::F32Div),
+						InfixOperator::Equal => self.emit_opcode(Opcodes::F32Eq),
+						InfixOperator::Unequal => self.emit_opcode(Opcodes::F32NotEq),
+						InfixOperator::GreaterThan => self.emit_opcode(Opcodes::F32GT),
+						InfixOperator::LessThan => self.emit_opcode(Opcodes::F32LT),
+					}
+					_ => return Err(format!("{:?} not implemented for {:?}", operator, type_expr))
 				}
 			}
 			TypedExpression::Call { function, mut arguments, .. } => {
@@ -270,6 +280,13 @@ impl WasmEmitter {
 						panic!("function {} not supported", name);
 					}
 				}
+			}
+			TypedExpression::Assignment { ident, new_value, .. } => {
+				self.compile_expression(*new_value)?;
+				self.emit_opcode(Opcodes::SetLocal);
+
+				let index = self.get_local(ident);
+				self.emit_u64(index as u64);
 			}
 			_ => eprintln!("compile expression:{:?}", expr)	//TODO expr rest
 		}
@@ -305,6 +322,16 @@ impl WasmEmitter {
 
 	fn emit_opcode(&mut self, op: Opcodes) {
 		self.code.push(op as u8);
+	}
+}
+
+fn val_type_from_type(type_expr: &TypeExpr) -> Result<ValType, String> {
+	match type_expr {
+		TypeExpr::Int(IntType::U64) |
+		TypeExpr::Int(IntType::I64) => Ok(ValType::I64),
+		TypeExpr::Int(_) => Ok(ValType::I32),
+		TypeExpr::Float => Ok(ValType::F32),
+		_ => Err(format!("local {:?} not implemented", type_expr)),
 	}
 }
 
@@ -413,10 +440,10 @@ enum Opcodes {
 	// I64GESigned = 0x59,
 	// I64GEUnsigned = 0x5A,
 
-	// F32Eq = 0x5B,
-	// F32NotEq = 0x5C,
-	// F32LT = 0x5D,
-	// F32GT = 0x5E,
+	F32Eq = 0x5B,
+	F32NotEq = 0x5C,
+	F32LT = 0x5D,
+	F32GT = 0x5E,
 	// F32LE = 0x5F,
 	// F32GE = 0x60,
 
@@ -433,5 +460,8 @@ enum Opcodes {
 	I32DivSigned = 0x6D,
 	// I32DivUnsigned = 0x6E,
 
-	// F32Add = 0x92,
+	F32Add = 0x92,
+	F32Sub = 0x93,
+	F32Mul = 0x94,
+	F32Div = 0x95,
 }

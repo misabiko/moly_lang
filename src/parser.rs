@@ -265,6 +265,7 @@ impl Parser {
 				Token { token_type: TokenType::LParen, .. } => Parser::parse_call_expression,
 				Token { token_type: TokenType::Dot, .. } => Parser::parse_field_expression,
 				Token { token_type: TokenType::LBracket, .. } => Parser::parse_index_expression,
+				Token { token_type: TokenType::Assign, .. } => Parser::parse_assignment,
 				Token { token_type: TokenType::LBrace, .. } => if let Expression::Identifier(_) = left_exp {
 					Parser::parse_brace_infix
 				}else {
@@ -558,6 +559,23 @@ impl Parser {
 		}
 	}
 
+	fn parse_assignment(&mut self, left: Expression) -> PResult<Expression> {
+		//Temporary check, will need to accept fields and maybe calls
+		let ident = if let Expression::Identifier(ident) = left {
+			ident
+		} else {
+			return Err(ParserError::Generic(format!("expected identifier, got {:?}", left)));
+		};
+
+		self.next_token();
+		let new_value = self.parse_expression(Precedence::Lowest)?;
+
+		Ok(Expression::Assignment {
+			ident,
+			new_value: Box::new(new_value),
+		})
+	}
+
 	fn parse_type_identifier(&mut self) -> PResult<ParsedType> {
 		match &self.cur_token.token_type {
 			TokenType::Function => {
@@ -647,6 +665,7 @@ impl Parser {
 enum Precedence {
 	Lowest,
 	BlockDef,
+	Assign,
 	Equals,
 	LessGreater,
 	Sum,
@@ -670,6 +689,7 @@ const fn precedences(token_type: TokenType) -> Option<Precedence> {
 		TokenType::LParen |
 		TokenType::Dot => Some(Precedence::Call),
 		TokenType::LBracket => Some(Precedence::Index),
+		TokenType::Assign => Some(Precedence::Assign),
 		_ => None,
 	}
 }

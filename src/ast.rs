@@ -107,6 +107,11 @@ pub enum Expression {
 		name: String,
 		constructor: StructConstructor,
 	},
+	//Would like to make it a statement
+	Assignment {
+		ident: String,
+		new_value: Box<Expression>,
+	}
 }
 
 impl fmt::Display for Expression {
@@ -151,6 +156,7 @@ impl fmt::Display for Expression {
 			}
 			Expression::Struct { name, constructor: StructConstructor::Tuple(fields) }
 				=> write!(f, "{} ({})", name, join_expression_vec(fields)),
+			Expression::Assignment { ident, new_value } => write!(f, "{} = {}", ident, new_value),
 		}
 	}
 }

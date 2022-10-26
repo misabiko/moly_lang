@@ -414,6 +414,27 @@ impl TypeChecker {
 					None => Err(TypeCheckError::UnknownType(name))
 				}
 			}
+			Expression::Assignment { ident, new_value } => {
+				let type_expr = self.type_env.get_identifier_type(ident.as_str())
+					.or_else(|| self.type_env.get_custom_type(ident.as_str()))
+					.cloned()
+					.ok_or(TypeCheckError::Generic(format!("cannot find value `{}` in this scope", ident)))?;
+				//TODO Check mutability
+
+				let (new_value, new_type_expr) = self.check_expression(*new_value)?;
+				if type_expr != new_type_expr {
+					return Err(TypeCheckError::AssignMismatch {
+						variable: type_expr,
+						new_value: new_type_expr,
+					})
+				}
+
+				Ok((TypedExpression::Assignment {
+					ident,
+					new_value: Box::new(new_value),
+					type_expr: type_expr.clone(),
+				}, type_expr))
+			}
 		}
 	}
 
@@ -588,6 +609,7 @@ pub fn get_type(expr: &TypedExpression) -> TypeExpr {
 		}
 		TypedExpression::Block { block, .. } => block.return_type.clone(),
 		TypedExpression::Struct { type_expr, .. } => type_expr.clone(),
+		TypedExpression::Assignment { type_expr, .. } => type_expr.clone(),
 	}
 }
 
@@ -624,6 +646,10 @@ pub enum TypeCheckError {
 	IndexedTypeMismatch {
 		indexed_type: TypeExpr,
 		index_type: TypeExpr,
+	},
+	AssignMismatch {
+		variable: TypeExpr,
+		new_value: TypeExpr,
 	},
 	EmptyArray,
 	VoidArrayElem(Vec<TypeExpr>),

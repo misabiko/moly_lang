@@ -276,6 +276,7 @@ impl Compiler {
 				}
 			}
 			TypedExpression::Struct { .. } => todo!(),
+			TypedExpression::Assignment { .. } => todo!(),
 		}
 
 		Ok(())

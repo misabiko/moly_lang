@@ -1,0 +1,15 @@
+{
+	"scripts": {
+		"build": "esbuild entry.ts --bundle --minify --sourcemap --outfile=out.js",
+		"dev": "npm run build && http ."
+	},
+	"dependencies": {
+		"@codemirror/autocomplete": "^6.3.0",
+		"@codemirror/lang-javascript": "^6.1.1",
+		"@codemirror/language": "^6.3.0",
+		"@lezer/generator": "^1.1.1",
+		"@lezer/highlight": "^1.1.2",
+		"codemirror": "^6.0.1",
+		"esbuild": "^0.15.12"
+	}
+}

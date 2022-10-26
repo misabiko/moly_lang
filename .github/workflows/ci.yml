@@ -41,11 +41,11 @@ jobs:
         with:
           version: 'latest'
 
+      - run: wasm-pack build --target web --out-dir wasm_editor/pkg
       - run: npm ci
         working-directory: wasm_editor
       - run: npm run build
         working-directory: wasm_editor
-      - run: wasm-pack build --target web --out-dir wasm_editor/pkg
 
       - run: cargo test
 

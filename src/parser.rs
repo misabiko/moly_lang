@@ -80,6 +80,7 @@ impl Parser {
 		match self.cur_token.token_type {
 			TokenType::Let => self.parse_let_statement(),
 			TokenType::Return => self.parse_return_statement(),
+			TokenType::While => self.parse_while_statement(),
 			TokenType::Struct => self.parse_struct_decl(),
 			_ => self.parse_expression_statement(),
 		}
@@ -126,6 +127,21 @@ impl Parser {
 		}
 
 		Ok(Statement::Return(Some(return_value)))
+	}
+
+	fn parse_while_statement(&mut self) -> PResult<Statement> {
+		self.next_token();
+		let condition = self.parse_expression(Precedence::Lowest)?;
+
+		self.expect_peek(TokenType::LBrace)?;
+		self.next_token();
+
+		let block = self.parse_block_statement(TokenType::RBrace)?;
+
+		Ok(Statement::While {
+			condition,
+			block,
+		})
 	}
 
 	fn parse_struct_decl(&mut self) -> PResult<Statement> {
@@ -235,7 +251,8 @@ impl Parser {
 			Token { token_type: TokenType::Bang, .. } |
 			Token { token_type: TokenType::Minus, .. } => self.parse_prefix_expression(),
 			Token { token_type: TokenType::LParen, .. } => self.parse_grouped_expression(),
-			Token { token_type: TokenType::If, .. } => self.parse_if_expression(),
+			Token { token_type: TokenType::If, .. } |
+			Token { token_type: TokenType::Unless, .. } => self.parse_if_expression(),
 			Token { token_type: TokenType::Function, .. } => Ok(Expression::Function(self.parse_function_literal()?)),
 			Token { token_type: TokenType::String, .. } => Ok(self.parse_string_literal()),
 			Token { token_type: TokenType::LBracket, .. } => self.parse_array_literal(),

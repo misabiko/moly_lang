@@ -186,12 +186,13 @@ impl TypeChecker {
 				let (left, left_type) = self.check_expression(*left)?;
 				let (right, right_type) = self.check_expression(*right)?;
 
-				let type_expr = check_infix(&operator, &left, left_type, &right, right_type)?;
+				let type_expr = check_infix(&operator, &left, left_type.clone(), &right, right_type)?;
 
 				Ok((TypedExpression::Infix {
 					left: Box::new(left),
 					operator,
 					right: Box::new(right),
+					operand_type: left_type,
 					type_expr: type_expr.clone(),
 				}, type_expr))
 			}

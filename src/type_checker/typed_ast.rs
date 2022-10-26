@@ -81,6 +81,7 @@ pub enum TypedExpression {
 		left: Box<TypedExpression>,
 		operator: InfixOperator,
 		right: Box<TypedExpression>,
+		operand_type: TypeExpr,
 		type_expr: TypeExpr,
 	},
 	If {

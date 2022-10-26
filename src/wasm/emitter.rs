@@ -242,11 +242,11 @@ impl WasmEmitter {
 					_ => eprintln!("prefix {:?}", operator)	//TODO prefix rest
 				};
 			}
-			TypedExpression::Infix { left, right, operator, type_expr } => {
+			TypedExpression::Infix { left, right, operator, operand_type, .. } => {
 				self.compile_expression(*left)?;
 				self.compile_expression(*right)?;
 
-				match type_expr {
+				match operand_type {
 					TypeExpr::Int(_) => match operator {
 						InfixOperator::Plus => self.emit_opcode(Opcodes::I32Add),
 						InfixOperator::Minus => self.emit_opcode(Opcodes::I32Sub),
@@ -267,7 +267,7 @@ impl WasmEmitter {
 						InfixOperator::GreaterThan => self.emit_opcode(Opcodes::F32GT),
 						InfixOperator::LessThan => self.emit_opcode(Opcodes::F32LT),
 					}
-					_ => return Err(format!("{:?} not implemented for {:?}", operator, type_expr))
+					_ => return Err(format!("{:?} not implemented for {:?}", operator, operand_type))
 				}
 			}
 			TypedExpression::Call { function, mut arguments, .. } => {

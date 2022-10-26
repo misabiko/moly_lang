@@ -204,6 +204,8 @@ pub enum InfixOperator {
 	GreaterThan,
 	//TODO LesserEqual,
 	//TODO GreaterEqual,
+	And,
+	Or,
 }
 
 impl fmt::Display for InfixOperator {
@@ -221,6 +223,8 @@ impl fmt::Display for InfixOperator {
 			InfixOperator::GreaterThan => write!(f, ">"),
 			//InfixOperator::LesserEqual => write!(f, "<="),
 			//InfixOperator::GreaterEqual => write!(f, ">="),
+			InfixOperator::And => write!(f, "&&"),
+			InfixOperator::Or => write!(f, "||"),
 		}
 	}
 }

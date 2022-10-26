@@ -151,10 +151,19 @@ impl WasmEmitter {
 		}
 	}
 
-	fn create_local_index(&mut self, name: String, valtype: ValType) -> usize {
+	fn create_local_index(&mut self, name: String, val_type: ValType) -> usize {
 		let size = self.symbols.len();
-		self.symbols.insert(name, (valtype, size));
-		size
+		let index = match self.symbols.entry(name.clone()) {
+			Entry::Occupied(e) => {
+				//Type mismatch might cause issues
+				e.get().1
+			}
+			Entry::Vacant(e) => {
+				e.insert((val_type, size));
+				size
+			}
+		};
+		index
 	}
 
 	fn get_local(&mut self, name: String) -> usize {
@@ -256,7 +265,7 @@ impl WasmEmitter {
 				self.compile_expression(*right)?;
 
 				match operand_type {
-					TypeExpr::Int(_) => match operator {
+					TypeExpr::Int(_) | TypeExpr:: Bool => match operator {
 						InfixOperator::Plus => self.emit_opcode(Opcodes::I32Add),
 						InfixOperator::Minus => self.emit_opcode(Opcodes::I32Sub),
 						InfixOperator::Mul => self.emit_opcode(Opcodes::I32Mul),
@@ -265,6 +274,8 @@ impl WasmEmitter {
 						InfixOperator::Unequal => self.emit_opcode(Opcodes::I32NotEq),
 						InfixOperator::GreaterThan => self.emit_opcode(Opcodes::I32GTSigned),
 						InfixOperator::LessThan => self.emit_opcode(Opcodes::I32LTSigned),
+						InfixOperator::And => self.emit_opcode(Opcodes::I32And),
+						InfixOperator::Or => self.emit_opcode(Opcodes::I32Or),
 					},
 					TypeExpr::Float => match operator {
 						InfixOperator::Plus => self.emit_opcode(Opcodes::F32Add),
@@ -275,6 +286,8 @@ impl WasmEmitter {
 						InfixOperator::Unequal => self.emit_opcode(Opcodes::F32NotEq),
 						InfixOperator::GreaterThan => self.emit_opcode(Opcodes::F32GT),
 						InfixOperator::LessThan => self.emit_opcode(Opcodes::F32LT),
+						InfixOperator::And |
+						InfixOperator::Or => return Err(format!("{:?} not implemented for {:?}", operator, operand_type))
 					}
 					_ => return Err(format!("{:?} not implemented for {:?}", operator, operand_type))
 				}
@@ -525,6 +538,9 @@ enum Opcodes {
 	I32Mul = 0x6C,
 	I32DivSigned = 0x6D,
 	// I32DivUnsigned = 0x6E,
+
+	I32And = 0x71,
+	I32Or = 0x72,
 
 	F32Add = 0x92,
 	F32Sub = 0x93,

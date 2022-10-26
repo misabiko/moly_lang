@@ -42,6 +42,8 @@ comment*/
 
 10 == 10;
 10 != 9;
+true && false;
+false || false;
 "foobar"
 "foo bar"
 [1, 2];
@@ -178,6 +180,16 @@ comment".into()), after_whitespace: true},
 		Token { token_type: TokenType::Int, literal: TokenLiteral::Integer(10), after_whitespace: true},
 		Token { token_type: TokenType::NotEq, literal: TokenLiteral::Static("!="), after_whitespace: true},
 		Token { token_type: TokenType::Int, literal: TokenLiteral::Integer(9), after_whitespace: true},
+		Token { token_type: TokenType::Semicolon, literal: TokenLiteral::Static(";"), after_whitespace: false},
+
+		Token { token_type: TokenType::True, literal: TokenLiteral::Static("true"), after_whitespace: true},
+		Token { token_type: TokenType::And, literal: TokenLiteral::Static("&&"), after_whitespace: true},
+		Token { token_type: TokenType::False, literal: TokenLiteral::Static("false"), after_whitespace: true},
+		Token { token_type: TokenType::Semicolon, literal: TokenLiteral::Static(";"), after_whitespace: false},
+
+		Token { token_type: TokenType::False, literal: TokenLiteral::Static("false"), after_whitespace: true},
+		Token { token_type: TokenType::Or, literal: TokenLiteral::Static("||"), after_whitespace: true},
+		Token { token_type: TokenType::False, literal: TokenLiteral::Static("false"), after_whitespace: true},
 		Token { token_type: TokenType::Semicolon, literal: TokenLiteral::Static(";"), after_whitespace: false},
 
 		Token { token_type: TokenType::String, literal: TokenLiteral::String("foobar".into()), after_whitespace: true},

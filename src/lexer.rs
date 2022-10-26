@@ -99,10 +99,21 @@ impl Lexer {
 				//TODO <= >=
 				'<' => Token { token_type: TokenType::LT, literal: TokenLiteral::Static("<"), after_whitespace },
 				'>' => Token { token_type: TokenType::GT, literal: TokenLiteral::Static(">"), after_whitespace },
+				'&' => if self.peek_char() == Some('&') {
+					self.read_char();
+					Token { token_type: TokenType::And, literal: TokenLiteral::Static("&&"), after_whitespace }
+				} else {
+					Token { token_type: TokenType::Illegal, literal: TokenLiteral::Static(""), after_whitespace }
+				},
 				',' => Token { token_type: TokenType::Comma, literal: TokenLiteral::Static(","), after_whitespace },
 				';' => Token { token_type: TokenType::Semicolon, literal: TokenLiteral::Static(";"), after_whitespace },
 				':' => Token { token_type: TokenType::Colon, literal: TokenLiteral::Static(":"), after_whitespace },
-				'|' => Token { token_type: TokenType::VBar, literal: TokenLiteral::Static("|"), after_whitespace },
+				'|' => if self.peek_char() == Some('|') {
+					self.read_char();
+					Token { token_type: TokenType::Or, literal: TokenLiteral::Static("||"), after_whitespace }
+				} else {
+					Token { token_type: TokenType::VBar, literal: TokenLiteral::Static("|"), after_whitespace }
+				},
 				'.' => Token { token_type: TokenType::Dot, literal: TokenLiteral::Static("."), after_whitespace },
 				'(' => Token { token_type: TokenType::LParen, literal: TokenLiteral::Static("("), after_whitespace },
 				')' => Token { token_type: TokenType::RParen, literal: TokenLiteral::Static(")"), after_whitespace },

@@ -66,6 +66,8 @@ pub enum TokenType {
 	GT,
 	Eq,
 	NotEq,
+	And,
+	Or,
 
 	// Delimiters
 	Comma,
@@ -128,6 +130,8 @@ impl fmt::Display for TokenType {
 			TokenType::GT => ">",
 			TokenType::Eq => "==",
 			TokenType::NotEq => "!=",
+			TokenType::And => "&&",
+			TokenType::Or => "||",
 
 			TokenType::Comma => ",",
 			TokenType::Semicolon => ";",

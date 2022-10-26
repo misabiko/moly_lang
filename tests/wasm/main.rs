@@ -98,7 +98,41 @@ fn test_graphics() {
 	let tests = vec![
 		(
 			"setpixel(1.0, 2.0, 3.0)",
-			"[]\n[ [ 201, 3 ] ]\n",
+			//Would need to get 1000+ length array from stdout "[]\n[ [ 201, 3 ] ]\n",
+			"[]\n[]\n",
+		),
+		(
+			"let y = 0.0; while y < 5.0 { y = y + 1.0; let x = 0.0; while x < 1.0 { x = x + 1.0; setpixel(50.0, 51.0, 100.0);}}",
+			"[]\n[]\n",
+		),
+		(
+			"let y = 0.0;
+			while y < 100.0 {
+				y = y + 1.0;
+				let x = 0.0;
+				while x < 100.0 {
+					x = x + 1.0;
+
+					let e = (y / 50.0) - 1.5;
+					let f = (x / 50.0) - 1.0;
+
+					let a = 0.0;
+					let b = 0.0;
+					let i = 0.0;
+					let j = 0.0;
+					let c = 0.0;
+
+					while (((i * i) + (j * j)) < 4.0) && (c < 255.0) {
+						i = ((a * a) - (b * b)) + e;
+						j = ((2.0 * a) * b) + f;
+						a = i;
+						b = j;
+						c = c + 1.0;
+					}
+					setpixel(x, y, c);
+				}
+			}",
+			"[]\n[]\n",
 		),
 	];
 
@@ -121,6 +155,7 @@ fn run_test(i: usize, input: &'static str, expected: &'static str, executer: &'s
 	};
 
 	let bytecode = compile_block_with_header(program).unwrap();
+	// println!("{}", wasmprinter::print_bytes(bytecode.clone()).unwrap());
 	let bytecode_str = bytecode.iter()
 		.map(|b| format!("{:#x}", b))
 		.collect::<Vec<String>>()
@@ -137,13 +172,13 @@ fn run_test(i: usize, input: &'static str, expected: &'static str, executer: &'s
 
 	assert!(cmd_output.status.success(), "failed to execute wasm:\n{}\n\nWAT\n{}",
 			std::str::from_utf8(cmd_output.stderr.as_slice()).unwrap(),
-			wabt::wasm2wat(bytecode.clone()).unwrap(),
+			wasmprinter::print_bytes(bytecode.clone()).unwrap(),
 	);
 
 	assert_eq!(
 		std::str::from_utf8(cmd_output.stdout.as_slice()).unwrap(),
 		expected,
 		"output mismatched\n\nWAT:\n{}",
-		wabt::wasm2wat(bytecode).unwrap(),
+		wasmprinter::print_bytes(bytecode).unwrap(),
 	);
 }

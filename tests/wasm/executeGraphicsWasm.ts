@@ -18,11 +18,11 @@ const result = await WebAssembly.instantiate(bytecode, {
 display.set(new Uint8Array(memory.buffer, 0, 10000));
 
 // find any pixels that have been written to
-display.forEach((value: number, index: number) => {
+/*display.forEach((value: number, index: number) => {
 	if (value !== 0) {
 		pixels.push([index, value]);
 	}
-});
+});*/
 
 console.log(output)
 console.log(pixels)

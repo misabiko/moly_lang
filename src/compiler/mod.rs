@@ -207,6 +207,8 @@ impl Compiler {
 					InfixOperator::GreaterThan => self.emit(Opcode::GreaterThan, &[]),
 					InfixOperator::Equal => self.emit(Opcode::Equal, &[]),
 					InfixOperator::Unequal => self.emit(Opcode::NotEqual, &[]),
+					InfixOperator::And => todo!(),//self.emit(Opcode::And, &[]),
+					InfixOperator::Or => todo!(),//self.emit(Opcode::Or, &[]),
 					InfixOperator::LessThan => panic!(),
 				};
 			}

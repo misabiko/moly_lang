@@ -278,7 +278,9 @@ impl Parser {
 				Token { token_type: TokenType::Eq, .. } |
 				Token { token_type: TokenType::NotEq, .. } |
 				Token { token_type: TokenType::LT, .. } |
-				Token { token_type: TokenType::GT, .. } => Parser::parse_infix_expression,
+				Token { token_type: TokenType::GT, .. } |
+				Token { token_type: TokenType::And, .. } |
+				Token { token_type: TokenType::Or, .. } => Parser::parse_infix_expression,
 				Token { token_type: TokenType::LParen, .. } => Parser::parse_call_expression,
 				Token { token_type: TokenType::Dot, .. } => Parser::parse_field_expression,
 				Token { token_type: TokenType::LBracket, .. } => Parser::parse_index_expression,
@@ -334,6 +336,8 @@ impl Parser {
 				">" => Ok(InfixOperator::GreaterThan),
 				//TODO "<=" => Ok(InfixOperator::LesserEqual),
 				//TODO ">=" => Ok(InfixOperator::GreaterEqual),
+				"&&" => Ok(InfixOperator::And),
+				"||" => Ok(InfixOperator::Or),
 				_ => Err(ParserError::Generic(format!("{:?} isn't a infix operator token", self.cur_token))),
 			}
 			_ => Err(ParserError::Generic(format!("{:?} isn't operator token", self.cur_token))),
@@ -684,7 +688,7 @@ enum Precedence {
 	BlockDef,
 	Assign,
 	Equals,
-	LessGreater,
+	Comparison,
 	Sum,
 	Product,
 	Prefix,
@@ -698,7 +702,9 @@ const fn precedences(token_type: TokenType) -> Option<Precedence> {
 		TokenType::Eq |
 		TokenType::NotEq => Some(Precedence::Equals),
 		TokenType::LT |
-		TokenType::GT => Some(Precedence::LessGreater),
+		TokenType::GT |
+		TokenType::And |
+		TokenType::Or => Some(Precedence::Comparison),
 		TokenType::Plus |
 		TokenType::Minus => Some(Precedence::Sum),
 		TokenType::Slash |

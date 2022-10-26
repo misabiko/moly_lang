@@ -49,6 +49,24 @@ fn test_infix() {
 	}
 }
 
+#[test]
+fn test_variables() {
+	let tests = vec![
+		(
+			"let f = 22i32; print(f);",
+			"[ 22 ]",
+		),
+		/*(
+			"let f = 22.5; print(f);",
+			"[ 22.5 ]",
+		),*/
+	];
+
+	for (i, (input, expected)) in tests.into_iter().enumerate() {
+		run_test(i, input, expected);
+	}
+}
+
 fn run_test(i: usize, input: &'static str, expected: &'static str) {
 	let program = Parser::new(Lexer::new(input)).parse_block_statement(TokenType::EOF);
 	let program = match program {
@@ -63,19 +81,24 @@ fn run_test(i: usize, input: &'static str, expected: &'static str) {
 	};
 
 	let bytecode = compile_block_with_header(program).unwrap();
-	let bytecode = bytecode.into_iter()
+	let bytecode_str = bytecode.iter()
 		.map(|b| format!("{:#x}", b))
 		.collect::<Vec<String>>()
 		.join(" ");
 
+	// println!("{:?}", bytecode);
+
 	let cmd_output = Command::new("deno")
-		.args(["run", "executeWasm.ts", &bytecode])
+		.args(["run", "executeWasm.ts", &bytecode_str])
 		.output()
 		.expect("failed to execute command");
 
 	//println!("{:#?}", cmd_output);
 
-	assert!(cmd_output.status.success(), "failed to execute wasm:\n{}", std::str::from_utf8(cmd_output.stderr.as_slice()).unwrap());
+	assert!(cmd_output.status.success(), "failed to execute wasm:\n{}\n\nWAT\n{}",
+			std::str::from_utf8(cmd_output.stderr.as_slice()).unwrap(),
+			wabt::wasm2wat(bytecode).unwrap(),
+	);
 
 	assert_eq!(
 		std::str::from_utf8(cmd_output.stdout.as_slice()).unwrap(),

@@ -1,3 +1,5 @@
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 use crate::ast::{InfixOperator, IntExpr, PrefixOperator};
 use crate::type_checker::typed_ast::{TypedExpression, TypedStatement, TypedStatementBlock};
 use crate::wasm::encoding::*;
@@ -64,119 +66,178 @@ pub fn compile_block_with_header(block: TypedStatementBlock) -> Result<Vec<u8>, 
 		])
 	));
 
-	code.extend(create_section(
+	let (block_code, local_count) = compile_block(block)?;
+
+	let locals = match local_count {
+		0 => vec![],
+		c => vec![encode_local(c, Valtype::I32)]
+	};
+
+	let code_section = create_section(
 		Section::Code,
 		&encode_vectors(vec![
 			encode_vector(&flatten(vec![
-				vec![EMPTY_ARRAY],	//locals
-				compile_block(block)?,
+				encode_vectors(locals),
+				block_code,
 				vec![Opcodes::End as u8],
 			]))
 		]),
-	));
+	);
+
+	code.extend(code_section);
 
 	Ok(code)
 }
 
-fn compile_block(block: TypedStatementBlock) -> Result<Vec<u8>, String> {
-	let mut code = vec![];
+fn compile_block(block: TypedStatementBlock) -> Result<(Vec<u8>, usize), String> {
+	let mut emitter = WasmEmitter::new();
 
 	for stmt in block.statements {
-		compile_statement(&mut code, stmt)?
+		emitter.compile_statement(stmt)?
 	}
 
-	Ok(code)
+	Ok((emitter.code, emitter.symbols.len()))
 }
 
-fn compile_statement(mut code: &mut Vec<u8>, stmt: TypedStatement) -> CompilerResult {
-	match stmt {
-		TypedStatement::Expression { expr, .. } => {
-			compile_expression(&mut code, expr)?;
+struct WasmEmitter {
+	code: Vec<u8>,
+	symbols: HashMap<String, usize>,
+}
+
+impl WasmEmitter {
+	fn new() -> Self {
+		Self {
+			code: Vec::new(),
+			symbols: HashMap::new(),
 		}
-		_ => eprintln!("compile statement:{:?}", stmt)	//TODO stmt rest
 	}
 
-	Ok(())
-}
-
-fn compile_expression(mut code: &mut Vec<u8>, expr: TypedExpression) -> CompilerResult {
-	match expr {
-		TypedExpression::Integer(int_expr) => {
-			let (value, opcode) = match int_expr {
-				IntExpr::U8(value) => (value as i64, Opcodes::I32Const),
-				IntExpr::U16(value) => (value as i64, Opcodes::I32Const),
-				IntExpr::U32(value) => (value as i64, Opcodes::I32Const),
-				IntExpr::U64(value) => (value as i64, Opcodes::I64Const),
-				IntExpr::I8(value) => (value as i64, Opcodes::I32Const),
-				IntExpr::I16(value) => (value as i64, Opcodes::I32Const),
-				IntExpr::I32(value) => (value as i64, Opcodes::I32Const),
-				IntExpr::I64(value) => (value as i64, Opcodes::I64Const),
-			};
-
-			code.push(opcode as u8);
-
-			let mut buf = vec![];
-			//TODO Try using write_u16_into with code slice
-			leb128::write::signed(&mut buf, value as i64).unwrap();
-			code.extend(buf);
-		}
-		//TODO Add floats
-		/*TypedExpression::Float(value) => {
-			code.push(Opcodes::F32Const as u8);
-			let mut buf = [0; 4];
-			LittleEndian::write_u32(&mut buf, (value as f32).bits());
-			code.extend(buf);
-		}*/
-		TypedExpression::Prefix { operator, right } => {
-			match operator {
-				PrefixOperator::Minus => {
-					//https://github.com/WebAssembly/design/issues/379
-					code.push(Opcodes::I32Const as u8);
-					code.push(0);
-					compile_expression(&mut code, *right)?;
-					code.push(Opcodes::I32Sub as u8);
-				}
-				_ => eprintln!("prefix {:?}", operator)	//TODO prefix rest
-			};
-		}
-		TypedExpression::Infix { left, right, operator, .. } => {
-			compile_expression(&mut code, *left)?;
-			compile_expression(&mut code, *right)?;
-
-			match operator {
-				InfixOperator::Plus => code.push(Opcodes::I32Add as u8),
-				InfixOperator::Minus => code.push(Opcodes::I32Sub as u8),
-				InfixOperator::Mul => code.push(Opcodes::I32Mul as u8),
-				InfixOperator::Div => code.push(Opcodes::I32DivSigned as u8),
-				InfixOperator::Equal => code.push(Opcodes::I32Eq as u8),
-				InfixOperator::Unequal => code.push(Opcodes::I32NotEq as u8),
-				InfixOperator::GreaterThan => code.push(Opcodes::I32GTSigned as u8),
-				InfixOperator::LessThan => code.push(Opcodes::I32LTSigned as u8),
+	fn local_index_for_symbol(&mut self, name: String) -> usize {
+		let size = self.symbols.len();
+		match self.symbols.entry(name.clone()) {
+			Entry::Occupied(e) => *e.get(),
+			Entry::Vacant(e) => {
+				e.insert(size);
+				size
 			}
 		}
-		TypedExpression::Call { function, mut arguments, .. } => {
-			if let TypedExpression::Identifier { name, .. } = *function {
-				if name == "print" {
-					return compile_print(&mut code, &mut arguments);
-				}
-			}
-		}
-		_ => eprintln!("compile expression:{:?}", expr)	//TODO expr rest
 	}
 
-	Ok(())
-}
+	fn compile_statement(&mut self, stmt: TypedStatement) -> CompilerResult {
+		match stmt {
+			TypedStatement::Expression { expr, .. } => {
+				self.compile_expression(expr)?;
+			}
+			TypedStatement::Let { name, value } => {
+				self.compile_expression(value)?;
+				self.emit_opcode(Opcodes::SetLocal);
+				let index = self.local_index_for_symbol(name);
+				self.emit_u64(index as u64);
+			}
+			_ => eprintln!("compile statement:{:?}", stmt)	//TODO stmt rest
+		}
 
-fn compile_print(mut code: &mut Vec<u8>, arguments: &mut Vec<TypedExpression>) -> CompilerResult {
-	assert_eq!(arguments.len(), 1, "wrong arg count for print()");
+		Ok(())
+	}
 
-	let arg = arguments.remove(0);
-	compile_expression(&mut code, arg)?;
+	fn compile_expression(&mut self, expr: TypedExpression) -> CompilerResult {
+		match expr {
+			TypedExpression::Integer(int_expr) => {
+				let (value, opcode) = match int_expr {
+					IntExpr::U8(value) => (value as i64, Opcodes::I32Const),
+					IntExpr::U16(value) => (value as i64, Opcodes::I32Const),
+					IntExpr::U32(value) => (value as i64, Opcodes::I32Const),
+					IntExpr::U64(value) => (value as i64, Opcodes::I64Const),
+					IntExpr::I8(value) => (value as i64, Opcodes::I32Const),
+					IntExpr::I16(value) => (value as i64, Opcodes::I32Const),
+					IntExpr::I32(value) => (value as i64, Opcodes::I32Const),
+					IntExpr::I64(value) => (value as i64, Opcodes::I64Const),
+				};
 
-	code.push(Opcodes::Call as u8);
-	code.push(0);
+				self.emit_opcode(opcode);
+				self.emit_i64(value);
+			}
+			//TODO Add floats
+			/*TypedExpression::Float(value) => {
+				code.push(Opcodes::F32Const);
+				let mut buf = [0; 4];
+				LittleEndian::write_u32(&mut buf, (value as f32).bits());
+				self.code.extend(buf);
+			}*/
+			TypedExpression::Identifier { name, .. } => {
+				self.emit_opcode(Opcodes::GetLocal);
+				let index = self.local_index_for_symbol(name);
+				self.emit_u64(index as u64);
+			}
+			TypedExpression::Prefix { operator, right } => {
+				match operator {
+					PrefixOperator::Minus => {
+						//https://github.com/WebAssembly/design/issues/379
+						self.emit_opcode(Opcodes::I32Const);
+						self.code.push(0);
+						self.compile_expression(*right)?;
+						self.emit_opcode(Opcodes::I32Sub);
+					}
+					_ => eprintln!("prefix {:?}", operator)	//TODO prefix rest
+				};
+			}
+			TypedExpression::Infix { left, right, operator, .. } => {
+				self.compile_expression(*left)?;
+				self.compile_expression(*right)?;
 
-	return Ok(())
+				match operator {
+					InfixOperator::Plus => self.emit_opcode(Opcodes::I32Add),
+					InfixOperator::Minus => self.emit_opcode(Opcodes::I32Sub),
+					InfixOperator::Mul => self.emit_opcode(Opcodes::I32Mul),
+					InfixOperator::Div => self.emit_opcode(Opcodes::I32DivSigned),
+					InfixOperator::Equal => self.emit_opcode(Opcodes::I32Eq),
+					InfixOperator::Unequal => self.emit_opcode(Opcodes::I32NotEq),
+					InfixOperator::GreaterThan => self.emit_opcode(Opcodes::I32GTSigned),
+					InfixOperator::LessThan => self.emit_opcode(Opcodes::I32LTSigned),
+				}
+			}
+			TypedExpression::Call { function, mut arguments, .. } => {
+				if let TypedExpression::Identifier { name, .. } = *function {
+					if name == "print" {
+						return self.compile_print(&mut arguments);
+					}
+				}
+			}
+			_ => eprintln!("compile expression:{:?}", expr)	//TODO expr rest
+		}
+
+		Ok(())
+	}
+
+	fn compile_print(&mut self, arguments: &mut Vec<TypedExpression>) -> CompilerResult {
+		assert_eq!(arguments.len(), 1, "wrong arg count for print()");
+
+		let arg = arguments.remove(0);
+		self.compile_expression(arg)?;
+
+		self.emit_opcode(Opcodes::Call);
+		self.code.push(0);
+
+		return Ok(())
+	}
+
+	fn emit_i64(&mut self, value: i64) {
+		let mut buf = vec![];
+		//TODO Try writing directly on code slice
+		leb128::write::signed(&mut buf, value).unwrap();
+		self.code.extend(buf);
+	}
+
+	fn emit_u64(&mut self, value: u64) {
+		let mut buf = vec![];
+		//TODO Try writing directly on code slice
+		leb128::write::unsigned(&mut buf, value).unwrap();
+		self.code.extend(buf);
+	}
+
+	fn emit_opcode(&mut self, op: Opcodes) {
+		self.code.push(op as u8);
+	}
 }
 
 type CompilerResult = Result<(), String>;
@@ -217,7 +278,7 @@ enum Section {
 
 // https://webassembly.github.io/spec/core/binary/types.html
 #[repr(u8)]
-enum Valtype {
+pub enum Valtype {
 	I32 = 0x7F,
 	// I64 = 0x7E,
 	F32 = 0x7D,
@@ -239,6 +300,7 @@ enum Opcodes {
 	End = 0x0b,
 	Call = 0x10,
 	GetLocal = 0x20,
+	SetLocal = 0x21,
 
 	I32Const = 0x41,
 	I64Const = 0x42,

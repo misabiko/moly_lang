@@ -1,4 +1,5 @@
 import {basicSetup, EditorView} from "codemirror";
+import {moly} from "./lezerGrammar"
 import init, {eval_wasm} from "./pkg";
 
 let inputView: EditorView;
@@ -7,7 +8,7 @@ let outputView: EditorView;
 window.addEventListener('load', () => {
 	inputView = new EditorView({
 		doc: "print(1 + 2)\n",
-		extensions: [basicSetup],
+		extensions: [basicSetup, moly()],
 		parent: document.getElementById('editor'),
 	});
 

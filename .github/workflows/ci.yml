@@ -31,17 +31,21 @@ jobs:
           node-version: '16'
           cache: 'npm'
           cache-dependency-path: wasm_editor/package-lock.json
-
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
       - uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
+      - uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: 'latest'
+
       - run: npm ci
         working-directory: wasm_editor
       - run: npm run build
         working-directory: wasm_editor
+      - run: wasm-pack build --target web --out-dir wasm_editor/pkg
 
       - run: cargo test
 

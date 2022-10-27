@@ -19002,12 +19002,38 @@
   var canvas;
   window.addEventListener("load", () => {
     inputView = new EditorView({
-      doc: "print(1 + 2)\n",
+      doc: `let y = 0.0;
+		while y < 100.0 {
+		y = y + 1.0;
+		let x = 0.0;
+		while x < 100.0 {
+			x = x + 1.0;
+
+			let e = (y / 50.0) - 1.5;
+			let f = (x / 50.0) - 1.0;
+
+			let a = 0.0;
+			let b = 0.0;
+			let i = 0.0;
+			let j = 0.0;
+			let c = 0.0;
+
+			while (((i * i) + (j * j)) < 4.0) && (c < 255.0) {
+				i = ((a * a) - (b * b)) + e;
+				j = ((2.0 * a) * b) + f;
+				a = i;
+				b = j;
+				c = c + 1.0;
+			}
+			setpixel(x, y, c);
+		}
+	}
+print(43)
+`,
       extensions: [basicSetup, moly()],
       parent: document.getElementById("editor")
     });
     outputView = new EditorView({
-      doc: "output\n",
       extensions: [basicSetup],
       parent: document.getElementById("output")
     });

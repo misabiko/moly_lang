@@ -52,4 +52,4 @@ jobs:
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: wasm_editor
+          folder: wasm_editor/dist

@@ -1,6 +1,6 @@
 {
 	"scripts": {
-		"build": "esbuild entry.ts --bundle --minify --sourcemap --outfile=out.js",
+		"build": "node esbuild.js",
 		"dev": "npm run build && http ."
 	},
 	"dependencies": {

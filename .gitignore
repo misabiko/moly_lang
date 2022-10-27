@@ -1,4 +1,4 @@
 /target
 /wasm_editor/node_modules/
-/wasm_editor/out.js
-/wasm_editor/out.js.map
+/wasm_editor/pkg/
+/wasm_editor/dist/

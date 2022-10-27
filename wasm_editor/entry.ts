@@ -24,7 +24,7 @@ window.addEventListener('load', () => {
 });
 
 async function runCode() {
-	await init('./pkg/moly_bg.wasm');
+	await init('./moly_bg.wasm');
 
 	const {bytecode, wat} = eval_wasm(inputView.state.doc.toString());
 	const bytecode_buffer = Uint8Array.from(bytecode)

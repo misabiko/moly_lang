@@ -1,7 +1,7 @@
 {
 	"scripts": {
 		"build": "node esbuild.js",
-		"dev": "npm run build && http ."
+		"dev": "npm run build && http dist"
 	},
 	"dependencies": {
 		"@codemirror/autocomplete": "^6.3.0",

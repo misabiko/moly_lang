@@ -4,6 +4,9 @@ A toy language.
 
 Currently this README serves mostly as personal notes, so it might not make sense.
 
+Online Moly to WebAssembly compiler to draw the mandelbrot set: https://misabiko.github.io/moly_lang/
+Based on https://blog.scottlogic.com/2019/05/17/webassembly-compiler.html
+
 ---
 
 Inspirations

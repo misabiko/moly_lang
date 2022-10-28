@@ -4,6 +4,18 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"type": "npm",
+			"script": "build",
+			"group": "build",
+			"presentation": {
+				"panel": "dedicated",
+				"reveal": "never"
+			},
+			"problemMatcher": [
+				"$tsc"
+			]
+		},
+		{
 			"label": "package",
 			"type": "shell",
 			"command": "vsce package"

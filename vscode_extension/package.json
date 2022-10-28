@@ -1,10 +1,11 @@
 {
 	"name": "moly-lang",
 	"displayName": "Moly Lang",
-	"description": "Syntax highlighting for moly-lang",
+	"description": "Moly language support for Visual Studio Code",
 	"author": {
 		"name": "misabiko"
 	},
+	"private": true,
 	"version": "0.0.1",
 	"repository": "github:misabiko/moly_lang",
 	"engines": {
@@ -12,6 +13,13 @@
 	},
 	"categories": [
 		"Programming Languages"
+	],
+	"scripts": {
+		"build": "npx tsc -b"
+	},
+	"main": "./out/main",
+	"activationEvents": [
+		"onLanguage:moly"
 	],
 	"contributes": {
 		"languages": [
@@ -38,5 +46,13 @@
 				"path": "./syntaxes/moly.tmLanguage.json"
 			}
 		]
+	},
+	"dependencies": {
+		"typescript": "^4.8.4",
+		"vscode-languageclient": "^7.0.0"
+	},
+	"devDependencies": {
+		"@types/vscode": "^1.63.0",
+		"@vscode/test-electron": "^2.1.2"
 	}
 }

@@ -4,8 +4,9 @@ use lsp_types::{GotoDefinitionResponse, InitializeParams, OneOf, ServerCapabilit
 use lsp_types::request::GotoDefinition;
 
 pub fn start() -> Result<(), Box<dyn Error + Sync + Send>> {
-	//TODO Confirm stdout works https://github.com/rust-analyzer/lsp-server/blob/b4219ec00c9b7181494933acc817380180776572/examples/goto_def.rs#L55
-	println!("starting moly LSP server");
+	//On VSCode, stdout is ignored and stderr will be printed in Output > Moly Language Server
+	//TODO Check if stderr is a lsp thing or vscode thing
+	eprintln!("starting moly LSP server");
 
 	let (connection, io_threads) = Connection::stdio();
 
@@ -18,7 +19,7 @@ pub fn start() -> Result<(), Box<dyn Error + Sync + Send>> {
 	main_loop(connection, initialization_params)?;
 	io_threads.join()?;
 
-	println!("shutting down server");
+	eprintln!("shutting down server");
 
 	Ok(())
 }
@@ -28,19 +29,23 @@ fn main_loop(
 	params: serde_json::Value,
 ) -> Result<(), Box<dyn Error + Sync + Send>> {
 	let _params: InitializeParams = serde_json::from_value(params).unwrap();
-	println!("starting main loop");
+	//TODO Check if we can specify log levels
+	eprintln!("starting main loop");
 
 	for msg in &connection.receiver {
-		println!("got msg: {:?}", msg);
+		eprintln!("got msg: {:#?}", msg);
 		match msg {
 			Message::Request(req) => {
 				if connection.handle_shutdown(&req)? {
 					return Ok(())
 				}
-				println!("got request: {:?}", req);
+				eprintln!("got request: {:#?}", req);
 				match cast::<GotoDefinition>(req) {
 					Ok((id, params)) => {
-						println!("got gotoDefinition request #{}: {:?}", id, params);
+						eprintln!("got gotoDefinition request #{}: {:#?}", id, params);
+
+						//TODO Get symbol from request
+
 						let result = Some(GotoDefinitionResponse::Array(Vec::new()));
 						let result = serde_json::to_value(&result).unwrap();
 						let resp = Response {
@@ -51,12 +56,12 @@ fn main_loop(
 						connection.sender.send(Message::Response(resp))?;
 						continue;
 					}
-					Err(err @ ExtractError::JsonError { .. }) => panic!("{:?}", err),
-					Err(ExtractError::MethodMismatch(req)) => panic!("method mismatch: {:?}", req),//TODO test https://github.com/rust-lang/rust-analyzer/blob/d022e0ec536948ced38ac67dec0d64c312264f7c/lib/lsp-server/examples/goto_def.rs#L100
+					Err(err @ ExtractError::JsonError { .. }) => panic!("{:#?}", err),
+					Err(ExtractError::MethodMismatch(req)) => panic!("method mismatch: {:#?}", req),//TODO test https://github.com/rust-lang/rust-analyzer/blob/d022e0ec536948ced38ac67dec0d64c312264f7c/lib/lsp-server/examples/goto_def.rs#L100
 				};
 			}
-			Message::Response(r) => println!("got response: {:?}", r),
-			Message::Notification(n) => println!("got notification: {:?}", n),
+			Message::Response(r) => eprintln!("got response: {:#?}", r),
+			Message::Notification(n) => eprintln!("got notification: {:#?}", n),
 		}
 	}
 

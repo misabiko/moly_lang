@@ -1,11 +1,12 @@
-import { ExtensionContext, workspace } from "vscode";
+import { ExtensionContext } from "vscode";
 import { LanguageClient, LanguageClientOptions, ServerOptions } from 'vscode-languageclient/node';
+
+//TODO Add tests
 
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
-	//TODO Get server path
-
+	//TODO Call "cargo run moly -- server" on debug
 	const serverOptions: ServerOptions = {
 		command: 'moly',
 		args: ['server'],
@@ -24,6 +25,8 @@ export function activate(context: ExtensionContext) {
 		serverOptions,
 		clientOptions
 	);
+
+	//TODO Log server responses from client?
 
 	client.start();
 }

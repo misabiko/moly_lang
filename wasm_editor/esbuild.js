@@ -7,10 +7,8 @@ require("esbuild").build({
 	sourcemap: true,
 })
 	.then(() => {
-		console.log('dirname: ' + __dirname);
 		fs.copyFileSync('./index.html', './dist/index.html');
 		fs.copyFileSync('./pkg/moly_bg.wasm', './dist/moly_bg.wasm');
-		console.log('Successfully built');
 	})
 	.catch(err => {
 		console.error(err);

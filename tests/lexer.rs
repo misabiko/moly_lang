@@ -1,8 +1,8 @@
-use moly::{
+use moly_lib::{
 	lexer::Lexer,
 	token::TokenType,
 };
-use moly::token::{IntType, Token, TokenLiteral};
+use moly_lib::token::{IntType, Token, TokenLiteral};
 
 #[test]
 fn test_next_token() {

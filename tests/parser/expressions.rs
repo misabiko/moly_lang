@@ -1,6 +1,6 @@
-use moly::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Statement, StatementBlock, StructConstructor};
-use moly::token::IntType;
-use moly::type_checker::type_env::TypeExpr;
+use moly_lib::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Statement, StatementBlock, StructConstructor};
+use moly_lib::token::IntType;
+use moly_lib::type_checker::type_env::TypeExpr;
 
 use crate::parse_single_statement;
 

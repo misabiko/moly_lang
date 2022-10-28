@@ -1,11 +1,11 @@
 use std::rc::Rc;
-use moly::code::{concat_instructions, instruction_to_string, Instructions, make, Opcode};
-use moly::object::{Function, Object};
-use moly::compiler::{Compiler, EmittedInstruction};
-use moly::lexer::Lexer;
-use moly::parser::Parser;
-use moly::token::TokenType;
-use moly::type_checker::TypeChecker;
+use moly_lib::code::{concat_instructions, instruction_to_string, Instructions, make, Opcode};
+use moly_lib::object::{Function, Object};
+use moly_lib::compiler::{Compiler, EmittedInstruction};
+use moly_lib::lexer::Lexer;
+use moly_lib::parser::Parser;
+use moly_lib::token::TokenType;
+use moly_lib::type_checker::TypeChecker;
 
 #[test]
 fn test_integer_arithmetic() {

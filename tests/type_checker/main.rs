@@ -1,11 +1,11 @@
-use moly::ast::{IntExpr, PrefixOperator};
-use moly::lexer::Lexer;
-use moly::MolyError;
-use moly::parser::Parser;
-use moly::token::{IntType, TokenType};
-use moly::type_checker::{TypeChecker, TypeCheckError};
-use moly::type_checker::typed_ast::{TypedStatementBlock, TypedExpression, TypedProgram, TypedStatement, TypedFunction};
-use moly::type_checker::type_env::{TypeBinding, TypeExpr};
+use moly_lib::ast::{IntExpr, PrefixOperator};
+use moly_lib::lexer::Lexer;
+use moly_lib::MolyError;
+use moly_lib::parser::Parser;
+use moly_lib::token::{IntType, TokenType};
+use moly_lib::type_checker::{TypeChecker, TypeCheckError};
+use moly_lib::type_checker::typed_ast::{TypedStatementBlock, TypedExpression, TypedProgram, TypedStatement, TypedFunction};
+use moly_lib::type_checker::type_env::{TypeBinding, TypeExpr};
 
 #[test]
 fn test_boolean_expression() {

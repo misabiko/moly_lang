@@ -1,4 +1,4 @@
-use moly::ast::{Expression, Statement, StatementBlock};
+use moly_lib::ast::{Expression, Statement, StatementBlock};
 
 #[test]
 fn test_string() {

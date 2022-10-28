@@ -1,9 +1,9 @@
 use std::process::{Command};
-use moly::lexer::Lexer;
-use moly::parser::Parser;
-use moly::token::TokenType;
-use moly::type_checker::TypeChecker;
-use moly::wasm::compile_block_with_header;
+use moly_lib::lexer::Lexer;
+use moly_lib::parser::Parser;
+use moly_lib::token::TokenType;
+use moly_lib::type_checker::TypeChecker;
+use moly_lib::wasm::compile_block_with_header;
 
 #[test]
 fn test_print() {

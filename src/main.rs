@@ -1,18 +1,18 @@
 use std::path::PathBuf;
 use clap::{Parser, Subcommand};
-use moly::repl;
+use moly_lib::repl;
 
 fn main() {
 	let cli = Cli::parse();
 
 	match cli.command {
 		None | Some(Commands::Repl) => repl::start(),
-		Some(Commands::Run { input }) => moly::run_file(input),
-		Some(Commands::Exec { input }) => moly::run_string(&input, false),
-		Some(Commands::Server) => if let Err(err) = moly::server::start() {
-			panic!("moly::server::start() threw {:?}", err)
+		Some(Commands::Run { input }) => moly_lib::run_file(input),
+		Some(Commands::Exec { input }) => moly_lib::run_string(&input, false),
+		Some(Commands::Server) => if let Err(err) = moly_lib::server::start() {
+			panic!("moly_lib::server::start() threw {:?}", err)
 		},
-		Some(Commands::Wat { input }) => moly::print_wat(&input, false),
+		Some(Commands::Wat { input }) => moly_lib::print_wat(&input, false),
 	}
 }
 

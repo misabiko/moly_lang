@@ -4,17 +4,15 @@ version = "0.1.0"
 authors = ["misabiko"]
 edition = "2021"
 repository = "https://github.com/misabiko/moly_lang"
-default-run = "moly_bin"
-
-[[bin]]
-name = "moly_bin"
-path = "src/main.rs"
+#TODO Add blocked issue on github
+#Rename bin to "moly_bin" and lib to "moly" when issue fixed https://github.com/rust-lang/cargo/issues/9778
+default-run = "moly"
 
 [[bin]]
 name = "benchmark"
 
 [lib]
-name = "moly"
+name = "moly_lib"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]

@@ -1,10 +1,10 @@
-use moly::compiler::Compiler;
-use moly::lexer::Lexer;
-use moly::object::Object;
-use moly::parser::Parser;
-use moly::token::TokenType;
-use moly::type_checker::TypeChecker;
-use moly::vm::VM;
+use moly_lib::compiler::Compiler;
+use moly_lib::lexer::Lexer;
+use moly_lib::object::Object;
+use moly_lib::parser::Parser;
+use moly_lib::token::TokenType;
+use moly_lib::type_checker::TypeChecker;
+use moly_lib::vm::VM;
 
 //TODO test_defer #[test]
 #[allow(dead_code)]

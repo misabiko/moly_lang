@@ -1,6 +1,6 @@
 use std::time::SystemTime;
-use moly::build;
-use moly::vm::VM;
+use moly_lib::build;
+use moly_lib::vm::VM;
 
 const INPUT: &str = "
 fn main() {

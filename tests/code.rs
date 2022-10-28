@@ -1,4 +1,4 @@
-use moly::code::{concat_instructions, instruction_to_string, lookup, make, Opcode, read_operands};
+use moly_lib::code::{concat_instructions, instruction_to_string, lookup, make, Opcode, read_operands};
 
 #[test]
 fn test_make() {

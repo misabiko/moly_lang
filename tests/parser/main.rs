@@ -1,12 +1,12 @@
-use moly::{
+use moly_lib::{
 	ast::Statement,
 	lexer::Lexer,
 	parser::Parser,
 };
-use moly::ast::{Expression, Function, ParsedType, Program, StatementBlock};
-use moly::parser::ParserError;
-use moly::token::{Token, TokenLiteral, TokenType};
-use moly::type_checker::type_env::TypeExpr;
+use moly_lib::ast::{Expression, Function, ParsedType, Program, StatementBlock};
+use moly_lib::parser::ParserError;
+use moly_lib::token::{Token, TokenLiteral, TokenType};
+use moly_lib::type_checker::type_env::TypeExpr;
 
 mod statements;
 mod expressions;

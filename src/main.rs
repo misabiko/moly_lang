@@ -9,6 +9,9 @@ fn main() {
 		None | Some(Commands::Repl) => repl::start(),
 		Some(Commands::Run { input }) => moly::run_file(input),
 		Some(Commands::Exec { input }) => moly::run_string(&input, false),
+		Some(Commands::Server) => if let Err(err) = moly::server::start() {
+			panic!("moly::server::start() threw {:?}", err)
+		},
 		Some(Commands::Wat { input }) => moly::print_wat(&input, false),
 	}
 }
@@ -34,6 +37,7 @@ enum Commands {
 		#[clap(value_parser)]
 		input: String,
 	},
+	Server,
 	Wat {
 		#[clap(value_parser)]
 		input: String,

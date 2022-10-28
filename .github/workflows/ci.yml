@@ -44,7 +44,7 @@ jobs:
       - run: wasm-pack build --target web --out-dir wasm_editor/pkg
       - run: npm ci
         working-directory: wasm_editor
-      - run: npm run build
+      - run: CI="" npm run build
         working-directory: wasm_editor
 
       - run: cargo test

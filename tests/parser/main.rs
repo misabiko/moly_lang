@@ -24,16 +24,18 @@ fn test_program_parsing() {
 			Statement::Function(Function {
 				name: Some("myFunc".into()),
 				parameters: vec![],
-				return_type: ParsedType::Primitive(TypeExpr::Void),
+				return_type: TypeExpr::Void.into(),
 				body: StatementBlock(vec![]),
+				is_method: false,
 			})
 		]))),
 		("fn main(){}", Ok(StatementBlock(vec![
 			Statement::Function(Function {
 				name: Some("main".into()),
 				parameters: vec![],
-				return_type: ParsedType::Primitive(TypeExpr::Void),
+				return_type: TypeExpr::Void.into(),
 				body: StatementBlock(vec![]),
+				is_method: false,
 			})
 		]))),
 		("
@@ -46,13 +48,14 @@ fn main() {
 			Statement::Function(Function {
 				name: Some("globalFunc".into()),
 				parameters: vec![],
-				return_type: ParsedType::Primitive(TypeExpr::Void),
+				return_type: TypeExpr::Void.into(),
 				body: StatementBlock(vec![]),
+				is_method: false,
 			}),
 			Statement::Function(Function {
 				name: Some("main".into()),
 				parameters: vec![],
-				return_type: ParsedType::Primitive(TypeExpr::Void),
+				return_type: TypeExpr::Void.into(),
 				body: StatementBlock(vec![
 					Statement::Expression {
 						expr: Expression::Call {
@@ -62,6 +65,7 @@ fn main() {
 						has_semicolon: true,
 					}
 				]),
+				is_method: false,
 			}),
 		]))),
 	];
@@ -82,8 +86,9 @@ fn test_comment_parsing() {
 			Statement::Function(Function {
 				name: Some("main".into()),
 				parameters: vec![],
-				return_type: ParsedType::Primitive(TypeExpr::Void),
+				return_type: TypeExpr::Void.into(),
 				body: StatementBlock(vec![]),
+				is_method: false,
 			})
 		]))),
 		("/*pre fn*/fn /*pre main*/main(){/*
@@ -91,8 +96,9 @@ fn test_comment_parsing() {
 			Statement::Function(Function {
 				name: Some("main".into()),
 				parameters: vec![],
-				return_type: ParsedType::Primitive(TypeExpr::Void),
+				return_type: TypeExpr::Void.into(),
 				body: StatementBlock(vec![]),
+				is_method: false,
 			})
 		]))),
 	];

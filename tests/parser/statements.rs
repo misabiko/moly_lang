@@ -52,15 +52,15 @@ fn test_struct_declaration() {
 		}", Statement::Struct {
 			name: "Person".into(),
 			decl: StructDecl::Block(vec![
-				("name".into(), ParsedType::Primitive(TypeExpr::String)),
-				("age".into(), ParsedType::Primitive(TypeExpr::Int(IntType::U8))),
+				("name".into(), TypeExpr::String).into(),
+				("age".into(), TypeExpr::Int(IntType::U8)).into(),
 			]),
 		}),
 		("struct Person(str, u8)", Statement::Struct {
 			name: "Person".into(),
 			decl: StructDecl::Tuple(vec![
-				ParsedType::Primitive(TypeExpr::String),
-				ParsedType::Primitive(TypeExpr::Int(IntType::U8))
+				TypeExpr::String.into(),
+				TypeExpr::Int(IntType::U8).into(),
 			]),
 		}),
 	];

@@ -3,7 +3,7 @@ use crate::type_checker::type_env::TypeExpr;
 
 pub type Program = StatementBlock;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct StatementBlock(pub Vec<Statement>);
 
 impl fmt::Display for StatementBlock {
@@ -15,7 +15,7 @@ impl fmt::Display for StatementBlock {
 	}
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
 	Let {
 		name: String,
@@ -63,7 +63,7 @@ impl fmt::Display for Statement {
 	}
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
 	Identifier(String),
 	Integer(IntExpr),
@@ -175,7 +175,7 @@ fn join_type_vec(expressions: &[ParsedType]) -> String {
 		.join(", ")
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum PrefixOperator {
 	Minus,
 	Bang,
@@ -190,7 +190,7 @@ impl fmt::Display for PrefixOperator {
 	}
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum InfixOperator {
 	Plus,
 	Minus,
@@ -256,12 +256,13 @@ impl fmt::Display for IntExpr {
 	}
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Function {
 	pub parameters: Vec<(String, ParsedType)>,
 	pub body: StatementBlock,
 	pub name: Option<String>,
 	pub return_type: ParsedType,
+	pub is_method: bool,
 }
 
 impl fmt::Display for Function {
@@ -284,13 +285,13 @@ impl fmt::Display for Function {
 	}
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum StructDecl {
 	Block (Vec<(String, ParsedType)>),
 	Tuple(Vec<ParsedType>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum StructConstructor {
 	Block (Vec<(String, Expression)>),
 	Tuple(Vec<Expression>),
@@ -320,5 +321,11 @@ impl fmt::Display for ParsedType {
 			}
 			ParsedType::Custom(name) => write!(f, "{}", name),
 		}
+	}
+}
+
+impl From<TypeExpr> for ParsedType {
+	fn from(t: TypeExpr) -> Self {
+		ParsedType::Primitive(t)
 	}
 }

@@ -172,16 +172,7 @@ impl Parser {
 
 		//We could skip a peek_token_is with a manual loop, but probably not worth it
 		while !self.peek_token_is(TokenType::RBrace) {
-			self.expect_peek(TokenType::Ident)?;
-
-			let field = self.cur_token.literal
-				.get_string().cloned()
-				.expect("literal isn't string");
-
-			self.next_token();
-			let field_type = self.parse_type_identifier()?;
-
-			fields.push((field, field_type));
+			fields.push(self.parse_parameter()?);
 
 			if !self.peek_token_is(TokenType::RBrace) {
 				self.expect_peek(TokenType::Comma)?;
@@ -394,6 +385,18 @@ impl Parser {
 	}
 
 	fn parse_function_literal(&mut self) -> PResult<Function> {
+		//Temporarily using brackets instead of parens for method notation
+		let method_receiver = if self.peek_token_is(TokenType::LBracket) {
+			self.next_token();
+			let receiver = self.parse_parameter()?;
+			self.expect_peek(TokenType::RBracket)?;
+
+			Some(receiver)
+		}else {
+			None
+		};
+		let is_method = method_receiver.is_some();
+
 		let name = if self.peek_token_is(TokenType::Ident) {
 			self.next_token();
 			Some(self.cur_token.literal.get_string().unwrap().clone())
@@ -403,13 +406,16 @@ impl Parser {
 
 		self.expect_peek(TokenType::LParen)?;
 
-		let parameters = self.parse_function_parameters()?;
+		let mut parameters = self.parse_function_parameters()?;
+		if let Some(r) = method_receiver {
+			parameters.insert(0, r);
+		}
 
 		let return_type = if !self.peek_token_is(TokenType::LBrace) {
 			self.next_token();
 			self.parse_type_identifier()?
 		} else {
-			ParsedType::Primitive(TypeExpr::Void)
+			TypeExpr::Void.into()
 		};
 
 		self.expect_peek(TokenType::LBrace)?;
@@ -422,7 +428,20 @@ impl Parser {
 			body,
 			name,
 			return_type,
+			is_method,
 		})
+	}
+
+	//Could have a better name, like parse_ident_and_type_pair
+	fn parse_parameter(&mut self) -> PResult<(String, ParsedType)> {
+		self.expect_peek(TokenType::Ident)?;
+
+		let param = self.cur_token.literal.get_string().cloned().unwrap();
+
+		self.next_token();
+		let param_type = self.parse_type_identifier()?;
+
+		Ok((param, param_type))
 	}
 
 	fn parse_function_parameters(&mut self) -> PResult<Vec<(String, ParsedType)>> {
@@ -435,24 +454,13 @@ impl Parser {
 
 		self.next_token();
 
-		let expect_str = "identifier literal isn't string";
-		identifiers.push(if let TokenLiteral::String(ident) = self.cur_token.literal.clone() {
-			self.next_token();
-			(ident.clone(), self.parse_type_identifier()?)
-		} else {
-			return Err(ParserError::Generic(expect_str.into()));
-		});
+		identifiers.push(self.parse_parameter()?);
 
 		while self.peek_token_is(TokenType::Comma) {
 			self.next_token();
 			self.next_token();
 
-			identifiers.push(if let TokenLiteral::String(ident) = self.cur_token.literal.clone() {
-				self.next_token();
-				(ident.clone(), self.parse_type_identifier()?)
-			} else {
-				return Err(ParserError::Generic(expect_str.into()));
-			});
+			identifiers.push(self.parse_parameter()?);
 		}
 
 		self.expect_peek(TokenType::RParen)?;
@@ -608,7 +616,7 @@ impl Parser {
 					self.next_token();
 					self.parse_type_identifier()?
 				} else {
-					ParsedType::Primitive(TypeExpr::Void)
+					TypeExpr::Void.into()
 				};
 
 				Ok(ParsedType::FnLiteral {
@@ -616,16 +624,16 @@ impl Parser {
 					return_type: Box::new(return_type),
 				})
 			}
-			TokenType::IntegerType(IntType::U8) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::U8))),
-			TokenType::IntegerType(IntType::U16) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::U16))),
-			TokenType::IntegerType(IntType::U32) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::U32))),
-			TokenType::IntegerType(IntType::U64) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::U64))),
-			TokenType::IntegerType(IntType::I8) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::I8))),
-			TokenType::IntegerType(IntType::I16) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::I16))),
-			TokenType::IntegerType(IntType::I32) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::I32))),
-			TokenType::IntegerType(IntType::I64) => Ok(ParsedType::Primitive(TypeExpr::Int(IntType::I64))),
-			TokenType::Bool => Ok(ParsedType::Primitive(TypeExpr::Bool)),
-			TokenType::Str => Ok(ParsedType::Primitive(TypeExpr::String)),
+			TokenType::IntegerType(IntType::U8) => Ok(TypeExpr::Int(IntType::U8).into()),
+			TokenType::IntegerType(IntType::U16) => Ok(TypeExpr::Int(IntType::U16).into()),
+			TokenType::IntegerType(IntType::U32) => Ok(TypeExpr::Int(IntType::U32).into()),
+			TokenType::IntegerType(IntType::U64) => Ok(TypeExpr::Int(IntType::U64).into()),
+			TokenType::IntegerType(IntType::I8) => Ok(TypeExpr::Int(IntType::I8).into()),
+			TokenType::IntegerType(IntType::I16) => Ok(TypeExpr::Int(IntType::I16).into()),
+			TokenType::IntegerType(IntType::I32) => Ok(TypeExpr::Int(IntType::I32).into()),
+			TokenType::IntegerType(IntType::I64) => Ok(TypeExpr::Int(IntType::I64).into()),
+			TokenType::Bool => Ok(TypeExpr::Bool.into()),
+			TokenType::Str => Ok(TypeExpr::String.into()),
 			TokenType::Ident => Ok(ParsedType::Custom(self.cur_token.literal.get_string().unwrap().clone())),
 			_ => Err(ParserError::Generic(format!("unrecognized type: {:?}", self.cur_token))),
 		}

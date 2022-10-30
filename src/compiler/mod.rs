@@ -9,7 +9,7 @@ use crate::object::{Function, Object};
 use crate::object::builtins::get_builtins;
 use crate::type_checker::get_type;
 use crate::type_checker::typed_ast::{TypedExpression, TypedFunction, TypedProgram, TypedStatement, TypedStatementBlock};
-use crate::type_checker::type_env::TypeExpr;
+use crate::type_checker::type_env::TypeId;
 
 pub mod symbol_table;
 
@@ -93,7 +93,7 @@ impl Compiler {
 	fn compile_statement(&mut self, stmt: TypedStatement) -> CompilerResult {
 		match stmt {
 			TypedStatement::Expression { expr, has_semicolon } => {
-				let is_void = matches!(get_type(&expr), TypeExpr::Void);
+				let is_void = matches!(get_type(&expr), TypeId::Void);
 				self.compile_expression(expr)?;
 
 				if has_semicolon && !is_void {
@@ -303,7 +303,7 @@ impl Compiler {
 			self.replace_last_pop_with_return();
 		}
 		if !self.last_instruction_is(Opcode::ReturnValue) && !self.last_instruction_is(Opcode::Return) {
-			if matches!(body_return_type, TypeExpr::Void) {
+			if body_return_type == TypeId::Void {
 				self.emit(Opcode::Return, &[]);
 			} else {
 				self.emit(Opcode::ReturnValue, &[]);

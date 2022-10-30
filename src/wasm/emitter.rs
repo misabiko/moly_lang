@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use byteorder::{ByteOrder, LittleEndian};
 use ieee754::Ieee754;
 use crate::ast::{InfixOperator, IntExpr, PrefixOperator};
-use crate::token::IntType;
-use crate::type_checker::type_env::TypeExpr;
+use crate::type_checker::type_env::TypeId;
 use crate::type_checker::typed_ast::{TypedExpression, TypedStatement, TypedStatementBlock};
 use crate::wasm::encoding::*;
 
@@ -183,8 +182,8 @@ impl WasmEmitter {
 			TypedStatement::Expression { expr, .. } => {
 				self.compile_expression(expr)?;
 			}
-			TypedStatement::Let { name, value, type_expr } => {
-				let val_type = match val_type_from_type(&type_expr) {
+			TypedStatement::Let { name, value, type_id } => {
+				let val_type = match val_type_from_type(&type_id) {
 					Ok(t) => t,
 					Err(err) => return Err(err),
 				};
@@ -265,7 +264,15 @@ impl WasmEmitter {
 				self.compile_expression(*right)?;
 
 				match operand_type {
-					TypeExpr::Int(_) | TypeExpr:: Bool => match operator {
+					TypeId::U8 |
+					TypeId::U16 |
+					TypeId::U32 |
+					TypeId::U64 |
+					TypeId::I8 |
+					TypeId::I16 |
+					TypeId::I32 |
+					TypeId::I64 |
+					TypeId:: Bool => match operator {
 						InfixOperator::Plus => self.emit_opcode(Opcodes::I32Add),
 						InfixOperator::Minus => self.emit_opcode(Opcodes::I32Sub),
 						InfixOperator::Mul => self.emit_opcode(Opcodes::I32Mul),
@@ -277,7 +284,7 @@ impl WasmEmitter {
 						InfixOperator::And => self.emit_opcode(Opcodes::I32And),
 						InfixOperator::Or => self.emit_opcode(Opcodes::I32Or),
 					},
-					TypeExpr::Float => match operator {
+					TypeId::Float => match operator {
 						InfixOperator::Plus => self.emit_opcode(Opcodes::F32Add),
 						InfixOperator::Minus => self.emit_opcode(Opcodes::F32Sub),
 						InfixOperator::Mul => self.emit_opcode(Opcodes::F32Mul),
@@ -402,13 +409,18 @@ impl WasmEmitter {
 	}
 }
 
-fn val_type_from_type(type_expr: &TypeExpr) -> Result<ValType, String> {
-	match type_expr {
-		TypeExpr::Int(IntType::U64) |
-		TypeExpr::Int(IntType::I64) => Ok(ValType::I64),
-		TypeExpr::Int(_) => Ok(ValType::I32),
-		TypeExpr::Float => Ok(ValType::F32),
-		_ => Err(format!("local {:?} not implemented", type_expr)),
+fn val_type_from_type(type_id: &TypeId) -> Result<ValType, String> {
+	match type_id {
+		TypeId::U64 |
+		TypeId::I64 => Ok(ValType::I64),
+		TypeId::U8 |
+		TypeId::U16 |
+		TypeId::U32 |
+		TypeId::I8 |
+		TypeId::I16 |
+		TypeId::I32 => Ok(ValType::I32),
+		TypeId::Float => Ok(ValType::F32),
+		_ => Err(format!("local {:?} not implemented", type_id)),
 	}
 }
 

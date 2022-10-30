@@ -15,7 +15,8 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 			name: "len",
 			type_expr: TypeExpr::FnLiteral {
 				parameter_types: vec![TypeExpr::Any],
-				return_type: Box::new(TypeExpr::Int(IntType::U64))
+				return_type: Box::new(TypeExpr::Int(IntType::U64)),
+				is_method: false,
 			},
 			builtin: |args| {
 				Some(match &args[0] {
@@ -29,7 +30,8 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 			name: "print",
 			type_expr: TypeExpr::FnLiteral {
 				parameter_types: vec![TypeExpr::Any],
-				return_type: Box::new(TypeExpr::Void)
+				return_type: Box::new(TypeExpr::Void),
+				is_method: false,
 			},
 			builtin: |args| {
 				for arg in args {
@@ -43,7 +45,8 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 			name: "println",
 			type_expr: TypeExpr::FnLiteral {
 				parameter_types: vec![TypeExpr::Any],
-				return_type: Box::new(TypeExpr::Void)
+				return_type: Box::new(TypeExpr::Void),
+				is_method: false,
 			},
 			builtin: |args| {
 				for arg in args {
@@ -59,6 +62,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 			type_expr: TypeExpr::FnLiteral {
 				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any))],
 				return_type: Box::new(TypeExpr::Any),
+				is_method: false,
 			},
 			builtin: |args| {
 				if let Object::Array(elements) = &args[0] {
@@ -73,6 +77,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 			type_expr: TypeExpr::FnLiteral {
 				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any))],
 				return_type: Box::new(TypeExpr::Any),
+				is_method: false,
 			},
 			builtin: |args| {
 				if let Object::Array(elements) = &args[0] {
@@ -87,6 +92,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 			type_expr: TypeExpr::FnLiteral {
 				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any))],
 				return_type: Box::new(TypeExpr::Any),
+				is_method: false,
 			},
 			builtin: |args| {
 				if let Object::Array(elements) = &args[0] {
@@ -101,6 +107,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 			type_expr: TypeExpr::FnLiteral {
 				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any)), TypeExpr::Any],
 				return_type: Box::new(TypeExpr::Array(Box::new(TypeExpr::Any))),
+				is_method: false,
 			},
 			builtin: |args| {
 				if let Object::Array(elements) = &args[0] {
@@ -118,7 +125,8 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 			name: "printf",
 			type_expr: TypeExpr::FnLiteral {
 				parameter_types: vec![TypeExpr::Float],
-				return_type: Box::new(TypeExpr::Void)
+				return_type: Box::new(TypeExpr::Void),
+				is_method: false,
 			},
 			builtin: |_args| {
 				None
@@ -128,7 +136,8 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 			name: "setpixel",
 			type_expr: TypeExpr::FnLiteral {
 				parameter_types: vec![TypeExpr::Any, TypeExpr::Any, TypeExpr::Any],
-				return_type: Box::new(TypeExpr::Void)
+				return_type: Box::new(TypeExpr::Void),
+				is_method: false,
 			},
 			builtin: |_args| {
 				None

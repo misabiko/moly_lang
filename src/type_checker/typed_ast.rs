@@ -1,6 +1,6 @@
 use std::fmt;
 use crate::ast::{InfixOperator, IntExpr, PrefixOperator};
-use super::type_env::TypeExpr;
+use crate::type_checker::type_env::TypeId;
 
 #[derive(Debug, PartialEq)]
 pub struct TypedProgram(pub Vec<TypedStatement>);
@@ -17,7 +17,7 @@ impl fmt::Display for TypedProgram {
 #[derive(Debug, PartialEq, Clone)]
 pub struct TypedStatementBlock {
 	pub statements: Vec<TypedStatement>,
-	pub return_type: TypeExpr,
+	pub return_type: TypeId,
 }
 
 impl fmt::Display for TypedStatementBlock {
@@ -34,7 +34,7 @@ pub enum TypedStatement {
 	Let {
 		name: String,
 		value: TypedExpression,
-		type_expr: TypeExpr,
+		type_id: TypeId,
 	},
 	Return(Option<TypedExpression>),
 	Expression {
@@ -67,7 +67,7 @@ impl fmt::Display for TypedStatement {
 pub enum TypedExpression {
 	Identifier {
 		name: String,
-		type_expr: TypeExpr,
+		type_id: TypeId,
 	},
 	Integer(IntExpr),
 	Float(f32),
@@ -81,12 +81,12 @@ pub enum TypedExpression {
 		left: Box<TypedExpression>,
 		operator: InfixOperator,
 		right: Box<TypedExpression>,
-		operand_type: TypeExpr,
-		type_expr: TypeExpr,
+		operand_type: TypeId,
+		type_id: TypeId,
 	},
 	If {
 		condition: Box<TypedExpression>,
-		type_expr: TypeExpr,
+		type_id: TypeId,
 		consequence: TypedStatementBlock,
 		alternative: Option<TypedStatementBlock>,
 	},
@@ -94,18 +94,18 @@ pub enum TypedExpression {
 	Call {
 		function: Box<TypedExpression>,
 		arguments: Vec<TypedExpression>,
-		return_type: TypeExpr,
+		return_type: TypeId,
 	},
 	Field {
 		left: Box<TypedExpression>,
 		field: String,
-		left_type: TypeExpr,
-		field_type: TypeExpr,
-		binding_index: usize,
+		left_type: TypeId,
+		field_type: TypeId,
+		binding_index: Option<usize>,
 	},
 	Array {
 		elements: Vec<TypedExpression>,
-		type_expr: TypeExpr,
+		type_id: TypeId,
 	},
 	Index {
 		left: Box<TypedExpression>,
@@ -118,12 +118,12 @@ pub enum TypedExpression {
 	Struct {
 		name: String,
 		fields: Vec<(String, TypedExpression)>,
-		type_expr: TypeExpr,
+		type_id: TypeId,
 	},
 	Assignment {
 		ident: String,
 		new_value: Box<TypedExpression>,
-		type_expr: TypeExpr,
+		type_id: TypeId,
 	}
 }
 
@@ -179,9 +179,10 @@ fn join_expression_vec(expressions: &[TypedExpression]) -> String {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TypedFunction {
-	pub parameters: Vec<(String, TypeExpr)>,
+	pub parameters: Vec<(String, TypeId)>,
 	pub body: TypedStatementBlock,
 	pub name: Option<String>,
+	pub is_method: bool,
 }
 
 impl fmt::Display for TypedFunction {
@@ -192,12 +193,12 @@ impl fmt::Display for TypedFunction {
 			"".into()
 		};
 		let parameters = &self.parameters.iter()
-			.map(|(i, t)| format!("{} {}", i, t))
+			.map(|(i, t)| format!("{} {:?}", i, t))
 			.collect::<Vec<String>>()
 			.join(", ");
 		let return_type = match &self.body.return_type {
-			TypeExpr::Void => "".into(),
-			r => format!(" {}", r),
+			TypeId::Void => "".into(),
+			r => format!(" {:?}", r),
 		};
 
 		write!(f, "fn{}({}) {} {}", name, parameters, return_type, self.body)

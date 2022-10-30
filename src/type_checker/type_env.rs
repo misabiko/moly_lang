@@ -18,8 +18,7 @@ pub enum TypeExpr {
 	Bool,
 	String,
 	Array(Box<TypeExpr>),
-	//TODO Rename to function or callable
-	FnLiteral {
+	Function {
 		parameter_types: Vec<TypeExpr>,
 		return_type: Box<TypeExpr>,
 		is_method: bool,
@@ -49,7 +48,7 @@ impl fmt::Display for TypeExpr {
 			TypeExpr::Float => write!(f, "f32"),
 			TypeExpr::Bool => write!(f, "bool"),
 			TypeExpr::String => write!(f, "str"),
-			TypeExpr::FnLiteral { parameter_types, return_type, is_method: false } => {
+			TypeExpr::Function { parameter_types, return_type, is_method: false } => {
 				let parameter_types = parameter_types.iter()
 					.map(|t| t.to_string())
 					.collect::<Vec<String>>()
@@ -57,7 +56,7 @@ impl fmt::Display for TypeExpr {
 
 				write!(f, "fn({}) {} {{}}", parameter_types, return_type)
 			}
-			TypeExpr::FnLiteral { parameter_types, return_type, is_method: true } => {
+			TypeExpr::Function { parameter_types, return_type, is_method: true } => {
 				let receiver = parameter_types.first().unwrap();
 				let parameter_types = parameter_types.iter()
 					.skip(1)
@@ -217,7 +216,7 @@ impl TypeEnv {
 			TypeExpr::Return(t) => Some(TypeId::Return(Box::new(self.get_id(t)?))),
 			TypeExpr::Any => Some(TypeId::Any),
 			TypeExpr::Array(elem_type) => Some(TypeId::Array(Box::new(self.get_id(elem_type)?))),
-			TypeExpr::FnLiteral { parameter_types, return_type, is_method } => Some(TypeId::Function {
+			TypeExpr::Function { parameter_types, return_type, is_method } => Some(TypeId::Function {
 				parameters: parameter_types.iter().map(|t| self.get_id(t)).collect::<Option<Vec<TypeId>>>()?,
 				return_type: Box::new(self.get_id(return_type)?),
 				is_method: *is_method,

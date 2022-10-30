@@ -13,7 +13,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 	vec![
 		BuiltinInfo {
 			name: "len",
-			type_expr: TypeExpr::FnLiteral {
+			type_expr: TypeExpr::Function {
 				parameter_types: vec![TypeExpr::Any],
 				return_type: Box::new(TypeExpr::Int(IntType::U64)),
 				is_method: false,
@@ -28,7 +28,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		},
 		BuiltinInfo {
 			name: "print",
-			type_expr: TypeExpr::FnLiteral {
+			type_expr: TypeExpr::Function {
 				parameter_types: vec![TypeExpr::Any],
 				return_type: Box::new(TypeExpr::Void),
 				is_method: false,
@@ -43,7 +43,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		},
 		BuiltinInfo {
 			name: "println",
-			type_expr: TypeExpr::FnLiteral {
+			type_expr: TypeExpr::Function {
 				parameter_types: vec![TypeExpr::Any],
 				return_type: Box::new(TypeExpr::Void),
 				is_method: false,
@@ -59,7 +59,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		//These require template typing
 		BuiltinInfo {
 			name: "first",
-			type_expr: TypeExpr::FnLiteral {
+			type_expr: TypeExpr::Function {
 				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any))],
 				return_type: Box::new(TypeExpr::Any),
 				is_method: false,
@@ -74,7 +74,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		},
 		BuiltinInfo {
 			name: "last",
-			type_expr: TypeExpr::FnLiteral {
+			type_expr: TypeExpr::Function {
 				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any))],
 				return_type: Box::new(TypeExpr::Any),
 				is_method: false,
@@ -89,7 +89,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		},
 		BuiltinInfo {
 			name: "rest",
-			type_expr: TypeExpr::FnLiteral {
+			type_expr: TypeExpr::Function {
 				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any))],
 				return_type: Box::new(TypeExpr::Any),
 				is_method: false,
@@ -104,7 +104,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		},
 		BuiltinInfo {
 			name: "push",
-			type_expr: TypeExpr::FnLiteral {
+			type_expr: TypeExpr::Function {
 				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any)), TypeExpr::Any],
 				return_type: Box::new(TypeExpr::Array(Box::new(TypeExpr::Any))),
 				is_method: false,
@@ -123,7 +123,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		//Temporary hard coded functions for wasm
 		BuiltinInfo {
 			name: "printf",
-			type_expr: TypeExpr::FnLiteral {
+			type_expr: TypeExpr::Function {
 				parameter_types: vec![TypeExpr::Float],
 				return_type: Box::new(TypeExpr::Void),
 				is_method: false,
@@ -134,7 +134,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		},
 		BuiltinInfo {
 			name: "setpixel",
-			type_expr: TypeExpr::FnLiteral {
+			type_expr: TypeExpr::Function {
 				parameter_types: vec![TypeExpr::Any, TypeExpr::Any, TypeExpr::Any],
 				return_type: Box::new(TypeExpr::Void),
 				is_method: false,

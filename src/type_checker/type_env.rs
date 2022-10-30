@@ -1,13 +1,19 @@
 use std::fmt;
 use crate::token::IntType;
 use crate::type_checker::TypeCheckError;
+use crate::type_checker::typed_ast::TypedFunction;
 
 pub struct TypeEnv {
-	types: Vec<(TypeId, TypeExpr)>,
+	types: Vec<TypeInfo>,
 	bindings: Vec<TypeBinding>,
-	custom_types: Vec<(String, TypeId)>,
 
 	scope_stack: Vec<TypeScope>,
+}
+
+pub struct TypeInfo {
+	pub id: TypeId,
+	pub expr: TypeExpr,
+	pub custom_name: Option<String>,
 }
 
 impl TypeEnv {
@@ -15,7 +21,6 @@ impl TypeEnv {
 		Self {
 			types: Vec::new(),
 			bindings: Vec::new(),
-			custom_types: Vec::new(),
 			scope_stack: Vec::new(),
 		}
 	}
@@ -35,47 +40,38 @@ impl TypeEnv {
 
 	pub fn get_type(&self, id: &TypeId) -> Option<&TypeExpr> {
 		self.types.iter()
-			.rfind(|t| &t.0 == id)
-			.map(|t| &t.1)
+			.rfind(|t| &t.id == id)
+			.map(|t| &t.expr)
 	}
 
-	pub fn get_custom_type(&self, ident: &str) -> Option<&TypeId> {
-		self.custom_types.iter()
-			.rfind(|t| t.0 == ident)
-			.map(|t| &t.1)
+	pub fn get_custom_type(&self, ident: &String) -> Option<&TypeId> {
+		self.types.iter()
+			.rfind(|t| t.custom_name.as_ref() == Some(ident))
+			.map(|t| &t.id)
 	}
 
-	pub fn get_custom_name_id(&self, id: usize) -> Option<&(String, TypeId)> {
-		self.custom_types.get(id)
+	pub fn get_type_info(&self, index: usize) -> Option<&TypeInfo> {
+		self.types.get(index)
 	}
 
 	pub fn define_type(&mut self, name: String, type_expr: TypeExpr) -> Result<TypeId, TypeCheckError> {
-		/*match type_expr {
-			TypeExpr::Void |
-			TypeExpr::Int(_) |
-			TypeExpr::Float |
-			TypeExpr::Bool |
-			TypeExpr::String => panic!("Cannot redefine primitive type {}", type_expr),
-			TypeExpr::Return(_) |
-			TypeExpr::Any => panic!("Cannot define never type {}", type_expr),
-			_ => {}
-		};*/
 		if let Some(t) = self.get_custom_type(&name) {
 			return Err(TypeCheckError::Generic(format!("type {} is already defined: {:?}", name, t)))
 		}
 
 		let id = match self.get_id(&type_expr) {
 			Some(id) => id,
-			None => if let TypeExpr::Struct { .. } = type_expr {
-				let custom_id = self.custom_types.len();
-				let id = TypeId::CustomType(custom_id);
-				self.custom_types.push((name, id.clone()));
-				id
-			}else {
-				panic!("Didn't get id for {}", type_expr);
+			None => match type_expr {
+				TypeExpr::Struct { .. } => TypeId::Struct(self.types.len()),
+				TypeExpr::Trait { .. } => TypeId::Trait(self.types.len()),
+				_ => panic!("Didn't get id for {}", type_expr)
 			}
 		};
-		self.types.push((id.clone(), type_expr));
+		self.types.push(TypeInfo {
+			id: id.clone(),
+			expr: type_expr,
+			custom_name: Some(name),
+		});
 		Ok(id)
 	}
 
@@ -83,7 +79,6 @@ impl TypeEnv {
 		self.scope_stack.push(TypeScope {
 			binding_top: self.bindings.len(),
 			type_top: self.types.len(),
-			custom_type_top: self.custom_types.len(),
 		});
 	}
 
@@ -91,7 +86,6 @@ impl TypeEnv {
 		if let Some(scope) = self.scope_stack.pop() {
 			self.bindings.truncate(scope.binding_top);
 			self.types.truncate(scope.type_top);
-			self.custom_types.truncate(scope.custom_type_top);
 		}
 	}
 
@@ -117,27 +111,62 @@ impl TypeEnv {
 				return_type: Box::new(self.get_id(return_type)?),
 				is_method: *is_method,
 			}),
-			TypeExpr::Struct { name, .. } => self.custom_types.iter()
-				.find_map(|(n, id)| if n == name {
-					Some(id.clone())
+			TypeExpr::Struct { name, .. } => self.types.iter()
+				.find_map(|info| if info.custom_name.as_ref() == Some(name) {
+					Some(info.id.clone())
 				}else {
 					None
-				})
+				}),
+			TypeExpr::Trait { name, .. } => self.types.iter()
+				.find_map(|info| if info.custom_name.as_ref() == Some(name) {
+					Some(info.id.clone())
+				}else {
+					None
+				}),
+			TypeExpr::TraitParam(trait_name, index) => self.types.iter().enumerate()
+				.find_map(|(i, info)| if info.custom_name.as_ref() == Some(trait_name) {
+					Some(TypeId::TraitParam(i, *index))
+				}else {
+					None
+				}),
 		}
 	}
 
-	pub fn get_method(&self, method: &str, receiver: &TypeId) -> Option<TypeId> {
-		for TypeBinding { ident, type_id } in &self.bindings {
+	pub fn get_method(&self, method: &String, receiver: &TypeId) -> Option<TypeId> {
+		for TypeBinding { ident, type_id } in self.bindings.iter().rev() {
 			if ident == method {
 				if let TypeId::Function { parameters, is_method: true, .. } = type_id {
-					if parameters.first() == Some(receiver) {
+					let first = parameters.first();
+					if first == Some(receiver) {
 						return Some(type_id.clone())
 					}
 				}
 			}
 		}
 
+		for TypeInfo { id, expr, .. } in self.types.iter().rev() {
+			if let TypeId::Trait(_) = id {
+				if self.qualifies_trait(receiver, &id) {
+					if let TypeExpr::Trait { methods, .. } = &expr {
+						if let Some(func) = methods.iter().find(|m| m.name.as_ref() == Some(method)) {
+							return Some(TypeId::Function {
+								parameters: func.parameters.iter().map(|(_, id)| id.clone()).collect(),
+								return_type: Box::new(func.return_type.clone()),
+								is_method: true,
+							})
+						}
+					}else {
+						panic!("Should've found a trait for {:?}", expr)
+					}
+				}
+			}
+		}
+
 		None
+	}
+
+	pub fn qualifies_trait(&self, type_id: &TypeId, trait_id: &TypeId) -> bool {
+		true
 	}
 }
 
@@ -164,6 +193,11 @@ pub enum TypeExpr {
 	Return(Box<TypeExpr>),
 	//TODO Remove TypeExpr::Any once builtin have been removed
 	Any,
+	Trait {
+		name: String,
+		methods: Vec<TypedFunction>,
+	},
+	TraitParam(String, usize),
 }
 
 impl fmt::Display for TypeExpr {
@@ -203,6 +237,8 @@ impl fmt::Display for TypeExpr {
 			TypeExpr::Array(element_type) => write!(f, "[{}]", element_type),
 			TypeExpr::Return(returned_type) => write!(f, "return {}", returned_type),
 			TypeExpr::Any => write!(f, "ANY"),
+			TypeExpr::Trait { .. } => write!(f, "trait"),
+			TypeExpr::TraitParam(trait_name, index) => write!(f, "TraitParam[{}][{}]", trait_name, index),
 		}
 	}
 }
@@ -230,7 +266,9 @@ pub enum TypeId {
 	Return(Box<TypeId>),
 	//TODO Remove TypeId::Any
 	Any,
-	CustomType(usize),
+	Struct(usize),
+	Trait(usize),
+	TraitParam(usize, usize),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -242,5 +280,4 @@ pub struct TypeBinding {
 struct TypeScope {
 	binding_top: usize,
 	type_top: usize,
-	custom_type_top: usize,
 }

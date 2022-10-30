@@ -181,6 +181,7 @@ fn join_expression_vec(expressions: &[TypedExpression]) -> String {
 pub struct TypedFunction {
 	pub parameters: Vec<(String, TypeId)>,
 	pub body: TypedStatementBlock,
+	pub return_type: TypeId,
 	pub name: Option<String>,
 	pub is_method: bool,
 }

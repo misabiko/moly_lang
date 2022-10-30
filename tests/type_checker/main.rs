@@ -380,12 +380,12 @@ fn test_struct_construction() {
 								("name".into(), TypedExpression::String("Bob".into())),
 								("age".into(), TypedExpression::Integer(IntExpr::U8(24))),
 							],
-							type_id: TypeId::CustomType(0),
+							type_id: TypeId::Struct(0),
 						},
 						has_semicolon: false,
 					}
 				],
-				return_type: TypeId::CustomType(0),
+				return_type: TypeId::Struct(0),
 			}),
 		),
 		(
@@ -399,9 +399,9 @@ fn test_struct_construction() {
 						expr: TypedExpression::Call {
 							function: Box::new(TypedExpression::Identifier {
 								name: "Pair".into(),
-								type_id: TypeId::CustomType(0),
+								type_id: TypeId::Struct(0),
 							}),
-							return_type: TypeId::CustomType(0),
+							return_type: TypeId::Struct(0),
 							arguments: vec![
 								TypedExpression::Integer(IntExpr::I32(10)),
 								TypedExpression::Integer(IntExpr::U32(1)),
@@ -410,7 +410,7 @@ fn test_struct_construction() {
 						has_semicolon: false,
 					}
 				],
-				return_type: TypeId::CustomType(0),
+				return_type: TypeId::Struct(0),
 			}),
 		),
 	];
@@ -435,7 +435,7 @@ fn test_method() {
 			"#,
 			Ok(TypedProgram(vec![
 				TypedStatement::Function(TypedFunction {
-					parameters: vec![("a".into(), TypeId::CustomType(0))],
+					parameters: vec![("a".into(), TypeId::Struct(0))],
 					body: TypedStatementBlock {
 						statements: vec![],
 						return_type: TypeId::Void,
@@ -453,12 +453,12 @@ fn test_method() {
 										left: Box::new(TypedExpression::Struct {
 											name: "Apple".into(),
 											fields: vec![],
-											type_id: TypeId::CustomType(0),
+											type_id: TypeId::Struct(0),
 										}),
 										field: "myFunc".into(),
-										left_type: TypeId::CustomType(0),
+										left_type: TypeId::Struct(0),
 										field_type: TypeId::Function {
-											parameters: vec![TypeId::CustomType(0)],
+											parameters: vec![TypeId::Struct(0)],
 											return_type: Box::new(TypeId::Void),
 											is_method: true,
 										},

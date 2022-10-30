@@ -6,7 +6,7 @@ use crate::ast::{InfixOperator, IntExpr, PrefixOperator};
 use crate::code::{Instructions, make, Opcode, OperandIndex};
 use crate::compiler::symbol_table::{SymbolScope, Symbol, SymbolTable};
 use crate::object::{Function, Object};
-use crate::object::builtins::get_builtins;
+use crate::object::builtins::get_builtin_functions;
 use crate::type_checker::get_type;
 use crate::type_checker::typed_ast::{TypedExpression, TypedFunction, TypedProgram, TypedStatement, TypedStatementBlock};
 use crate::type_checker::type_env::TypeId;
@@ -29,7 +29,7 @@ pub struct CompilationScope {
 impl Compiler {
 	pub fn new() -> Self {
 		let mut table = SymbolTable::new(None);
-		for (i, v) in get_builtins().iter().enumerate() {
+		for (i, v) in get_builtin_functions().iter().enumerate() {
 			table.define_builtin(i as u8, v.name);
 		}
 

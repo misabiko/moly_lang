@@ -8,7 +8,7 @@ use ctrlc;
 use crate::lexer::Lexer;
 use crate::compiler::Compiler;
 use crate::compiler::symbol_table::SymbolTable;
-use crate::object::builtins::get_builtins;
+use crate::object::builtins::get_builtin_functions;
 use crate::object::Object;
 use crate::parser::Parser;
 use crate::token::TokenType;
@@ -26,7 +26,7 @@ pub fn start() {
 	let mut globals = Vec::with_capacity(GLOBALS_SIZE);
 
 	let mut table = SymbolTable::new(None);
-	for (i, v) in get_builtins().iter().enumerate() {
+	for (i, v) in get_builtin_functions().iter().enumerate() {
 		table.define_builtin(i as u8, v.name);
 	}
 	let mut symbol_table = Rc::new(RefCell::new(table));

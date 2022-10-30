@@ -1,6 +1,7 @@
 use crate::object::{Builtin, Object};
 use crate::token::IntType;
-use crate::type_checker::type_env::TypeExpr;
+use crate::type_checker::type_env::{TypeExpr, TypeId};
+use crate::type_checker::typed_ast::{TypedFunction, TypedStatementBlock};
 
 pub struct BuiltinInfo {
 	pub name: &'static str,
@@ -8,28 +9,72 @@ pub struct BuiltinInfo {
 	pub builtin: Builtin,
 }
 
-//Eventually shift to member functions
-pub fn get_builtins() -> Vec<BuiltinInfo> {
+pub struct BuiltinTraitInfo {
+	pub name: &'static str,
+	pub type_expr: TypeExpr,
+	pub builtins: Vec<Builtin>,
+}
+
+pub fn get_builtin_traits() -> Vec<BuiltinTraitInfo> {
 	vec![
-		BuiltinInfo {
-			name: "len",
-			type_expr: TypeExpr::Function {
-				parameter_types: vec![TypeExpr::Any],
-				return_type: Box::new(TypeExpr::Int(IntType::U64)),
-				is_method: false,
+		/*BuiltinTraitInfo {
+			name: "Array",
+			type_expr: TypeExpr::Trait {
+				methods: vec![
+					TypedFunction {
+						name: Some("first".into()),
+						parameters: vec![TypeExpr::Array(Box::new(TypeExpr::TraitParam()))],
+						body: TypedStatementBlock {},
+						is_method: true
+					}
+				]
+			}
+		},*/
+		BuiltinTraitInfo {
+			name: "Length",
+			type_expr: TypeExpr::Trait {
+				name: "Length".into(),
+				methods: vec![
+					TypedFunction {
+						name: Some("len".into()),
+						parameters: vec![("a".into(), TypeId::TraitParam(0, 0))],
+						body: TypedStatementBlock {
+							statements: vec![],
+							return_type: TypeId::U64,
+						},
+						return_type: TypeId::U64,
+						is_method: true,
+					}
+				]
 			},
-			builtin: |args| {
+			builtins: vec![|args| {
 				Some(match &args[0] {
 					Object::Array(elements) => Object::U64(elements.len() as u64),
 					Object::String(value) => Object::U64(value.len() as u64),
 					arg => Object::Error(format!("argument to `len` not supported, got {:?}", arg)),
 				})
+			}]
+		},
+	]
+}
+
+pub fn get_builtin_functions() -> Vec<BuiltinInfo> {
+	vec![
+		BuiltinInfo {
+			name: "blehlen",
+			type_expr: TypeExpr::Function {
+				parameter_types: vec![TypeExpr::Any],
+				return_type: Box::new(TypeExpr::Int(IntType::U64)),
+				is_method: false,
+			},
+			builtin: |_args| {
+				Some(Object::Error(format!("switching to traits")))
 			},
 		},
 		BuiltinInfo {
 			name: "print",
 			type_expr: TypeExpr::Function {
-				parameter_types: vec![TypeExpr::Any],
+				parameter_types: vec![TypeExpr::String],
 				return_type: Box::new(TypeExpr::Void),
 				is_method: false,
 			},
@@ -44,7 +89,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		BuiltinInfo {
 			name: "println",
 			type_expr: TypeExpr::Function {
-				parameter_types: vec![TypeExpr::Any],
+				parameter_types: vec![TypeExpr::String],
 				return_type: Box::new(TypeExpr::Void),
 				is_method: false,
 			},
@@ -58,7 +103,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 		},
 		//These require template typing
 		BuiltinInfo {
-			name: "first",
+			name: "blehfirst",
 			type_expr: TypeExpr::Function {
 				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any))],
 				return_type: Box::new(TypeExpr::Any),
@@ -147,7 +192,7 @@ pub fn get_builtins() -> Vec<BuiltinInfo> {
 }
 
 pub fn get_builtin_by_name(name: &'static str) -> Option<Builtin> {
-	get_builtins().iter()
+	get_builtin_functions().iter()
 		.find(|b| b.name == name)
 		.map(|b| b.builtin)
 }

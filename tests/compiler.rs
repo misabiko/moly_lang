@@ -3,7 +3,9 @@ use moly_lib::code::{concat_instructions, instruction_to_string, Instructions, m
 use moly_lib::object::{Function, Object};
 use moly_lib::compiler::{Compiler, EmittedInstruction};
 use moly_lib::lexer::Lexer;
+use moly_lib::MolyError;
 use moly_lib::parser::Parser;
+use moly_lib::reporting::show_error;
 use moly_lib::token::TokenType;
 use moly_lib::type_checker::TypeChecker;
 
@@ -680,8 +682,8 @@ fn test_builtins() {
 	let tests = vec![
 		TestCase {
 			input: "
-            len([1]);
-            push([1], 2)
+            [1].len();
+            [1].push(2)
             ",
 			expected_constants: vec![Object::U8(1), Object::U8(1), Object::U8(2)],
 			expected_instructions: vec![
@@ -698,7 +700,7 @@ fn test_builtins() {
 			],
 		},
 		TestCase {
-			input: "fn() u64 { len([1]) }",
+			input: "fn() u64 { [1].len() }",
 			expected_constants: vec![
 				Object::U8(1),
 				Object::Function(Function {
@@ -1027,7 +1029,10 @@ fn run_compiler_tests(tests: Vec<TestCase>, compile_block: bool) {
 		};
 		let program = match program {
 			Ok(p) => p,
-			Err(err) => panic!("test {}: parse error: {}", i, err),
+			Err(err) => {
+				eprintln!("{}", show_error(MolyError::Parse(err.clone()), input.into()));
+				panic!("test {}: parse error: {}", i, err)
+			}
 		};
 
 		let mut type_checker = TypeChecker::new();
@@ -1035,13 +1040,19 @@ fn run_compiler_tests(tests: Vec<TestCase>, compile_block: bool) {
 		let compile_result = if compile_block {
 			let program = match type_checker.check_block(program, true, false) {
 				Ok(program) => program,
-				Err(err) => panic!("test {}: type checking error: {:?}", i, err),
+				Err(err) => {
+					eprintln!("{}", show_error(MolyError::TypeCheck(err.clone()), input.into()));
+					panic!("test {}: type checking error: {:?}", i, err)
+				}
 			};
 			compiler.compile_block(program)
 		}else {
 			let program = match type_checker.check(program, true) {
 				Ok(program) => program,
-				Err(err) => panic!("test {}: type checking error: {:?}", i, err),
+				Err(err) => {
+					eprintln!("{}", show_error(MolyError::TypeCheck(err.clone()), input.into()));
+					panic!("test {}: type checking error: {:?}", i, err)
+				}
 			};
 			compiler.compile(program)
 		};

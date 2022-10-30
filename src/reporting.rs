@@ -57,6 +57,13 @@ pub fn show_error(error: MolyError, input: String) -> String {
 
 				message
 			}
+			TypeCheckError::UnknownVariable(name) => {
+				let mut message = String::new();
+
+				writeln!(&mut message, "I cannot find a `{}` variable:", name).unwrap();
+
+				message
+			}
 			err => format!("show {:#?}", err)
 		}
 	}

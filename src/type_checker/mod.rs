@@ -1,7 +1,7 @@
 use std::convert::identity;
 use std::fmt::Formatter;
 use crate::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Program, Statement, StatementBlock, StructConstructor, StructDecl};
-use crate::object::builtins::get_builtins;
+use crate::object::builtins::{get_builtin_functions, get_builtin_traits};
 use crate::type_checker::type_env::{TypeBinding, TypeEnv, TypeExpr, TypeId};
 use crate::type_checker::typed_ast::{TypedExpression, TypedFunction, TypedProgram, TypedStatement, TypedStatementBlock};
 
@@ -16,7 +16,12 @@ pub struct TypeChecker {
 impl TypeChecker {
 	pub fn new() -> Self {
 		let mut type_env = TypeEnv::new();
-		for v in get_builtins() {
+
+		for v in get_builtin_traits() {
+			type_env.define_type(v.name.into(), v.type_expr).unwrap();
+		}
+
+		for v in get_builtin_functions() {
 			let id = type_env.get_id(&v.type_expr).unwrap();
 			type_env.define_identifier(v.name, id);
 		}
@@ -144,9 +149,9 @@ impl TypeChecker {
 			Expression::String(value) => Ok((TypedExpression::String(value), TypeId::String)),
 			Expression::Identifier(name) => {
 				let type_id = self.type_env.get_identifier_type(name.as_str())
-					.or_else(|| self.type_env.get_custom_type(name.as_str()))
+					.or_else(|| self.type_env.get_custom_type(&name))
 					.cloned()
-					.ok_or(TypeCheckError::Generic(format!("cannot find value `{}` in this scope", name)))?;
+					.ok_or_else(|| TypeCheckError::UnknownVariable(name.clone()))?;
 
 				Ok((TypedExpression::Identifier {
 					name,
@@ -297,11 +302,11 @@ impl TypeChecker {
 
 						*return_type
 					}
-					TypeId::CustomType(index) => {
-						let (name, id) = &self.type_env.get_custom_name_id(index).unwrap();
-						let type_expr = self.type_env.get_type(id)
+					TypeId::Struct(index) => {
+						let info = &self.type_env.get_type_info(index).unwrap();
+						let type_expr = self.type_env.get_type(&info.id)
 							.cloned()
-							.ok_or_else(|| TypeCheckError::UnknownType(name.clone()))?;
+							.ok_or_else(|| TypeCheckError::UnknownType(info.custom_name.as_ref().unwrap().clone()))?;
 
 						if let TypeExpr::Struct { fields, .. } = type_expr {
 							if arguments.len() != fields.len() {
@@ -327,7 +332,7 @@ impl TypeChecker {
 								}
 							}
 
-							TypeId::CustomType(index)
+							TypeId::Struct(index)
 						} else {
 							return Err(TypeCheckError::Generic(format!("type {:?} not callable", type_expr)));
 						}
@@ -346,25 +351,41 @@ impl TypeChecker {
 			Expression::Field { left, field } => {
 				let (left, left_type) = self.check_expression(*left)?;
 
-				//TODO Allow fields on primitive too (for methods)
-				if let TypeId::CustomType(index) = left_type.clone() {
-					let (name, id) = &self.type_env.get_custom_name_id(index).unwrap();
-					let type_expr = self.type_env.get_type(id)
-						.cloned()
-						.ok_or_else(|| TypeCheckError::UnknownType(name.clone()))?;
+				match &left_type {
+					TypeId::Struct(index) => {
+						let info = &self.type_env.get_type_info(*index).unwrap();
+						let type_expr = self.type_env.get_type(&info.id)
+							.cloned()
+							.ok_or_else(|| TypeCheckError::UnknownType(info.custom_name.as_ref().unwrap().clone()))?;
 
-					if let TypeExpr::Struct { fields, .. } = type_expr {
-						if let Some(binding_index) = fields.iter().position(|t| t.ident == field) {
-							let type_id = fields[binding_index].type_id.clone();
+						if let TypeExpr::Struct { fields, .. } = type_expr {
+							if let Some(binding_index) = fields.iter().position(|t| t.ident == field) {
+								let type_id = fields[binding_index].type_id.clone();
 
-							Ok((TypedExpression::Field {
-								left: Box::new(left),
-								left_type,
-								binding_index: Some(binding_index),
-								field,
-								field_type: type_id.clone(),
-							}, type_id))
-						} else if let Some(method_id) = self.type_env.get_method(&field, &left_type) {
+								Ok((TypedExpression::Field {
+									left: Box::new(left),
+									left_type,
+									binding_index: Some(binding_index),
+									field,
+									field_type: type_id.clone(),
+								}, type_id))
+							} else if let Some(method_id) = self.type_env.get_method(&field, &left_type) {
+								Ok((TypedExpression::Field {
+									left: Box::new(left),
+									left_type,
+									binding_index: None,
+									field,
+									field_type: method_id.clone(),
+								}, method_id))
+							} else {
+								Err(TypeCheckError::UnknownField { left, field })
+							}
+						} else {
+							return Err(TypeCheckError::Generic(format!("For now can't use dot notation on non struct. left={:?}", left)))
+						}
+					}
+					type_id => {
+						if let Some(method_id) = self.type_env.get_method(&field, type_id) {
 							Ok((TypedExpression::Field {
 								left: Box::new(left),
 								left_type,
@@ -372,16 +393,13 @@ impl TypeChecker {
 								field,
 								field_type: method_id.clone(),
 							}, method_id))
-						} else {
-							Err(TypeCheckError::UnknownField { left, field })
+						}else {
+							return Err(TypeCheckError::UnknownField {
+								left,
+								field
+							})
 						}
-
-
-					} else {
-						Err(TypeCheckError::Generic(format!("For now can't use dot notation on non struct. left={:?}", left)))
 					}
-				} else {
-					Err(TypeCheckError::Generic(format!("For now can't use dot notation on non struct. left={:?}", left)))
 				}
 			}
 			Expression::Array(elements) => {
@@ -456,9 +474,9 @@ impl TypeChecker {
 			}
 			Expression::Assignment { ident, new_value } => {
 				let type_id = self.type_env.get_identifier_type(ident.as_str())
-					.or_else(|| self.type_env.get_custom_type(ident.as_str()))
+					.or_else(|| self.type_env.get_custom_type(&ident))
 					.cloned()
-					.ok_or(TypeCheckError::Generic(format!("cannot find value `{}` in this scope", ident)))?;
+					.ok_or_else(|| TypeCheckError::UnknownVariable(ident.clone()))?;
 				//TODO Check mutability
 
 				let (new_value, new_type_id) = self.check_expression(*new_value)?;
@@ -525,7 +543,7 @@ impl TypeChecker {
 
 		let type_id = TypeId::Function {
 			parameters: parameters.clone(),
-			return_type: Box::new(return_type),
+			return_type: Box::new(return_type.clone()),
 			is_method: function.is_method,
 		};
 
@@ -535,6 +553,7 @@ impl TypeChecker {
 				.map(|((param, _), param_type)| (param.clone(), param_type))
 				.collect(),
 			body,
+			return_type,
 			is_method: function.is_method,
 		},
 			type_id))
@@ -732,6 +751,7 @@ pub enum TypeCheckError {
 		left: TypedExpression,
 		field: String,
 	},
+	UnknownVariable(String),
 	Generic(String),
 }
 
@@ -750,6 +770,7 @@ impl std::fmt::Display for TypeCheckError {
 			TypeCheckError::ReturnTypeMismatch { .. } => write!(f, "type check ReturnTypeMismatch error"),
 			TypeCheckError::UnknownType(_) => write!(f, "type check UnknownType error"),
 			TypeCheckError::UnknownField { .. } => write!(f, "type check UnknownField error"),
+			TypeCheckError::UnknownVariable { .. } => write!(f, "type check UnknownVariable error"),
 			TypeCheckError::Generic(_) => write!(f, "type check Generic error"),
 		}
 	}

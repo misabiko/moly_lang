@@ -15,6 +15,7 @@ pub mod vm;
 pub mod type_checker;
 pub mod wasm;
 pub mod server;
+pub mod reporting;
 
 use compiler::{Bytecode, Compiler};
 use lexer::Lexer;

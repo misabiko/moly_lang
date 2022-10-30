@@ -35,38 +35,38 @@ fn main() {
     globalFunc();
 }",
 		 TypedProgram(vec![
-			TypedStatement::Function(TypedFunction {
-				name: Some("globalFunc".into()),
-				parameters: vec![],
-				body: TypedStatementBlock {
-					statements: vec![],
-					return_type: TypeExpr::Void,
-				}
-			}),
-			TypedStatement::Function(TypedFunction {
-				name: Some("main".into()),
-				parameters: vec![],
-				body: TypedStatementBlock {
-					statements: vec![
-						TypedStatement::Expression {
-							expr: TypedExpression::Call {
-								function: Box::new(TypedExpression::Identifier {
-									name: "globalFunc".into(),
-									type_expr: TypeExpr::FnLiteral {
-										parameter_types: vec![],
-										return_type: Box::new(TypeExpr::Void),
-									},
-								}),
-								return_type: TypeExpr::Void,
-								arguments: vec![],
-							},
-							has_semicolon: true,
-						}
-					],
-					return_type: TypeExpr::Void,
-				}
-			})
-		])),
+			 TypedStatement::Function(TypedFunction {
+				 name: Some("globalFunc".into()),
+				 parameters: vec![],
+				 body: TypedStatementBlock {
+					 statements: vec![],
+					 return_type: TypeExpr::Void,
+				 },
+			 }),
+			 TypedStatement::Function(TypedFunction {
+				 name: Some("main".into()),
+				 parameters: vec![],
+				 body: TypedStatementBlock {
+					 statements: vec![
+						 TypedStatement::Expression {
+							 expr: TypedExpression::Call {
+								 function: Box::new(TypedExpression::Identifier {
+									 name: "globalFunc".into(),
+									 type_expr: TypeExpr::FnLiteral {
+										 parameter_types: vec![],
+										 return_type: Box::new(TypeExpr::Void),
+									 },
+								 }),
+								 return_type: TypeExpr::Void,
+								 arguments: vec![],
+							 },
+							 has_semicolon: true,
+						 }
+					 ],
+					 return_type: TypeExpr::Void,
+				 },
+			 }),
+		 ])),
 	];
 
 	for (input, expected_type) in tests {
@@ -112,7 +112,7 @@ fn test_if_expression() {
 		let stmt = type_check_single_statement(input);
 		match expected_type {
 			Ok(expected_type) => {
-				if let Ok(TypedStatement::Expression { expr: TypedExpression::If {type_expr, ..}, has_semicolon: _ }) = stmt {
+				if let Ok(TypedStatement::Expression { expr: TypedExpression::If { type_expr, .. }, has_semicolon: _ }) = stmt {
 					assert_eq!(type_expr, expected_type);
 				} else {
 					panic!("{:?} not TypedExpression(Boolean)", stmt)
@@ -155,7 +155,7 @@ fn test_scoped_type_bindings() {
 								}
 							],
 							return_type: TypeExpr::String,
-						}
+						},
 					}),
 					type_expr: TypeExpr::FnLiteral {
 						parameter_types: vec![TypeExpr::String],
@@ -215,7 +215,7 @@ fn test_call_arg_num() {
 			func();
 		", MolyError::TypeCheck(TypeCheckError::CallArgCount {
 			parameter_count: 1,
-			argument_count: 0
+			argument_count: 0,
 		})),
 		("
 			let func = fn(a u8) {};
@@ -240,14 +240,14 @@ fn test_call_arg_type_mismatch() {
 			func(true)
 		", MolyError::TypeCheck(TypeCheckError::CallArgTypeMismatch {
 			parameter_types: vec![TypeExpr::String],
-			argument_types: vec![TypeExpr::Bool]
+			argument_types: vec![TypeExpr::Bool],
 		})),
 		(r#"
 			let func = fn(a str, b bool) {};
 			func(true, "bleh");
 		"#, MolyError::TypeCheck(TypeCheckError::CallArgTypeMismatch {
 			parameter_types: vec![TypeExpr::String, TypeExpr::Bool],
-			argument_types: vec![TypeExpr::Bool, TypeExpr::String]
+			argument_types: vec![TypeExpr::Bool, TypeExpr::String],
 		})),
 	];
 
@@ -276,9 +276,9 @@ fn test_return_statements() {
 							],
 							return_type: TypeExpr::Bool,
 						},
-						return_transparent: false
+						return_transparent: false,
 					},
-					has_semicolon: false
+					has_semicolon: false,
 				},
 			],
 			return_type: TypeExpr::Bool,
@@ -307,17 +307,17 @@ fn test_return_statements() {
 						alternative: Some(TypedStatementBlock {
 							statements: vec![TypedStatement::Expression {
 								expr: TypedExpression::Integer(IntExpr::U8(0)),
-								has_semicolon: false
+								has_semicolon: false,
 							}],
-							return_type: TypeExpr::Int(IntType::U8)
-						})
+							return_type: TypeExpr::Int(IntType::U8),
+						}),
 					},
 					type_expr: TypeExpr::Int(IntType::U8),
 				},
 				TypedStatement::Expression {
 					expr: TypedExpression::Boolean(false),
 					has_semicolon: false,
-				}
+				},
 			],
 			return_type: TypeExpr::Bool,
 		})),
@@ -329,7 +329,7 @@ fn test_return_statements() {
 			}
 		", Err(MolyError::TypeCheck(TypeCheckError::ReturnTypeMismatch {
 			scope_return_type: TypeExpr::Bool,
-			mismatched_type: TypeExpr::Int(IntType::U8)
+			mismatched_type: TypeExpr::Int(IntType::U8),
 		}))),
 		("
 			fn() {
@@ -341,7 +341,7 @@ fn test_return_statements() {
 			}
 		", Err(MolyError::TypeCheck(TypeCheckError::ReturnTypeMismatch {
 			scope_return_type: TypeExpr::Bool,
-			mismatched_type: TypeExpr::Int(IntType::U8)
+			mismatched_type: TypeExpr::Int(IntType::U8),
 		}))),
 	];
 
@@ -436,6 +436,72 @@ fn test_struct_construction() {
 
 	for (input, expected) in tests {
 		let stmt = type_check_block(input);
+		assert_eq!(stmt, expected)
+	}
+}
+
+#[test]
+fn test_method() {
+	let apple_type = TypeExpr::Struct {
+		name: "Apple".to_string(),
+		bindings: vec![],
+	};
+
+	let tests = vec![
+		(
+			r#"struct Apple {}
+
+				fn[a Apple] myFunc() {}
+
+				fn main() {
+					Apple{}.myFunc()
+				}
+			"#,
+			Ok(TypedProgram(vec![
+				TypedStatement::Function(TypedFunction {
+					parameters: vec![("a".into(), apple_type.clone())],
+					body: TypedStatementBlock {
+						statements: vec![],
+						return_type: TypeExpr::Void,
+					},
+					name: Some("myFunc".into()),
+				}),
+				TypedStatement::Function(TypedFunction {
+					parameters: vec![],
+					body: TypedStatementBlock {
+						statements: vec![
+							TypedStatement::Expression {
+								expr: TypedExpression::Call {
+									function: Box::new(TypedExpression::Field {
+										left: Box::new(TypedExpression::Struct {
+											name: "Apple".into(),
+											fields: vec![],
+											type_expr: apple_type.clone(),
+										}),
+										field: "myFunc".into(),
+										left_type: apple_type.clone(),
+										field_type: TypeExpr::FnLiteral {
+											parameter_types: vec![],
+											return_type: Box::new(TypeExpr::Void),
+										},
+										binding_index: 0,
+									}),
+									arguments: vec![],
+									return_type: TypeExpr::Void,
+								},
+								has_semicolon: false,
+							}
+						],
+						return_type: TypeExpr::Void,
+					},
+					name: Some("main".into()),
+				}),
+			])),
+		),
+	];
+
+	for (input, expected) in tests {
+		let stmt = type_check(input);
 		assert_eq!(stmt, expected)
 	}
 }

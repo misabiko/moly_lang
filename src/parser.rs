@@ -1,6 +1,5 @@
 use std::error::Error;
 use std::fmt;
-use std::fmt::Write;
 use crate::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Program, Statement, StatementBlock, StructConstructor, StructDecl};
 use crate::lexer::Lexer;
 use crate::token::{IntType, Token, TokenLiteral, TokenType};
@@ -787,47 +786,11 @@ const fn precedences(token_type: TokenType) -> Option<Precedence> {
 
 type PResult<T> = Result<T, ParserError>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ParserError {
 	//TODO Dissolve optional token
 	pub token: Option<Token>,
 	pub cause: ParserErrorCause,
-}
-
-impl ParserError {
-	pub fn show(&self, lexer: Lexer) -> String {
-		match &self.cause {
-			ParserErrorCause::UnexpectedTokenType { expected, actual } => {
-				let mut message = String::new();
-				writeln!(&mut message, "I am partway through parsing the input, but I got stuck here:\n").unwrap();
-
-				let token = self.token.as_ref().unwrap();
-
-				let mut lines = lexer.input.lines().skip(token.line);
-
-				if lexer.line > 0 {
-					let line_str = lines.next().unwrap();
-					write!(&mut message, "{}|{}", lexer.line - 1, line_str).unwrap();
-				}
-
-				let line_number = format!("{}| ", token.line);
-				write!(&mut message, "{}{}",
-					   line_number,
-					   lines.next().unwrap()
-				).unwrap();
-
-				writeln!(&mut message, "\n{}^", " ".repeat(line_number.len() + token.position)).unwrap();
-				writeln!(&mut message, "pos: {}", token.position).unwrap();
-
-				writeln!(&mut message, "I was expecting a token of type {:?}, but I found {:?}.", expected, actual).unwrap();
-
-				message
-			}
-			cause => {
-				format!("{:#?}\n{:#?}", self.token, cause)
-			}
-		}
-	}
 }
 
 impl fmt::Display for ParserError {
@@ -838,7 +801,7 @@ impl fmt::Display for ParserError {
 
 impl Error for ParserError {}
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ParserErrorCause {
 	ExpectedType {
 		expected: String,

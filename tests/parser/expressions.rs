@@ -1,5 +1,6 @@
 use moly_lib::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Statement, StatementBlock, StructConstructor};
-use moly_lib::lexer::Lexer;
+use moly_lib::MolyError;
+use moly_lib::reporting::show_error;
 use moly_lib::token::IntType;
 use moly_lib::type_checker::type_env::TypeExpr;
 
@@ -217,7 +218,7 @@ fn test_function_literal_parsing() {
 		let stmt = match parse_single_statement(input) {
 			Ok(x) => x,
 			Err(err) => {
-				eprintln!("{}", err.show(Lexer::new(input)));
+				eprintln!("{}", show_error(MolyError::Parse(err.clone()), input.to_string()));
 				panic!("{}", err)
 			}
 		};

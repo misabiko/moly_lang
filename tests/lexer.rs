@@ -2,7 +2,7 @@ use moly_lib::{
 	lexer::Lexer,
 	token::TokenType,
 };
-use moly_lib::token::{IntType, Token, TokenLiteral};
+use moly_lib::token::{IntType, TokenLiteral};
 
 #[test]
 fn test_next_token() {

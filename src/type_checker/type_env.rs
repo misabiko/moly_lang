@@ -16,6 +16,7 @@ pub enum TypeExpr {
 	Bool,
 	String,
 	Array(Box<TypeExpr>),
+	//TODO Rename to function or callable
 	FnLiteral {
 		parameter_types: Vec<TypeExpr>,
 		return_type: Box<TypeExpr>,

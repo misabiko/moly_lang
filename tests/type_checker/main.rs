@@ -8,6 +8,7 @@ use moly_lib::type_checker::{TypeChecker, TypeCheckError};
 use moly_lib::type_checker::typed_ast::{TypedStatementBlock, TypedExpression, TypedProgram, TypedStatement, TypedFunction};
 use moly_lib::type_checker::type_env::TypeId;
 
+mod traits;
 mod type_env;
 
 #[test]
@@ -46,6 +47,7 @@ fn main() {
 					 return_type: TypeId::Void,
 				 },
 				 is_method: false,
+				 return_type: TypeId::Void
 			 }),
 			 TypedStatement::Function(TypedFunction {
 				 name: Some("main".into()),
@@ -71,6 +73,7 @@ fn main() {
 					 return_type: TypeId::Void,
 				 },
 				 is_method: false,
+				 return_type: TypeId::Void
 			 }),
 		 ])),
 	];
@@ -163,6 +166,7 @@ fn test_scoped_type_bindings() {
 							return_type: TypeId::String,
 						},
 						is_method: false,
+						return_type: TypeId::String
 					}),
 					type_id: TypeId::Function {
 						parameters: vec![TypeId::String],
@@ -440,6 +444,7 @@ fn test_method() {
 						statements: vec![],
 						return_type: TypeId::Void,
 					},
+					return_type: TypeId::Void,
 					name: Some("myFunc".into()),
 					is_method: true,
 				}),
@@ -472,6 +477,7 @@ fn test_method() {
 						],
 						return_type: TypeId::Void,
 					},
+					return_type: TypeId::Void,
 					name: Some("main".into()),
 					is_method: false,
 				}),

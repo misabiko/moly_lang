@@ -3,6 +3,8 @@ use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response
 use lsp_types::{GotoDefinitionResponse, InitializeParams, OneOf, ServerCapabilities};
 use lsp_types::request::GotoDefinition;
 
+//TODO Feature: Lift return from "if"
+
 pub fn start() -> Result<(), Box<dyn Error + Sync + Send>> {
 	//On VSCode, stdout is ignored and stderr will be printed in Output > Moly Language Server
 	//TODO Check if stderr is a lsp thing or vscode thing

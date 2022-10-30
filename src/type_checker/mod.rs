@@ -9,7 +9,7 @@ pub mod typed_ast;
 pub mod type_env;
 
 pub struct TypeChecker {
-	type_env: TypeEnv,
+	pub type_env: TypeEnv,
 	scope_return_types: Vec<Option<TypeId>>,
 }
 
@@ -267,36 +267,32 @@ impl TypeChecker {
 
 				let return_type = match function_type {
 					TypeId::Function { parameters: parameter_types, return_type, is_method } => {
-						//TODO Instead of cloning arg, remove first of parameter
-						let mut arguments = arguments.clone();
-						if let TypedExpression::Field {left, .. } = &function {
-							if is_method {
-								arguments.insert(0, *left.clone())
-							}else {
+						if let TypedExpression::Field { .. } = &function {
+							if !is_method {
 								return Err(TypeCheckError::Generic(format!("{} isn't a method", function)))
 							}
-						}
-
-						if arguments.len() != parameter_types.len() {
-							return Err(TypeCheckError::CallArgCount {
-								parameter_count: parameter_types.len() as u8,
-								argument_count: arguments.len() as u8,
-							});
-						}
-
-						for (arg, param) in argument_types.iter().zip(parameter_types.iter()) {
-							match param {
-								TypeId::Array(elements) => if let TypeId::Any = elements.as_ref() {
-									continue;
-								}
-								TypeId::Any => continue,
-								_ => {}
-							}
-							if arg != param {
-								return Err(TypeCheckError::CallArgTypeMismatch {
-									parameter_types,
-									argument_types,
+						}else {
+							if arguments.len() != parameter_types.len() {
+								return Err(TypeCheckError::CallArgCount {
+									parameter_count: parameter_types.len() as u8,
+									argument_count: arguments.len() as u8,
 								});
+							}
+
+							for (arg, param) in argument_types.iter().zip(parameter_types.iter()) {
+								match param {
+									TypeId::Array(elements) => if let TypeId::Any = elements.as_ref() {
+										continue;
+									}
+									TypeId::Any => continue,
+									_ => {}
+								}
+								if arg != param {
+									return Err(TypeCheckError::CallArgTypeMismatch {
+										parameter_types,
+										argument_types,
+									});
+								}
 							}
 						}
 

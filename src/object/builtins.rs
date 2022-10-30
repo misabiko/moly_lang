@@ -150,9 +150,9 @@ pub fn get_builtin_functions() -> Vec<BuiltinInfo> {
 		BuiltinInfo {
 			name: "push",
 			type_expr: TypeExpr::Function {
-				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any)), TypeExpr::Any],
-				return_type: Box::new(TypeExpr::Array(Box::new(TypeExpr::Any))),
-				is_method: false,
+				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::AnyParam(0))), TypeExpr::AnyParam(0)],
+				return_type: Box::new(TypeExpr::Array(Box::new(TypeExpr::AnyParam(0)))),
+				is_method: true,
 			},
 			builtin: |args| {
 				if let Object::Array(elements) = &args[0] {

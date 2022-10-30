@@ -129,6 +129,7 @@ impl TypeEnv {
 				}else {
 					None
 				}),
+			TypeExpr::AnyParam(index) => Some(TypeId::AnyParam(*index)),
 		}
 	}
 
@@ -136,9 +137,15 @@ impl TypeEnv {
 		for TypeBinding { ident, type_id } in self.bindings.iter().rev() {
 			if ident == method {
 				if let TypeId::Function { parameters, is_method: true, .. } = type_id {
-					let first = parameters.first();
-					if first == Some(receiver) {
-						return Some(type_id.clone())
+					let first = parameters.first().unwrap();
+
+					let mut concrete_params = vec![];
+					if type_id_eq(receiver, first, &mut concrete_params) {
+						return Some(if concrete_params.is_empty() {
+							type_id.clone()
+						} else {
+							concretize_type_id(type_id, &concrete_params)
+						})
 					}
 				}
 			}
@@ -165,8 +172,45 @@ impl TypeEnv {
 		None
 	}
 
-	pub fn qualifies_trait(&self, type_id: &TypeId, trait_id: &TypeId) -> bool {
-		true
+	pub fn qualifies_trait(&self, _type_id: &TypeId, _trait_id: &TypeId) -> bool {
+		true//TODO qualifies trait
+	}
+}
+
+//a must be concrete type
+fn type_id_eq(a: &TypeId, b: &TypeId, mut params: &mut Vec<TypeId>) -> bool {
+	if let TypeId::AnyParam(index) = b {
+		return if params.len() > *index {
+			let b = params[*index].clone();
+			type_id_eq(a, &b, &mut params)
+		} else {
+			params.push(a.clone());
+			true
+		}
+	}
+
+	if a == b {
+		return true;
+	}
+
+	match (a, b) {
+		(TypeId::Array(a_elem), TypeId::Array(b_elem)) => type_id_eq(a_elem, b_elem, &mut params),
+		_ => panic!("type_id_eq({:?}, {:?}) not implemented", a, b),
+	}
+}
+
+fn concretize_type_id(type_id: &TypeId, params: &Vec<TypeId>) -> TypeId {
+	match type_id {
+		TypeId::AnyParam(index) => params[*index].clone(),
+		TypeId::Array(t) => TypeId::Array(Box::new(concretize_type_id(t, &params))),
+		TypeId::Function { parameters, return_type, is_method } => TypeId::Function {
+			parameters: parameters.iter()
+				.map(|t| concretize_type_id(t, params))
+				.collect(),
+			return_type: Box::new(concretize_type_id(return_type, params)),
+			is_method: *is_method,
+		},
+		_ => type_id.clone(),
 	}
 }
 
@@ -198,6 +242,8 @@ pub enum TypeExpr {
 		methods: Vec<TypedFunction>,
 	},
 	TraitParam(String, usize),
+	//Could rename to something like AnonTraitParam
+	AnyParam(usize),
 }
 
 impl fmt::Display for TypeExpr {
@@ -239,6 +285,7 @@ impl fmt::Display for TypeExpr {
 			TypeExpr::Any => write!(f, "ANY"),
 			TypeExpr::Trait { .. } => write!(f, "trait"),
 			TypeExpr::TraitParam(trait_name, index) => write!(f, "TraitParam[{}][{}]", trait_name, index),
+			TypeExpr::AnyParam(index) => write!(f, "AnyParam[{}]", index),
 		}
 	}
 }
@@ -269,6 +316,7 @@ pub enum TypeId {
 	Struct(usize),
 	Trait(usize),
 	TraitParam(usize, usize),
+	AnyParam(usize),
 }
 
 #[derive(Debug, PartialEq, Clone)]

@@ -284,7 +284,24 @@ fn test_function_parameter_parsing() {
 	}
 }
 
-//TODO Test method parsing
+#[test]
+fn test_method_parsing() {
+	let tests = vec![
+		("fn[self bool] () {}", "self".into(), TypeExpr::Bool.into()),
+		("fn[this Apple] (x str) {}", "this".into(), ParsedType::Custom("Apple".into())),
+	];
+
+	for (input, expected_ident, expected_type) in tests {
+		let stmt = parse_single_statement(input).unwrap();
+		if let Statement::Expression { expr: Expression::Function(Function { is_method, parameters, .. }), has_semicolon: _ } = stmt {
+			assert_eq!(is_method, true, "not marked as method");
+
+			assert_eq!(parameters[0], (expected_ident, expected_type));
+		} else {
+			panic!("{:?} is not Statement::Expression(Function)", stmt);
+		}
+	}
+}
 
 #[test]
 fn test_call_expression_parsing() {

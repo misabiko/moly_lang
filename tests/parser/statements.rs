@@ -1,4 +1,4 @@
-use moly_lib::ast::{Expression, IntExpr, ParsedType, Statement, StructDecl};
+use moly_lib::ast::{Expression, IntExpr, Statement, StructDecl};
 use moly_lib::token::IntType;
 use moly_lib::type_checker::type_env::TypeExpr;
 
@@ -52,8 +52,8 @@ fn test_struct_declaration() {
 		}", Statement::Struct {
 			name: "Person".into(),
 			decl: StructDecl::Block(vec![
-				("name".into(), TypeExpr::String).into(),
-				("age".into(), TypeExpr::Int(IntType::U8)).into(),
+				("name".into(), TypeExpr::String.into()),
+				("age".into(), TypeExpr::Int(IntType::U8).into()),
 			]),
 		}),
 		("struct Person(str, u8)", Statement::Struct {

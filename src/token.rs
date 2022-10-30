@@ -5,6 +5,8 @@ use core::fmt::Formatter;
 pub struct Token {
 	pub token_type: TokenType,
 	pub literal: TokenLiteral,
+	pub position: usize,
+	pub line: usize,
 	pub after_whitespace: bool,
 }
 
@@ -39,6 +41,17 @@ impl TokenLiteral {
 			Some(literal)
 		}else {
 			None
+		}
+	}
+}
+
+impl fmt::Display for TokenLiteral {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+		match self {
+			TokenLiteral::Static(t) => t.fmt(f),
+			TokenLiteral::String(t) => t.fmt(f),
+			TokenLiteral::Integer(t) => t.fmt(f),
+			TokenLiteral::Float(i, d) => write!(f, "{}.{}", i, d),
 		}
 	}
 }
@@ -180,128 +193,103 @@ impl fmt::Display for TokenType {
 	}
 }
 
-pub fn lookup_ident(keyword: String, after_whitespace: bool) -> Token {
+pub fn lookup_ident(keyword: String) -> (TokenType, TokenLiteral) {
 	match keyword.as_str() {
-		"fn" => Token {
-			token_type: TokenType::Function,
-			literal: TokenLiteral::Static("fn"),
-			after_whitespace,
-		},
-		"let" => Token {
-			token_type: TokenType::Let,
-			literal: TokenLiteral::Static("let"),
-			after_whitespace,
-		},
-		"struct" => Token {
-			token_type: TokenType::Struct,
-			literal: TokenLiteral::Static("struct"),
-			after_whitespace,
-		},
-		"enum" => Token {
-			token_type: TokenType::Enum,
-			literal: TokenLiteral::Static("enum"),
-			after_whitespace,
-		},
-		"true" => Token {
-			token_type: TokenType::True,
-			literal: TokenLiteral::Static("true"),
-			after_whitespace,
-		},
-		"false" => Token {
-			token_type: TokenType::False,
-			literal: TokenLiteral::Static("false"),
-			after_whitespace,
-		},
-		"if" => Token {
-			token_type: TokenType::If,
-			literal: TokenLiteral::Static("if"),
-			after_whitespace,
-		},
-		"else" => Token {
-			token_type: TokenType::Else,
-			literal: TokenLiteral::Static("else"),
-			after_whitespace,
-		},
-		"unless" => Token {
-			token_type: TokenType::Unless,
-			literal: TokenLiteral::Static("unless"),
-			after_whitespace,
-		},
-		"while" => Token {
-			token_type: TokenType::While,
-			literal: TokenLiteral::Static("while"),
-			after_whitespace,
-		},
-		"until" => Token {
-			token_type: TokenType::Until,
-			literal: TokenLiteral::Static("until"),
-			after_whitespace,
-		},
-		"for" => Token {
-			token_type: TokenType::For,
-			literal: TokenLiteral::Static("for"),
-			after_whitespace,
-		},
-		"return" => Token {
-			token_type: TokenType::Return,
-			literal: TokenLiteral::Static("return"),
-			after_whitespace,
-		},
-		"u8" => Token {
-			token_type: TokenType::IntegerType(IntType::U8),
-			literal: TokenLiteral::Static("u8"),
-			after_whitespace,
-		},
-		"u16" => Token {
-			token_type: TokenType::IntegerType(IntType::U16),
-			literal: TokenLiteral::Static("u16"),
-			after_whitespace,
-		},
-		"u32" => Token {
-			token_type: TokenType::IntegerType(IntType::U32),
-			literal: TokenLiteral::Static("u32"),
-			after_whitespace,
-		},
-		"u64" => Token {
-			token_type: TokenType::IntegerType(IntType::U64),
-			literal: TokenLiteral::Static("u64"),
-			after_whitespace,
-		},
-		"i8" => Token {
-			token_type: TokenType::IntegerType(IntType::I8),
-			literal: TokenLiteral::Static("i8"),
-			after_whitespace,
-		},
-		"i16" => Token {
-			token_type: TokenType::IntegerType(IntType::I16),
-			literal: TokenLiteral::Static("i16"),
-			after_whitespace,
-		},
-		"i32" => Token {
-			token_type: TokenType::IntegerType(IntType::I32),
-			literal: TokenLiteral::Static("i32"),
-			after_whitespace,
-		},
-		"i64" => Token {
-			token_type: TokenType::IntegerType(IntType::I64),
-			literal: TokenLiteral::Static("i64"),
-			after_whitespace,
-		},
-		"bool" => Token {
-			token_type: TokenType::Bool,
-			literal: TokenLiteral::Static("bool"),
-			after_whitespace,
-		},
-		"str" => Token {
-			token_type: TokenType::Str,
-			literal: TokenLiteral::Static("str"),
-			after_whitespace,
-		},
-		_ => Token {
-			token_type: TokenType::Ident,
-			literal: TokenLiteral::String(keyword),
-			after_whitespace,
-		},
+		"fn" => (
+			TokenType::Function,
+			TokenLiteral::Static("fn")
+		),
+		"let" => (
+			TokenType::Let,
+			TokenLiteral::Static("let")
+		),
+		"struct" => (
+			TokenType::Struct,
+			TokenLiteral::Static("struct")
+		),
+		"enum" => (
+			TokenType::Enum,
+			TokenLiteral::Static("enum")
+		),
+		"true" => (
+			TokenType::True,
+			TokenLiteral::Static("true")
+		),
+		"false" => (
+			TokenType::False,
+			TokenLiteral::Static("false")
+		),
+		"if" => (
+			TokenType::If,
+			TokenLiteral::Static("if")
+		),
+		"else" => (
+			TokenType::Else,
+			TokenLiteral::Static("else")
+		),
+		"unless" => (
+			TokenType::Unless,
+			TokenLiteral::Static("unless")
+		),
+		"while" => (
+			TokenType::While,
+			TokenLiteral::Static("while")
+		),
+		"until" => (
+			TokenType::Until,
+			TokenLiteral::Static("until")
+		),
+		"for" => (
+			TokenType::For,
+			TokenLiteral::Static("for")
+		),
+		"return" => (
+			TokenType::Return,
+			TokenLiteral::Static("return")
+		),
+		"u8" => (
+			TokenType::IntegerType(IntType::U8),
+			TokenLiteral::Static("u8")
+		),
+		"u16" => (
+			TokenType::IntegerType(IntType::U16),
+			TokenLiteral::Static("u16")
+		),
+		"u32" => (
+			TokenType::IntegerType(IntType::U32),
+			TokenLiteral::Static("u32")
+		),
+		"u64" => (
+			TokenType::IntegerType(IntType::U64),
+			TokenLiteral::Static("u64")
+		),
+		"i8" => (
+			TokenType::IntegerType(IntType::I8),
+			TokenLiteral::Static("i8")
+		),
+		"i16" => (
+			TokenType::IntegerType(IntType::I16),
+			TokenLiteral::Static("i16")
+		),
+		"i32" => (
+			TokenType::IntegerType(IntType::I32),
+			TokenLiteral::Static("i32")
+		),
+		"i64" => (
+			TokenType::IntegerType(IntType::I64),
+			TokenLiteral::Static("i64")
+		),
+		"bool" => (
+			TokenType::Bool,
+			TokenLiteral::Static("bool")
+		),
+		"str" => (
+			TokenType::Str,
+			TokenLiteral::Static("str")
+		),
+		_ => (TokenType::Ident,
+			  TokenLiteral::String(keyword)
+		),
 	}
 }
 

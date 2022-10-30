@@ -1,4 +1,5 @@
 use std::fmt;
+use crate::token::Token;
 use crate::type_checker::type_env::TypeExpr;
 
 pub type Program = StatementBlock;
@@ -259,6 +260,7 @@ impl fmt::Display for IntExpr {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Function {
 	pub parameters: Vec<(String, ParsedType)>,
+	pub parameters_token: Token,
 	pub body: StatementBlock,
 	pub name: Option<String>,
 	pub return_type: ParsedType,

@@ -1,4 +1,5 @@
 use moly_lib::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Statement, StatementBlock, StructConstructor};
+use moly_lib::lexer::Lexer;
 use moly_lib::token::IntType;
 use moly_lib::type_checker::type_env::TypeExpr;
 
@@ -199,48 +200,59 @@ fn test_if_expression() {
 
 #[test]
 fn test_function_literal_parsing() {
-	let params = vec![
-		("x".into(), TypeExpr::Int(IntType::U8).into()),
-		("y".into(), TypeExpr::Int(IntType::U8).into()),
-	];
-	let body = StatementBlock(vec![
-		Statement::Expression {
-			expr: Expression::Infix {
-				left: Box::new(Expression::Identifier("x".into())),
-				operator: InfixOperator::Plus,
-				right: Box::new(Expression::Identifier("y".into())),
-			},
-			has_semicolon: true,
-		}
-	]);
-
 	let tests = vec![
-		("fn(x u8, y u8) { x + y; }", Statement::Expression {
-			expr: Expression::Function(Function {
-				parameters: params.clone(),
-				body: body.clone(),
-				name: None,
-				return_type: TypeExpr::Void.into(),
-				is_method: false,
-			}),
-			has_semicolon: false,
-		}),
-		("fn(x u8, y u8) u8 { x + y }", Statement::Expression {
-			expr: Expression::Function(Function {
-				parameters: params.clone(),
-				body: body.clone(),
-				name: None,
-				return_type: TypeExpr::Int(IntType::U8).into(),
-				is_method: false,
-			}),
-			has_semicolon: false,
-		}),
+		(
+			"fn(x u8, y u8) { x + y; }",
+			false,
+			TypeExpr::Void.into()
+		),
+		(
+			"fn(x u8, y u8) u8 { x + y }",
+			false,
+			TypeExpr::Int(IntType::U8).into()
+		),
 	];
 
-	for (input, expected) in tests {
-		let stmt = parse_single_statement(input).unwrap();
+	for (input, expected_is_method, expected_return) in tests {
+		let stmt = match parse_single_statement(input) {
+			Ok(x) => x,
+			Err(err) => {
+				eprintln!("{}", err.show(Lexer::new(input)));
+				panic!("{}", err)
+			}
+		};
 
-		assert_eq!(stmt, expected);
+		if let Statement::Expression { expr: Expression::Function(Function { name, parameters, body, return_type, is_method, .. }), has_semicolon: _ } = stmt {
+			assert_eq!(is_method, expected_is_method, "different is_method");
+
+			assert_eq!(name, None, "shouldn't have a name");
+
+			assert_eq!(parameters.len(), 2, "function parameters wrong, want 2. ({:?})", parameters);
+
+			assert_eq!(parameters[0], ("x".into(), ParsedType::Primitive(TypeExpr::Int(IntType::U8))));
+			assert_eq!(parameters[1], ("y".into(), ParsedType::Primitive(TypeExpr::Int(IntType::U8))));
+
+			assert_eq!(return_type, ParsedType::Primitive(expected_return), "wrong return type");
+
+			assert_eq!(body.0.len(), 1, "body.statements doesn't have 1 statement. ({:?})", body.0);
+
+			let body_stmt = body.0.first().unwrap();
+			if let Statement::Expression { expr, has_semicolon: _ } = body_stmt {
+				assert_eq!(
+					*expr,
+					Expression::Infix {
+						left: Box::new(Expression::Identifier("x".into())),
+						operator: InfixOperator::Plus,
+						right: Box::new(Expression::Identifier("y".into())),
+					},
+					"wrong function body"
+				)
+			} else {
+				panic!("{:?} not Statement::Expression(Infix)", body_stmt);
+			}
+		} else {
+			panic!("{:?} is not Expression(Function)", stmt);
+		}
 	}
 }
 
@@ -252,9 +264,9 @@ fn test_function_parameter_parsing() {
 			("x".into(), TypeExpr::Int(IntType::U8).into())
 		]),
 		("fn(x u8, y str, z i16) {};", vec![
-			("x".into(), TypeExpr::Int(IntType::U8)).into(),
-			("y".into(), TypeExpr::String).into(),
-			("z".into(), TypeExpr::Int(IntType::I16)).into(),
+			("x".into(), TypeExpr::Int(IntType::U8).into()),
+			("y".into(), TypeExpr::String.into()),
+			("z".into(), TypeExpr::Int(IntType::I16).into()),
 		]),
 	];
 
@@ -271,6 +283,8 @@ fn test_function_parameter_parsing() {
 		}
 	}
 }
+
+//TODO Test method parsing
 
 #[test]
 fn test_call_expression_parsing() {

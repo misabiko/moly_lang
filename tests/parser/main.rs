@@ -3,8 +3,8 @@ use moly_lib::{
 	lexer::Lexer,
 	parser::Parser,
 };
-use moly_lib::ast::{Expression, Function, ParsedType, Program, StatementBlock};
-use moly_lib::parser::ParserError;
+use moly_lib::ast::{Expression, Function, Program, StatementBlock};
+use moly_lib::parser::{ParserError, ParserErrorCause};
 use moly_lib::token::{Token, TokenLiteral, TokenType};
 use moly_lib::type_checker::type_env::TypeExpr;
 
@@ -14,16 +14,25 @@ mod expressions;
 #[test]
 fn test_program_parsing() {
 	let tests = vec![
-		("let x = 5;", Err(ParserError::InvalidGlobalToken(Token {
+		("let x = 5;", Err(ParserErrorCause::InvalidGlobalToken(Token {
 			token_type: TokenType::Let,
 			literal: TokenLiteral::Static("let"),
-			after_whitespace: false
+			position: 0,
+			line: 0,
+			after_whitespace: false,
 		}))),
-		 ("fn(){}", Err(ParserError::MissingGlobalFunctionName)),
-		 ("fn myFunc(){}", Ok(StatementBlock(vec![
+		("fn(){}", Err(ParserErrorCause::MissingGlobalFunctionName)),
+		("fn myFunc(){}", Ok(StatementBlock(vec![
 			Statement::Function(Function {
 				name: Some("myFunc".into()),
 				parameters: vec![],
+				parameters_token: Token {
+					token_type: TokenType::LParen,
+					literal: TokenLiteral::Static("("),
+					position: 9,
+					line: 0,
+					after_whitespace: false,
+				},
 				return_type: TypeExpr::Void.into(),
 				body: StatementBlock(vec![]),
 				is_method: false,
@@ -33,6 +42,13 @@ fn test_program_parsing() {
 			Statement::Function(Function {
 				name: Some("main".into()),
 				parameters: vec![],
+				parameters_token: Token {
+					token_type: TokenType::LParen,
+					literal: TokenLiteral::Static("("),
+					position: 7,
+					line: 0,
+					after_whitespace: false,
+				},
 				return_type: TypeExpr::Void.into(),
 				body: StatementBlock(vec![]),
 				is_method: false,
@@ -45,35 +61,49 @@ fn main() {
     globalFunc();
 }",
 		 Ok(StatementBlock(vec![
-			Statement::Function(Function {
-				name: Some("globalFunc".into()),
-				parameters: vec![],
-				return_type: TypeExpr::Void.into(),
-				body: StatementBlock(vec![]),
-				is_method: false,
-			}),
-			Statement::Function(Function {
-				name: Some("main".into()),
-				parameters: vec![],
-				return_type: TypeExpr::Void.into(),
-				body: StatementBlock(vec![
-					Statement::Expression {
-						expr: Expression::Call {
-							function: Box::new(Expression::Identifier("globalFunc".into())),
-							arguments: vec![],
-						},
-						has_semicolon: true,
-					}
-				]),
-				is_method: false,
-			}),
-		]))),
+			 Statement::Function(Function {
+				 name: Some("globalFunc".into()),
+				 parameters: vec![],
+				 parameters_token: Token {
+					 token_type: TokenType::LParen,
+					 literal: TokenLiteral::Static("("),
+					 position: 14,
+					 line: 1,
+					 after_whitespace: false,
+				 },
+				 return_type: TypeExpr::Void.into(),
+				 body: StatementBlock(vec![]),
+				 is_method: false,
+			 }),
+			 Statement::Function(Function {
+				 name: Some("main".into()),
+				 parameters: vec![],
+				 parameters_token: Token {
+					 token_type: TokenType::LParen,
+					 literal: TokenLiteral::Static("("),
+					 position: 28,
+					 line: 3,
+					 after_whitespace: false,
+				 },
+				 return_type: TypeExpr::Void.into(),
+				 body: StatementBlock(vec![
+					 Statement::Expression {
+						 expr: Expression::Call {
+							 function: Box::new(Expression::Identifier("globalFunc".into())),
+							 arguments: vec![],
+						 },
+						 has_semicolon: true,
+					 }
+				 ]),
+				 is_method: false,
+			 }),
+		 ]))),
 	];
 
 	for (input, expected) in tests {
 		let mut parser = Parser::new(Lexer::new(input));
 
-		assert_eq!(parser.parse_program(), expected);
+		assert_eq!(parser.parse_program().map_err(|err| err.cause), expected);
 	}
 }
 
@@ -86,6 +116,13 @@ fn test_comment_parsing() {
 			Statement::Function(Function {
 				name: Some("main".into()),
 				parameters: vec![],
+				parameters_token: Token {
+					token_type: TokenType::LParen,
+					literal: TokenLiteral::Static("("),
+					position: 7,
+					line: 0,
+					after_whitespace: false,
+				},
 				return_type: TypeExpr::Void.into(),
 				body: StatementBlock(vec![]),
 				is_method: false,
@@ -96,6 +133,13 @@ fn test_comment_parsing() {
 			Statement::Function(Function {
 				name: Some("main".into()),
 				parameters: vec![],
+				parameters_token: Token {
+					token_type: TokenType::LParen,
+					literal: TokenLiteral::Static("("),
+					position: 29,
+					line: 0,
+					after_whitespace: false,
+				},
 				return_type: TypeExpr::Void.into(),
 				body: StatementBlock(vec![]),
 				is_method: false,
@@ -228,6 +272,32 @@ fn test_operator_precedence_parsing() {
 
 		assert_eq!(program.to_string(), expected);
 	}
+}
+
+#[test]
+fn test_token() {
+	let mut parser = Parser::new(Lexer::new("fn myFunc(){}"));
+
+	assert_eq!(parser.cur_token, Token {
+		token_type: TokenType::Function,
+		literal: TokenLiteral::Static("fn"),
+		position: 0,
+		line: 0,
+		after_whitespace: false,
+	});
+	assert_eq!(parser.cur_token_index, 0);
+
+	parser.next_token();
+	parser.next_token();
+
+	assert_eq!(parser.cur_token, Token {
+		token_type: TokenType::LParen,
+		literal: TokenLiteral::Static("("),
+		position: 9,
+		line: 0,
+		after_whitespace: false,
+	});
+	assert_eq!(parser.cur_token_index, 2);
 }
 
 fn parse(input: &str) -> Result<Program, ParserError> {

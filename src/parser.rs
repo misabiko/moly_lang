@@ -1,4 +1,6 @@
+use std::error::Error;
 use std::fmt;
+use std::fmt::Write;
 use crate::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Program, Statement, StatementBlock, StructConstructor, StructDecl};
 use crate::lexer::Lexer;
 use crate::token::{IntType, Token, TokenLiteral, TokenType};
@@ -8,21 +10,34 @@ pub struct Parser {
 	pub lexer: Lexer,
 
 	pub cur_token: Token,
+	pub cur_token_index: usize,
+	cur_token_line: usize,
 	pub peek_token: Token,
 }
 
 impl Parser {
 	pub fn new(lexer: Lexer) -> Self {
-		let default_token = Token { token_type: TokenType::Illegal, literal: TokenLiteral::Static(""), after_whitespace: false };
+		let temp_token = Token {
+			token_type: TokenType::Illegal,
+			literal: TokenLiteral::Static(""),
+			position: 0,
+			line: 0,
+			after_whitespace: false,
+		};
 		let mut parser = Parser {
 			lexer,
 
-			cur_token: default_token.clone(),
-			peek_token: default_token,
+			cur_token: temp_token.clone(),
+			cur_token_index: 0,
+			cur_token_line: 0,
+			peek_token: temp_token,
 		};
 
 		parser.next_token();
 		parser.next_token();
+
+		parser.cur_token_index = 0;
+		parser.cur_token_line = 0;
 
 		parser
 	}
@@ -30,6 +45,7 @@ impl Parser {
 	pub fn next_token(&mut self) {
 		loop {
 			self.cur_token = std::mem::replace(&mut self.peek_token, self.lexer.next_token());
+			self.cur_token_index += 1;
 
 			if !matches!(self.cur_token.token_type, TokenType::LineComment | TokenType::MultilineComment) {
 				break;
@@ -66,13 +82,19 @@ impl Parser {
 			TokenType::Function => {
 				let func = self.parse_function_literal()?;
 				if func.name.is_none() {
-					return Err(ParserError::MissingGlobalFunctionName);
+					return Err(ParserError {
+						token: Some(func.parameters_token),
+						cause: ParserErrorCause::MissingGlobalFunctionName,
+					});
 				}
 
 				Ok(Statement::Function(func))
 			}
 			TokenType::Struct => self.parse_struct_decl(),
-			_ => return Err(ParserError::InvalidGlobalToken(self.cur_token.clone())),
+			_ => return Err(ParserError {
+				token: None,
+				cause: ParserErrorCause::InvalidGlobalToken(self.cur_token.clone()),
+			}),
 		}
 	}
 
@@ -158,10 +180,13 @@ impl Parser {
 			self.next_token();
 			StructDecl::Tuple(self.parse_type_list(TokenType::RParen)?)
 		} else {
-			return Err(ParserError::Generic(format!(
-				"expected next token to be ( or {{, got {} instead",
-				self.peek_token.token_type
-			)));
+			return Err(ParserError {
+				token: None,
+				cause: ParserErrorCause::Generic(format!(
+					"expected next token to be ( or {{, got {} instead",
+					self.peek_token.token_type
+				)),
+			});
 		};
 
 		Ok(Statement::Struct { name, decl })
@@ -225,7 +250,10 @@ impl Parser {
 						value if value < u16::MAX as usize => Ok(Expression::Integer(IntExpr::U16(value as u16))),
 						value if value < u32::MAX as usize => Ok(Expression::Integer(IntExpr::U32(value as u32))),
 						value if value < u64::MAX as usize => Ok(Expression::Integer(IntExpr::U64(value as u64))),
-						_ => Err(ParserError::Generic(format!("unsupported integer size {}", value))),
+						_ => Err(ParserError {
+							token: None,
+							cause: ParserErrorCause::Generic(format!("unsupported integer size {}", value)),
+						}),
 					}
 				}
 			}
@@ -254,10 +282,13 @@ impl Parser {
 					return_transparent: false,
 				})
 			}
-			_ => Err(ParserError::Generic(format!(
-				"no prefix parse function for {:?} found",
-				self.cur_token
-			))),
+			_ => Err(ParserError {
+				token: None,
+				cause: ParserErrorCause::Generic(format!(
+					"no prefix parse function for {:?} found",
+					self.cur_token
+				)),
+			}),
 		}?;
 
 		while !self.peek_token_is(TokenType::Semicolon) && precedence < self.peek_precedence() {
@@ -278,8 +309,8 @@ impl Parser {
 				Token { token_type: TokenType::Assign, .. } => Parser::parse_assignment,
 				Token { token_type: TokenType::LBrace, .. } => if let Expression::Identifier(_) = left_exp {
 					Parser::parse_brace_infix
-				}else {
-					return Ok(left_exp)
+				} else {
+					return Ok(left_exp);
 				},
 				_ => return Ok(left_exp)
 			};
@@ -297,9 +328,15 @@ impl Parser {
 			TokenLiteral::Static(operator) => match operator {
 				"-" => Ok(PrefixOperator::Minus),
 				"!" => Ok(PrefixOperator::Bang),
-				_ => Err(ParserError::Generic(format!("{:?} isn't a prefix operator token", self.cur_token))),
+				_ => Err(ParserError {
+					token: None,
+					cause: ParserErrorCause::Generic(format!("{:?} isn't a prefix operator token", self.cur_token)),
+				}),
 			}
-			_ => Err(ParserError::Generic(format!("{:?} isn't a operator token", self.cur_token))),
+			_ => Err(ParserError {
+				token: None,
+				cause: ParserErrorCause::Generic(format!("{:?} isn't a operator token", self.cur_token)),
+			}),
 		}?;
 
 		self.next_token();
@@ -329,9 +366,15 @@ impl Parser {
 				//TODO ">=" => Ok(InfixOperator::GreaterEqual),
 				"&&" => Ok(InfixOperator::And),
 				"||" => Ok(InfixOperator::Or),
-				_ => Err(ParserError::Generic(format!("{:?} isn't a infix operator token", self.cur_token))),
+				_ => Err(ParserError {
+					token: None,
+					cause: ParserErrorCause::Generic(format!("{:?} isn't a infix operator token", self.cur_token)),
+				}),
 			}
-			_ => Err(ParserError::Generic(format!("{:?} isn't operator token", self.cur_token))),
+			_ => Err(ParserError {
+				token: None,
+				cause: ParserErrorCause::Generic(format!("{:?} isn't operator token", self.cur_token)),
+			}),
 		}?;
 
 		let precedence = self.cur_precedence();
@@ -392,7 +435,7 @@ impl Parser {
 			self.expect_peek(TokenType::RBracket)?;
 
 			Some(receiver)
-		}else {
+		} else {
 			None
 		};
 		let is_method = method_receiver.is_some();
@@ -404,6 +447,7 @@ impl Parser {
 			None
 		};
 
+		let parameters_token = self.peek_token.clone();
 		self.expect_peek(TokenType::LParen)?;
 
 		let mut parameters = self.parse_function_parameters()?;
@@ -425,6 +469,7 @@ impl Parser {
 
 		Ok(Function {
 			parameters,
+			parameters_token,
 			body,
 			name,
 			return_type,
@@ -452,12 +497,9 @@ impl Parser {
 			return Ok(identifiers);
 		}
 
-		self.next_token();
-
 		identifiers.push(self.parse_parameter()?);
 
 		while self.peek_token_is(TokenType::Comma) {
-			self.next_token();
 			self.next_token();
 
 			identifiers.push(self.parse_parameter()?);
@@ -484,7 +526,10 @@ impl Parser {
 					.get_integer().cloned().unwrap()
 					.to_string()
 			}
-			_ => return Err(ParserError::Generic(format!("Unexpected field token {:?}", self.peek_token)))
+			_ => return Err(ParserError {
+				token: None,
+				cause: ParserErrorCause::Generic(format!("Unexpected field token {:?}", self.peek_token)),
+			})
 		};
 
 		Ok(Expression::Field {
@@ -532,7 +577,10 @@ impl Parser {
 		}
 
 		if list.len() > u16::MAX as usize {
-			return Err(ParserError::ArrayTooLong(list.len()));
+			return Err(ParserError {
+				token: None,
+				cause: ParserErrorCause::ArrayTooLong(list.len()),
+			});
 		}
 
 		Ok(list)
@@ -583,8 +631,11 @@ impl Parser {
 				name: left,
 				constructor: StructConstructor::Block(fields),
 			})
-		}else {
-			Err(ParserError::Generic(format!("unexpected {{ token after {:?}", left)))
+		} else {
+			Err(ParserError {
+				token: None,
+				cause: ParserErrorCause::Generic(format!("unexpected {{ token after {:?}", left)),
+			})
 		}
 	}
 
@@ -593,7 +644,10 @@ impl Parser {
 		let ident = if let Expression::Identifier(ident) = left {
 			ident
 		} else {
-			return Err(ParserError::Generic(format!("expected identifier, got {:?}", left)));
+			return Err(ParserError {
+				token: None,
+				cause: ParserErrorCause::Generic(format!("expected identifier, got {:?}", left)),
+			});
 		};
 
 		self.next_token();
@@ -635,7 +689,10 @@ impl Parser {
 			TokenType::Bool => Ok(TypeExpr::Bool.into()),
 			TokenType::Str => Ok(TypeExpr::String.into()),
 			TokenType::Ident => Ok(ParsedType::Custom(self.cur_token.literal.get_string().unwrap().clone())),
-			_ => Err(ParserError::Generic(format!("unrecognized type: {:?}", self.cur_token))),
+			_ => Err(ParserError {
+				token: None,
+				cause: ParserErrorCause::Generic(format!("unrecognized type: {:?}", self.cur_token)),
+			}),
 		}
 	}
 
@@ -674,10 +731,13 @@ impl Parser {
 			self.next_token();
 			Ok(())
 		} else {
-			Err(ParserError::Generic(format!(
-				"expected next token to be {}, got {} instead",
-				t, self.peek_token.token_type
-			)))
+			Err(ParserError {
+				token: Some(self.peek_token.clone()),
+				cause: ParserErrorCause::UnexpectedTokenType {
+					expected: t,
+					actual: self.peek_token.token_type,
+				},
+			})
 		}
 	}
 
@@ -728,7 +788,58 @@ const fn precedences(token_type: TokenType) -> Option<Precedence> {
 type PResult<T> = Result<T, ParserError>;
 
 #[derive(Debug, PartialEq)]
-pub enum ParserError {
+pub struct ParserError {
+	//TODO Dissolve optional token
+	pub token: Option<Token>,
+	pub cause: ParserErrorCause,
+}
+
+impl ParserError {
+	pub fn show(&self, lexer: Lexer) -> String {
+		match &self.cause {
+			ParserErrorCause::UnexpectedTokenType { expected, actual } => {
+				let mut message = String::new();
+				writeln!(&mut message, "I am partway through parsing the input, but I got stuck here:\n").unwrap();
+
+				let token = self.token.as_ref().unwrap();
+
+				let mut lines = lexer.input.lines().skip(token.line);
+
+				if lexer.line > 0 {
+					let line_str = lines.next().unwrap();
+					write!(&mut message, "{}|{}", lexer.line - 1, line_str).unwrap();
+				}
+
+				let line_number = format!("{}| ", token.line);
+				write!(&mut message, "{}{}",
+					   line_number,
+					   lines.next().unwrap()
+				).unwrap();
+
+				writeln!(&mut message, "\n{}^", " ".repeat(line_number.len() + token.position)).unwrap();
+				writeln!(&mut message, "pos: {}", token.position).unwrap();
+
+				writeln!(&mut message, "I was expecting a token of type {:?}, but I found {:?}.", expected, actual).unwrap();
+
+				message
+			}
+			cause => {
+				format!("{:#?}\n{:#?}", self.token, cause)
+			}
+		}
+	}
+}
+
+impl fmt::Display for ParserError {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "parsing error")
+	}
+}
+
+impl Error for ParserError {}
+
+#[derive(Debug, PartialEq)]
+pub enum ParserErrorCause {
 	ExpectedType {
 		expected: String,
 		found: String,
@@ -736,14 +847,18 @@ pub enum ParserError {
 	InvalidGlobalToken(Token),
 	MissingGlobalFunctionName,
 	ArrayTooLong(usize),
+	UnexpectedTokenType {
+		expected: TokenType,
+		actual: TokenType,
+	},
 	//TODO Classify generic errors
 	Generic(String),
 }
 
-impl fmt::Display for ParserError {
+impl fmt::Display for ParserErrorCause {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
-			ParserError::ExpectedType { expected, found } => write!(f, "expected {}, found {}", expected, found),
+			ParserErrorCause::ExpectedType { expected, found } => write!(f, "expected {}, found {}", expected, found),
 			_ => write!(f, "{:?}", self),
 		}
 	}

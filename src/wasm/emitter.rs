@@ -478,8 +478,8 @@ enum ExportType {
 enum Opcodes {
 	Block = 0x02,
 	Loop = 0x03,
-	If = 0x04,
-	Else = 0x05,
+	// TODO If = 0x04,
+	// Else = 0x05,
 
 	End = 0x0B,
 	Br = 0x0C,

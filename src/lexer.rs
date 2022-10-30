@@ -2,13 +2,14 @@ use crate::token::{lookup_ident, Token, TokenLiteral, TokenType};
 
 pub struct Lexer {
 	//TODO Could be Chars
-	input: String,
+	pub input: String,
 	/// current position in input (points to current char)
 	position: usize,
 	/// current reading position in input (after current char)
 	read_position: usize,
 	/// current char under examination
 	ch: Option<char>,
+	pub line: usize,
 }
 
 impl Lexer {
@@ -18,6 +19,7 @@ impl Lexer {
 			position: 0,
 			read_position: 0,
 			ch: None,
+			line: 0,
 		};
 
 		lexer.read_char();
@@ -25,13 +27,12 @@ impl Lexer {
 		return lexer;
 	}
 
-	//TODO read runes instead of ascii chars
 	pub fn read_char(&mut self) {
-		if self.read_position >= self.input.len() {
-			self.ch = None;
-		} else {
-			self.ch = self.input.chars().nth(self.read_position);
+		if let Some('\n') = self.ch {
+			self.line += 1;
 		}
+
+		self.ch = self.input.chars().nth(self.read_position);
 
 		self.position = self.read_position;
 		self.read_position += 1;
@@ -46,8 +47,8 @@ impl Lexer {
 		loop {
 			if let TokenType::LineComment | TokenType::MultilineComment = token.token_type {
 				token = self.next_token_with_comments();
-			}else {
-				return token
+			} else {
+				return token;
 			}
 		}
 	}
@@ -55,88 +56,102 @@ impl Lexer {
 	pub fn next_token_with_comments(&mut self) -> Token {
 		let after_whitespace = self.skip_whitespace();
 
-		let token = match self.ch {
+		let position = self.position;
+		let line = self.line;
+
+		let (token_type, literal) = match self.ch {
 			Some(ch) => match ch {
 				'=' => match self.peek_char() {
 					Some('=') => {
 						self.read_char();
-						Token { token_type: TokenType::Eq, literal: TokenLiteral::Static("=="), after_whitespace }
+						(TokenType::Eq, TokenLiteral::Static("=="))
 					}
 					Some('>') => {
 						self.read_char();
-						Token { token_type: TokenType::BigRightArrow, literal: TokenLiteral::Static("=>"), after_whitespace }
+						(TokenType::BigRightArrow, TokenLiteral::Static("=>"))
 					}
-					_ => {
-						Token { token_type: TokenType::Assign, literal: TokenLiteral::Static("="), after_whitespace }
-					}
+					_ => (TokenType::Assign, TokenLiteral::Static("="))
 				},
 				//TODO += -= /= *= %=
-				'+' => Token { token_type: TokenType::Plus, literal: TokenLiteral::Static("+"), after_whitespace },
-				'-' => Token { token_type: TokenType::Minus, literal: TokenLiteral::Static("-"), after_whitespace },
+				'+' => (TokenType::Plus, TokenLiteral::Static("+")),
+				'-' => (TokenType::Minus, TokenLiteral::Static("-")),
 				'!' => if self.peek_char() == Some('=') {
 					self.read_char();
-					Token { token_type: TokenType::NotEq, literal: TokenLiteral::Static("!="), after_whitespace }
+					(TokenType::NotEq, TokenLiteral::Static("!="))
 				} else {
-					Token { token_type: TokenType::Bang, literal: TokenLiteral::Static("!"), after_whitespace }
+					(TokenType::Bang, TokenLiteral::Static("!"))
 				},
-				'*' => Token { token_type: TokenType::Asterisk, literal: TokenLiteral::Static("*"), after_whitespace },
+				'*' => (TokenType::Asterisk, TokenLiteral::Static("*")),
 				'/' => match self.peek_char() {
 					Some('=') => {
 						self.read_char();
-						Token { token_type: TokenType::Eq, literal: TokenLiteral::Static("=="), after_whitespace }
+						(TokenType::Eq, TokenLiteral::Static("=="))
 					}
 					Some('/') => {
 						self.read_char();
-						Token { token_type: TokenType::LineComment, literal: TokenLiteral::String(self.read_line_comment()), after_whitespace }
+						(TokenType::LineComment, TokenLiteral::String(self.read_line_comment()))
 					}
 					Some('*') => {
 						self.read_char();
-						Token { token_type: TokenType::MultilineComment, literal: TokenLiteral::String(self.read_multiline_comment()), after_whitespace }
+						(TokenType::MultilineComment, TokenLiteral::String(self.read_multiline_comment()))
 					}
-					_ => Token { token_type: TokenType::Slash, literal: TokenLiteral::Static("/"), after_whitespace }
+					_ => (TokenType::Slash, TokenLiteral::Static("/"))
 				},
 				//TODO %
 				//TODO <= >=
-				'<' => Token { token_type: TokenType::LT, literal: TokenLiteral::Static("<"), after_whitespace },
-				'>' => Token { token_type: TokenType::GT, literal: TokenLiteral::Static(">"), after_whitespace },
+				'<' => (TokenType::LT, TokenLiteral::Static("<")),
+				'>' => (TokenType::GT, TokenLiteral::Static(">")),
 				'&' => if self.peek_char() == Some('&') {
 					self.read_char();
-					Token { token_type: TokenType::And, literal: TokenLiteral::Static("&&"), after_whitespace }
+					(TokenType::And, TokenLiteral::Static("&&"))
 				} else {
-					Token { token_type: TokenType::Illegal, literal: TokenLiteral::Static(""), after_whitespace }
+					(TokenType::Illegal, TokenLiteral::Static(""))
 				},
-				',' => Token { token_type: TokenType::Comma, literal: TokenLiteral::Static(","), after_whitespace },
-				';' => Token { token_type: TokenType::Semicolon, literal: TokenLiteral::Static(";"), after_whitespace },
-				':' => Token { token_type: TokenType::Colon, literal: TokenLiteral::Static(":"), after_whitespace },
+				',' => (TokenType::Comma, TokenLiteral::Static(",")),
+				';' => (TokenType::Semicolon, TokenLiteral::Static(";")),
+				':' => (TokenType::Colon, TokenLiteral::Static(":")),
 				'|' => if self.peek_char() == Some('|') {
 					self.read_char();
-					Token { token_type: TokenType::Or, literal: TokenLiteral::Static("||"), after_whitespace }
+					(TokenType::Or, TokenLiteral::Static("||"))
 				} else {
-					Token { token_type: TokenType::VBar, literal: TokenLiteral::Static("|"), after_whitespace }
+					(TokenType::VBar, TokenLiteral::Static("|"))
 				},
-				'.' => Token { token_type: TokenType::Dot, literal: TokenLiteral::Static("."), after_whitespace },
-				'(' => Token { token_type: TokenType::LParen, literal: TokenLiteral::Static("("), after_whitespace },
-				')' => Token { token_type: TokenType::RParen, literal: TokenLiteral::Static(")"), after_whitespace },
-				'{' => Token { token_type: TokenType::LBrace, literal: TokenLiteral::Static("{"), after_whitespace },
-				'}' => Token { token_type: TokenType::RBrace, literal: TokenLiteral::Static("}"), after_whitespace },
-				'[' => Token { token_type: TokenType::LBracket, literal: TokenLiteral::Static("["), after_whitespace },
-				']' => Token { token_type: TokenType::RBracket, literal: TokenLiteral::Static("]"), after_whitespace },
-				'"' => Token { token_type: TokenType::String, literal: TokenLiteral::String(self.read_string()), after_whitespace },
+				'.' => (TokenType::Dot, TokenLiteral::Static(".")),
+				'(' => (TokenType::LParen, TokenLiteral::Static("(")),
+				')' => (TokenType::RParen, TokenLiteral::Static(")")),
+				'{' => (TokenType::LBrace, TokenLiteral::Static("{")),
+				'}' => (TokenType::RBrace, TokenLiteral::Static("}")),
+				'[' => (TokenType::LBracket, TokenLiteral::Static("[")),
+				']' => (TokenType::RBracket, TokenLiteral::Static("]")),
+				'"' => (TokenType::String, TokenLiteral::String(self.read_string())),
 				_ => if is_letter(self.ch) {
 					//Returning early to skip the read_char() at the end
-					return lookup_ident(self.read_identifier(), after_whitespace);
+					let (token_type, literal) = lookup_ident(self.read_identifier());
+					return Token {
+						token_type,
+						literal,
+						position,
+						line,
+						after_whitespace,
+					};
 				} else if is_digit(self.ch) {
 					return self.read_number(after_whitespace);
 				} else {
-					Token { token_type: TokenType::Illegal, literal: TokenLiteral::Static(""), after_whitespace }
+					(TokenType::Illegal, TokenLiteral::Static(""))
 				}
 			}
-			None => Token { token_type: TokenType::EOF, literal: TokenLiteral::Static(""), after_whitespace },
+			None => (TokenType::EOF, TokenLiteral::Static("")),
 		};
 
 		self.read_char();
 
-		token
+		Token {
+			token_type,
+			literal,
+			position,
+			line,
+			after_whitespace,
+		}
 	}
 
 	fn skip_whitespace(&mut self) -> bool {
@@ -161,15 +176,29 @@ impl Lexer {
 	}
 
 	fn read_number(&mut self, after_whitespace: bool) -> Token {
+		let position = self.position;
+		let line = self.line;
 		let number = self.read_integer();
 
 		if self.ch == Some('.') && is_digit(self.peek_char()) {
 			self.read_char();
 			let decimals = self.read_integer();
 
-			Token { token_type: TokenType::Float, literal: TokenLiteral::Float(number, decimals), after_whitespace }
+			Token {
+				token_type: TokenType::Float,
+				literal: TokenLiteral::Float(number, decimals),
+				position,
+				line,
+				after_whitespace,
+			}
 		} else {
-			Token { token_type: TokenType::Int, literal: TokenLiteral::Integer(number), after_whitespace }
+			Token {
+				token_type: TokenType::Int,
+				literal: TokenLiteral::Integer(number),
+				position,
+				line,
+				after_whitespace,
+			}
 		}
 	}
 
@@ -212,7 +241,7 @@ impl Lexer {
 
 		if position > self.position {
 			"".into()
-		}else {
+		} else {
 			self.input.chars()
 				.skip(position)
 				.take(self.position - position + 1)
@@ -232,15 +261,15 @@ impl Lexer {
 				(Some('/'), Some('*')) => {
 					nest_levels += 1;
 					self.read_char();
-				},
+				}
 				(Some('*'), Some('/')) => {
 					self.read_char();
 					if nest_levels == 0 {
 						break;
-					}else {
+					} else {
 						nest_levels -= 1;
 					}
-				},
+				}
 				_ => {}
 			}
 		}

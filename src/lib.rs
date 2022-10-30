@@ -18,10 +18,11 @@ pub mod server;
 
 use compiler::{Bytecode, Compiler};
 use lexer::Lexer;
-use parser::{Parser, ParserError};
+use parser::Parser;
 use token::TokenType;
 use type_checker::{TypeChecker, TypeCheckError};
 use vm::VM;
+use crate::parser::ParserError;
 
 //TODO Error if returned value is not handled
 //TODO (Go-style) Skip struct initializing field names and depend on order

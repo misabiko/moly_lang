@@ -2,116 +2,12 @@ use std::fmt;
 use crate::token::IntType;
 use crate::type_checker::TypeCheckError;
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct TypeBinding {
-	pub ident: String,
-	pub type_id: TypeId,
-}
-
-//TypeExpr is a weird name
-#[derive(Debug, PartialEq, Clone)]
-pub enum TypeExpr {
-	Void,
-	Int(IntType),
-	///Just f32 for now
-	Float,
-	Bool,
-	String,
-	Array(Box<TypeExpr>),
-	Function {
-		parameter_types: Vec<TypeExpr>,
-		return_type: Box<TypeExpr>,
-		is_method: bool,
-	},
-	Struct {
-		name: String,
-		fields: Vec<TypeBinding>,
-	},
-	/// Equivalent to Rust's never
-	Return(Box<TypeExpr>),
-	//TODO Remove TypeExpr::Any once builtin have been removed
-	Any,
-}
-
-impl fmt::Display for TypeExpr {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		match self {
-			TypeExpr::Void => write!(f, "void"),
-			TypeExpr::Int(IntType::U8) => write!(f, "u8"),
-			TypeExpr::Int(IntType::U16) => write!(f, "u16"),
-			TypeExpr::Int(IntType::U32) => write!(f, "u32"),
-			TypeExpr::Int(IntType::U64) => write!(f, "u64"),
-			TypeExpr::Int(IntType::I8) => write!(f, "i8"),
-			TypeExpr::Int(IntType::I16) => write!(f, "i16"),
-			TypeExpr::Int(IntType::I32) => write!(f, "i32"),
-			TypeExpr::Int(IntType::I64) => write!(f, "i64"),
-			TypeExpr::Float => write!(f, "f32"),
-			TypeExpr::Bool => write!(f, "bool"),
-			TypeExpr::String => write!(f, "str"),
-			TypeExpr::Function { parameter_types, return_type, is_method: false } => {
-				let parameter_types = parameter_types.iter()
-					.map(|t| t.to_string())
-					.collect::<Vec<String>>()
-					.join(", ");
-
-				write!(f, "fn({}) {} {{}}", parameter_types, return_type)
-			}
-			TypeExpr::Function { parameter_types, return_type, is_method: true } => {
-				let receiver = parameter_types.first().unwrap();
-				let parameter_types = parameter_types.iter()
-					.skip(1)
-					.map(|t| t.to_string())
-					.collect::<Vec<String>>()
-					.join(", ");
-
-				write!(f, "fn[{}] ({}) {} {{}}", receiver, parameter_types, return_type)
-			}
-			TypeExpr::Struct { name, .. } => write!(f, "{}", name),
-			TypeExpr::Array(element_type) => write!(f, "[{}]", element_type),
-			TypeExpr::Return(returned_type) => write!(f, "return {}", returned_type),
-			TypeExpr::Any => write!(f, "ANY"),
-		}
-	}
-}
-
-#[derive(Hash, Eq, PartialEq, Clone, Debug)]
-pub enum TypeId {
-	Void,
-	U8,
-	U16,
-	U32,
-	U64,
-	I8,
-	I16,
-	I32,
-	I64,
-	Float,
-	Bool,
-	String,
-	Array(Box<TypeId>),
-	Function {
-		parameters: Vec<TypeId>,
-		return_type: Box<TypeId>,
-		is_method: bool,
-	},
-	Return(Box<TypeId>),
-	//TODO Remove TypeId::Any
-	Any,
-	CustomType(usize),
-}
-
 pub struct TypeEnv {
 	types: Vec<(TypeId, TypeExpr)>,
 	bindings: Vec<TypeBinding>,
 	custom_types: Vec<(String, TypeId)>,
 
 	scope_stack: Vec<TypeScope>,
-}
-
-struct TypeScope {
-	binding_top: usize,
-	type_top: usize,
-	custom_type_top: usize,
 }
 
 impl TypeEnv {
@@ -243,4 +139,108 @@ impl TypeEnv {
 
 		None
 	}
+}
+
+//TypeExpr is a weird name
+#[derive(Debug, PartialEq, Clone)]
+pub enum TypeExpr {
+	Void,
+	Int(IntType),
+	///Just f32 for now
+	Float,
+	Bool,
+	String,
+	Array(Box<TypeExpr>),
+	Function {
+		parameter_types: Vec<TypeExpr>,
+		return_type: Box<TypeExpr>,
+		is_method: bool,
+	},
+	Struct {
+		name: String,
+		fields: Vec<TypeBinding>,
+	},
+	/// Equivalent to Rust's never
+	Return(Box<TypeExpr>),
+	//TODO Remove TypeExpr::Any once builtin have been removed
+	Any,
+}
+
+impl fmt::Display for TypeExpr {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		match self {
+			TypeExpr::Void => write!(f, "void"),
+			TypeExpr::Int(IntType::U8) => write!(f, "u8"),
+			TypeExpr::Int(IntType::U16) => write!(f, "u16"),
+			TypeExpr::Int(IntType::U32) => write!(f, "u32"),
+			TypeExpr::Int(IntType::U64) => write!(f, "u64"),
+			TypeExpr::Int(IntType::I8) => write!(f, "i8"),
+			TypeExpr::Int(IntType::I16) => write!(f, "i16"),
+			TypeExpr::Int(IntType::I32) => write!(f, "i32"),
+			TypeExpr::Int(IntType::I64) => write!(f, "i64"),
+			TypeExpr::Float => write!(f, "f32"),
+			TypeExpr::Bool => write!(f, "bool"),
+			TypeExpr::String => write!(f, "str"),
+			TypeExpr::Function { parameter_types, return_type, is_method: false } => {
+				let parameter_types = parameter_types.iter()
+					.map(|t| t.to_string())
+					.collect::<Vec<String>>()
+					.join(", ");
+
+				write!(f, "fn({}) {} {{}}", parameter_types, return_type)
+			}
+			TypeExpr::Function { parameter_types, return_type, is_method: true } => {
+				let receiver = parameter_types.first().unwrap();
+				let parameter_types = parameter_types.iter()
+					.skip(1)
+					.map(|t| t.to_string())
+					.collect::<Vec<String>>()
+					.join(", ");
+
+				write!(f, "fn[{}] ({}) {} {{}}", receiver, parameter_types, return_type)
+			}
+			TypeExpr::Struct { name, .. } => write!(f, "{}", name),
+			TypeExpr::Array(element_type) => write!(f, "[{}]", element_type),
+			TypeExpr::Return(returned_type) => write!(f, "return {}", returned_type),
+			TypeExpr::Any => write!(f, "ANY"),
+		}
+	}
+}
+
+#[derive(Hash, Eq, PartialEq, Clone, Debug)]
+pub enum TypeId {
+	Void,
+	U8,
+	U16,
+	U32,
+	U64,
+	I8,
+	I16,
+	I32,
+	I64,
+	Float,
+	Bool,
+	String,
+	Array(Box<TypeId>),
+	Function {
+		parameters: Vec<TypeId>,
+		return_type: Box<TypeId>,
+		is_method: bool,
+	},
+	Return(Box<TypeId>),
+	//TODO Remove TypeId::Any
+	Any,
+	CustomType(usize),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct TypeBinding {
+	pub ident: String,
+	pub type_id: TypeId,
+}
+
+struct TypeScope {
+	binding_top: usize,
+	type_top: usize,
+	custom_type_top: usize,
 }

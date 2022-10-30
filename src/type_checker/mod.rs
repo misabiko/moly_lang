@@ -1,4 +1,5 @@
 use std::convert::identity;
+use std::fmt::Formatter;
 use crate::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Program, Statement, StatementBlock, StructConstructor, StructDecl};
 use crate::object::builtins::get_builtins;
 use crate::token::IntType;
@@ -634,7 +635,7 @@ fn check_infix(operator: &InfixOperator, left: &TypedExpression, left_type: Type
 
 type TCResult<T> = Result<T, TypeCheckError>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TypeCheckError {
 	PrefixTypeMismatch {
 		operator: PrefixOperator,
@@ -673,4 +674,24 @@ pub enum TypeCheckError {
 		field: String,
 	},
 	Generic(String),
+}
+
+impl std::fmt::Display for TypeCheckError {
+	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+		match self {
+			TypeCheckError::PrefixTypeMismatch { .. } => write!(f, "type check PrefixTypeMismatch error"),
+			TypeCheckError::IndexTypeMismatch { .. } => write!(f, "type check IndexTypeMismatch error"),
+			TypeCheckError::IndexedTypeMismatch { .. } => write!(f, "type check IndexedTypeMismatch error"),
+			TypeCheckError::AssignMismatch { .. } => write!(f, "type check AssignMismatch error"),
+			TypeCheckError::EmptyArray => write!(f, "type check EmptyArray error"),
+			TypeCheckError::VoidArrayElem(_) => write!(f, "type check VoidArrayElem error"),
+			TypeCheckError::ArrayTypeMismatch(_) => write!(f, "type check ArrayTypeMismatch error"),
+			TypeCheckError::CallArgCount { .. } => write!(f, "type check CallArgCount error"),
+			TypeCheckError::CallArgTypeMismatch { .. } => write!(f, "type check CallArgTypeMismatch error"),
+			TypeCheckError::ReturnTypeMismatch { .. } => write!(f, "type check ReturnTypeMismatch error"),
+			TypeCheckError::UnknownType(_) => write!(f, "type check UnknownType error"),
+			TypeCheckError::UnknownField { .. } => write!(f, "type check UnknownField error"),
+			TypeCheckError::Generic(_) => write!(f, "type check Generic error"),
+		}
+	}
 }

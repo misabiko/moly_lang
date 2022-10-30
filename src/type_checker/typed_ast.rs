@@ -14,7 +14,7 @@ impl fmt::Display for TypedProgram {
 	}
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct TypedStatementBlock {
 	pub statements: Vec<TypedStatement>,
 	pub return_type: TypeExpr,
@@ -29,7 +29,7 @@ impl fmt::Display for TypedStatementBlock {
 	}
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TypedStatement {
 	Let {
 		name: String,
@@ -63,7 +63,7 @@ impl fmt::Display for TypedStatement {
 	}
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TypedExpression {
 	Identifier {
 		name: String,
@@ -153,13 +153,17 @@ impl fmt::Display for TypedExpression {
 			TypedExpression::Index { left, index } => write!(f, "({}[{}])", left, index),
 			TypedExpression::Block { block, .. } => write!(f, "{{{}}}", block),
 			TypedExpression::Struct { name, fields, .. } => {
-				//Could take note of block vs tuple
-				let fields = fields.iter()
-					.map(|(name, typ)| format!("{}: {}", name, typ))
-					.collect::<Vec<String>>()
-					.join(", ");
+				if fields.is_empty() {
+					write!(f, "{} {{}}", name)
+				}else {
+					//Could take note of block vs tuple
+					let fields = fields.iter()
+						.map(|(name, typ)| format!("{}: {}", name, typ))
+						.collect::<Vec<String>>()
+						.join(", ");
 
-				write!(f, "{} {{ {} }}", name, fields)
+					write!(f, "{} {{ {} }}", name, fields)
+				}
 			}
 			TypedExpression::Assignment { ident, new_value, .. } => write!(f, "{} = {}", ident, new_value),
 		}
@@ -173,7 +177,7 @@ fn join_expression_vec(expressions: &[TypedExpression]) -> String {
 		.join(", ")
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct TypedFunction {
 	pub parameters: Vec<(String, TypeExpr)>,
 	pub body: TypedStatementBlock,

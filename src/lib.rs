@@ -1,5 +1,6 @@
 extern crate core;
 
+use std::fmt::{Debug, Formatter};
 use std::path::PathBuf;
 use crate::ast::Program;
 
@@ -164,8 +165,17 @@ pub fn print_wat(input: &str, full_program: bool) {
 	}
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum MolyError {
 	Parse(ParserError),
 	TypeCheck(TypeCheckError),
+}
+
+impl std::fmt::Display for MolyError {
+	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+		match self {
+			MolyError::Parse(err) => std::fmt::Display::fmt(err, f),
+			MolyError::TypeCheck(err) => std::fmt::Display::fmt(err, f),
+		}
+	}
 }

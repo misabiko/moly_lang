@@ -2,6 +2,7 @@ use moly_lib::ast::{IntExpr, PrefixOperator};
 use moly_lib::lexer::Lexer;
 use moly_lib::MolyError;
 use moly_lib::parser::Parser;
+use moly_lib::reporting::show_error;
 use moly_lib::token::{IntType, TokenType};
 use moly_lib::type_checker::{TypeChecker, TypeCheckError};
 use moly_lib::type_checker::typed_ast::{TypedStatementBlock, TypedExpression, TypedProgram, TypedStatement, TypedFunction};
@@ -502,7 +503,15 @@ fn test_method() {
 
 	for (input, expected) in tests {
 		let stmt = type_check(input);
-		assert_eq!(stmt, expected)
+		match expected {
+			Ok(expected) => if let Err(err) = stmt {
+				eprintln!("{}", show_error(err.clone(), input.to_string()));
+				panic!("{}", err);
+			}else {
+				assert_eq!(stmt, Ok(expected))
+			}
+			Err(expected) => assert_eq!(stmt, expected),
+		}
 	}
 }
 

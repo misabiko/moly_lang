@@ -271,7 +271,19 @@ impl Compiler {
 
 				self.emit(Opcode::Call, &[length]);
 			}
-			TypedExpression::Field { .. } => todo!(),
+			TypedExpression::Field { field, binding_index, .. } => {
+				if let Some(_) = binding_index {
+					todo!()
+				}else {
+					let symbol = if let Some(s) = self.symbol_table.borrow_mut().resolve(&field) {
+						s
+					} else {
+						return Err(format!("undefined field {}", field));
+					};
+
+					self.load_symbol(symbol);
+				}
+			}
 			TypedExpression::Block { block, .. } => {
 				for stmt in block.statements {
 					self.compile_statement(stmt)?

@@ -15,6 +15,7 @@ pub enum SymbolScope {
 	Local,
 	/// Maximum of 256 symbols
 	Builtin,
+	/// Symbols captured by closure
 	/// Maximum of 256 symbols
 	Free,
 	/// Symbol representing the current running function, for recursion

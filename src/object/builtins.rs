@@ -167,9 +167,20 @@ pub fn get_builtin_functions() -> Vec<BuiltinInfo> {
 		},
 		//Temporary hard coded functions for wasm
 		BuiltinInfo {
-			name: "printf",
+			name: "printI32",
 			type_expr: TypeExpr::Function {
-				parameter_types: vec![TypeExpr::Float],
+				parameter_types: vec![TypeExpr::AnyParam(0)],
+				return_type: Box::new(TypeExpr::Void),
+				is_method: false,
+			},
+			builtin: |_args| {
+				None
+			},
+		},
+		BuiltinInfo {
+			name: "printF32",
+			type_expr: TypeExpr::Function {
+				parameter_types: vec![TypeExpr::AnyParam(0)],
 				return_type: Box::new(TypeExpr::Void),
 				is_method: false,
 			},

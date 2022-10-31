@@ -49,10 +49,18 @@ pub fn compile_block_with_header(block: TypedStatementBlock) -> Result<Vec<u8>, 
 			]),
 			flatten(vec![
 				encode_string("env"),
-				encode_string("printf"),
+				encode_string("printF32"),
 				vec![
 					ExportType::Func as u8,
 					0x01, // type index
+				],
+			]),
+			flatten(vec![
+				encode_string("env"),
+				encode_string("printI32"),
+				vec![
+					ExportType::Func as u8,
+					0x02, // type index
 				],
 			]),
 			flatten(vec![
@@ -87,7 +95,7 @@ pub fn compile_block_with_header(block: TypedStatementBlock) -> Result<Vec<u8>, 
 				vec![
 					ExportType::Func as u8,
 					//Needs to count from import index, for some reason
-					0x02,	// function index
+					0x03,	// function index
 				]
 			])
 		])
@@ -303,8 +311,10 @@ impl WasmEmitter {
 				if let TypedExpression::Identifier { name, .. } = *function {
 					if name == "print" {
 						return self.compile_builtin(&mut arguments, 0);
-					} else if name == "printf" {
+					} else if name == "printF32" {
 						return self.compile_builtin(&mut arguments, 1);
+					} else if name == "printI32" {
+						return self.compile_builtin(&mut arguments, 2);
 					} else if name == "setpixel" {
 						return self.compile_set_pixel(&mut arguments);
 					} else {

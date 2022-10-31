@@ -5,8 +5,8 @@ const memory = new WebAssembly.Memory({ initial: 1 });
 const result = await WebAssembly.instantiate(bytecode, {
 	env: {
 		print: (d: number) => output.push(d),
-		print2: (d: number) => output.push(d),
-		printf: (d: number) => output.push(d),
+		printI32: (d: number) => output.push(d),
+		printF32: (d: number) => output.push(d),
 		memory,
 	},
 });

@@ -67,8 +67,8 @@ async function runCode() {
 	const result = await WebAssembly.instantiate(bytecode_buffer, {
 		env: {
 			print: (d) => output.push(d),
-			print2: (d) => output.push(d),
-			printf: (d) => output.push(d),
+			printI32: (d) => output.push(d),
+			printF32: (d) => output.push(d),
 			memory,
 			display: (display as any),
 		},

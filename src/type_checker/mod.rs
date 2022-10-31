@@ -2,7 +2,7 @@ use std::convert::identity;
 use std::fmt::Formatter;
 use crate::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Program, Statement, StatementBlock, StructConstructor, StructDecl};
 use crate::object::builtins::{get_builtin_functions, get_builtin_traits};
-use crate::type_checker::type_env::{TypeBinding, TypeEnv, TypeExpr, TypeId};
+use crate::type_checker::type_env::{type_id_eq, TypeBinding, TypeEnv, TypeExpr, TypeId};
 use crate::type_checker::typed_ast::{TypedExpression, TypedFunction, TypedProgram, TypedStatement, TypedStatementBlock};
 
 pub mod typed_ast;
@@ -293,6 +293,7 @@ impl TypeChecker {
 								});
 							}
 
+							let mut concrete_params = vec![];
 							for (arg, param) in argument_types.iter().zip(parameter_types.iter()) {
 								match param {
 									TypeId::Array(elements) => if let TypeId::Any = elements.as_ref() {
@@ -301,7 +302,7 @@ impl TypeChecker {
 									TypeId::Any => continue,
 									_ => {}
 								}
-								if arg != param {
+								if !type_id_eq(arg, param, &mut concrete_params) {
 									return Err(TypeCheckError::CallArgTypeMismatch {
 										parameter_types,
 										argument_types,

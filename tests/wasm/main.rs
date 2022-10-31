@@ -13,19 +13,19 @@ fn test_print() {
 			"[]\n",
 		),
 		(
-			"print(43)",
+			"printI32(43)",
 			"[ 43 ]\n",
 		),
 		(
-			"print(8); print(300); print(70000); ",
+			"printI32(8); printI32(300); printI32(70000); ",
 			"[ 8, 300, 70000 ]\n"
 		),
 		(
-			"print(-8); print(-300); print(-70000); ",
+			"printI32(-8); printI32(-300); printI32(-70000); ",
 			"[ -8, -300, -70000 ]\n"
 		),
 		(
-			"printf(22.5)",
+			"printF32(22.5)",
 			"[ 22.5 ]\n",
 		),
 	];
@@ -39,11 +39,11 @@ fn test_print() {
 fn test_infix() {
 	let tests = vec![
 		(
-			"print(2 + 4)",
+			"printI32(2 + 4)",
 			"[ 6 ]\n",
 		),
 		(
-			"print((6 - 4) + 10)",
+			"printI32((6 - 4) + 10)",
 			"[ 12 ]\n",
 		),
 	];
@@ -57,19 +57,19 @@ fn test_infix() {
 fn test_variables() {
 	let tests = vec![
 		(
-			"let f = 22; print(f);",
+			"let f = 22; printI32(f);",
 			"[ 22 ]\n",
 		),
 		(
-			"let f = 22.5; printf(f);",
+			"let f = 22.5; printF32(f);",
 			"[ 22.5 ]\n",
 		),
 		(
-			"let f = 22; f = (f+1); print(f);",
+			"let f = 22; f = (f+1); printI32(f);",
 			"[ 23 ]\n",
 		),
 		(
-			"let f = 22.5; f = (f+1.5); printf(f);",
+			"let f = 22.5; f = (f+1.5); printF32(f);",
 			"[ 24 ]\n",
 		),
 	];
@@ -83,7 +83,7 @@ fn test_variables() {
 fn test_while() {
 	let tests = vec![
 		(
-			"let f = 0; while f < 5 {f = (f + 1); print(f);}",
+			"let f = 0; while f < 5 {f = (f + 1); printI32(f);}",
 			"[ 1, 2, 3, 4, 5 ]\n",
 		),
 	];
@@ -170,7 +170,8 @@ fn run_test(i: usize, input: &'static str, expected: &'static str, executer: &'s
 
 	//println!("{:#?}", cmd_output);
 
-	assert!(cmd_output.status.success(), "failed to execute wasm:\n{}\n\nWAT\n{}",
+	assert!(cmd_output.status.success(), "{}: failed to execute wasm:\n{}\n\nWAT\n{}",
+			i,
 			std::str::from_utf8(cmd_output.stderr.as_slice()).unwrap(),
 			wasmprinter::print_bytes(bytecode.clone()).unwrap(),
 	);

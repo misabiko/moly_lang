@@ -180,7 +180,7 @@ impl TypeEnv {
 }
 
 //a must be concrete type
-fn type_id_eq(a: &TypeId, b: &TypeId, mut params: &mut Vec<TypeId>) -> bool {
+pub fn type_id_eq(a: &TypeId, b: &TypeId, mut params: &mut Vec<TypeId>) -> bool {
 	if let TypeId::AnyParam(index) = b {
 		return if params.len() > *index {
 			let b = params[*index].clone();
@@ -197,11 +197,11 @@ fn type_id_eq(a: &TypeId, b: &TypeId, mut params: &mut Vec<TypeId>) -> bool {
 
 	match (a, b) {
 		(TypeId::Array(a_elem), TypeId::Array(b_elem)) => type_id_eq(a_elem, b_elem, &mut params),
-		_ => panic!("type_id_eq({:?}, {:?}) not implemented", a, b),
+		_ => false,
 	}
 }
 
-fn concretize_type_id(type_id: &TypeId, params: &Vec<TypeId>) -> TypeId {
+pub fn concretize_type_id(type_id: &TypeId, params: &Vec<TypeId>) -> TypeId {
 	match type_id {
 		TypeId::AnyParam(index) => params[*index].clone(),
 		TypeId::Array(t) => TypeId::Array(Box::new(concretize_type_id(t, &params))),

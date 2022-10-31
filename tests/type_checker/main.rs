@@ -384,12 +384,12 @@ fn test_struct_construction() {
 								("name".into(), TypedExpression::String("Bob".into())),
 								("age".into(), TypedExpression::Integer(IntExpr::U8(24))),
 							],
-							type_id: TypeId::Struct(0),
+							type_id: TypeId::Struct(1),
 						},
 						has_semicolon: false,
 					}
 				],
-				return_type: TypeId::Struct(0),
+				return_type: TypeId::Struct(1),
 			}),
 		),
 		(
@@ -403,9 +403,9 @@ fn test_struct_construction() {
 						expr: TypedExpression::Call {
 							function: Box::new(TypedExpression::Identifier {
 								name: "Pair".into(),
-								type_id: TypeId::Struct(0),
+								type_id: TypeId::Struct(1),
 							}),
-							return_type: TypeId::Struct(0),
+							return_type: TypeId::Struct(1),
 							arguments: vec![
 								TypedExpression::Integer(IntExpr::I32(10)),
 								TypedExpression::Integer(IntExpr::U32(1)),
@@ -414,7 +414,7 @@ fn test_struct_construction() {
 						has_semicolon: false,
 					}
 				],
-				return_type: TypeId::Struct(0),
+				return_type: TypeId::Struct(1),
 			}),
 		),
 	];
@@ -426,75 +426,106 @@ fn test_struct_construction() {
 }
 
 #[test]
-fn test_method() {
+fn test_method_is_declared() {
 	let tests = vec![
-		(
-			r#"struct Apple {}
+		r#"struct Apple {}
 
-				fn[a Apple] myFunc() {}
-
-				fn main() {
-					Apple{}.myFunc()
-				}
-			"#,
-			Ok(TypedProgram(vec![
-				TypedStatement::Function(TypedFunction {
-					parameters: vec![("a".into(), TypeId::Struct(0))],
-					body: TypedStatementBlock {
-						statements: vec![],
-						return_type: TypeId::Void,
-					},
-					return_type: TypeId::Void,
-					name: Some("myFunc".into()),
-					is_method: true,
-				}),
-				TypedStatement::Function(TypedFunction {
-					parameters: vec![],
-					body: TypedStatementBlock {
-						statements: vec![
-							TypedStatement::Expression {
-								expr: TypedExpression::Call {
-									function: Box::new(TypedExpression::Field {
-										left: Box::new(TypedExpression::Struct {
-											name: "Apple".into(),
-											fields: vec![],
-											type_id: TypeId::Struct(0),
-										}),
-										field: "myFunc".into(),
-										left_type: TypeId::Struct(0),
-										field_type: TypeId::Function {
-											parameters: vec![TypeId::Struct(0)],
-											return_type: Box::new(TypeId::Void),
-											is_method: true,
-										},
-										binding_index: None,
-									}),
-									arguments: vec![],
-									return_type: TypeId::Void,
-								},
-								has_semicolon: false,
-							}
-						],
-						return_type: TypeId::Void,
-					},
-					return_type: TypeId::Void,
-					name: Some("main".into()),
-					is_method: false,
-				}),
-			])),
-		),
+			fn[a Apple] myFunc() bool { true }
+		"#,
 	];
 
-	for (input, expected) in tests {
-		let stmt = type_check(input);
-		match expected {
-			Ok(expected) => if let Err(err) = stmt {
+	for input in tests {
+		let mut type_checker = TypeChecker::new_without_builtins();
+
+		let stmt = (|| {
+			let program = match Parser::new(Lexer::new(input)).parse_program() {
+				Ok(p) => p,
+				Err(err) => return Err(MolyError::Parse(err)),
+			};
+
+			type_checker.push_scope(false);
+
+			match type_checker.check(program, false) {
+				Ok(program) => Ok(program),
+				Err(err) => return Err(MolyError::TypeCheck(err)),
+			}
+		})();
+
+		match stmt {
+			Err(err) => {
 				eprintln!("{}", show_error(err.clone(), input.to_string()));
 				panic!("{}", err);
-			}else {
-				assert_eq!(stmt, Ok(expected))
 			}
-			Err(expected) => assert_eq!(stmt, expected),
+			Ok(_) => {
+				let apple_id = type_checker.type_env.get_custom_type(&"Apple".to_string())
+					.expect("apple_id is none");
+				assert!(matches!(apple_id, TypeId::Struct(_)));
+
+				let method = type_checker.type_env.get_method(&"myFunc".to_string(), &apple_id);
+
+				if let Some(TypeId::Function {return_type, is_method: true, .. }) = method {
+					assert_eq!(return_type, Box::new(TypeId::Bool));
+				}else {
+					panic!("{:?} not method", method)
+				}
+			}
+		}
+	}
+}
+
+#[test]
+fn test_method_is_callable() {
+	let tests = vec![
+		r#"struct Apple {}
+
+			fn[a Apple] myFunc() bool { true }
+
+			fn main() bool {
+				Apple{}.myFunc()
+			}
+		"#,
+	];
+
+	for input in tests {
+		let stmt = type_check(input);
+		match stmt {
+			Err(err) => {
+				eprintln!("{}", show_error(err.clone(), input.to_string()));
+				panic!("{}", err);
+			}
+			Ok(stmt) => {
+				let main = if let TypedStatement::Function(main) = &stmt.0.last().unwrap() {
+					main
+				} else {
+					panic!("{:?} not main", &stmt.0.last().unwrap())
+				};
+
+				let expr = if let TypedStatement::Expression { expr, .. } = &main.body.statements[0] {
+					expr
+				} else {
+					panic!("{:?} not expr", &main.body.statements[0])
+				};
+
+				let call_type = if let TypedExpression::Call { function, .. } = &expr {
+					function
+				} else {
+					panic!("{:?} not field", expr)
+				};
+
+				let field_type = if let TypedExpression::Field { field_type, .. } = call_type.as_ref() {
+					field_type
+				} else {
+					panic!("{:?} not field", expr)
+				};
+
+				let return_type = if let TypeId::Function { return_type, .. } = &field_type {
+					return_type
+				} else {
+					panic!("{:?} not function", field_type)
+				};
+
+				assert_eq!(return_type, &Box::new(TypeId::Bool))
+			}
 		}
 	}
 }

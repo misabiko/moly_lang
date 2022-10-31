@@ -10,7 +10,7 @@ pub mod type_env;
 
 pub struct TypeChecker {
 	pub type_env: TypeEnv,
-	scope_return_types: Vec<Option<TypeId>>,
+	pub scope_return_types: Vec<Option<TypeId>>,
 }
 
 impl TypeChecker {
@@ -30,8 +30,16 @@ impl TypeChecker {
 			type_env,
 			scope_return_types: vec![],
 		}
-	}
+    }
 
+    pub fn new_without_builtins() -> Self {
+        Self {
+            type_env: TypeEnv::new(),
+            scope_return_types: vec![],
+        }
+    }
+
+	///Setting `new_scope` to false and manually pushing scope avoids the top types being popped
 	pub fn check(&mut self, program: Program, new_scope: bool) -> TCResult<TypedProgram> {
 		let block = self.check_block(program, new_scope, false)?;
 
@@ -40,12 +48,7 @@ impl TypeChecker {
 
 	pub fn check_block(&mut self, block: StatementBlock, new_scope: bool, already_type_scoped: bool) -> TCResult<TypedStatementBlock> {
 		if new_scope {
-			self.scope_return_types.push(None);
-
-			//Kind of hard-coded bool to include function's parameters in the scope
-			if !already_type_scoped {
-				self.type_env.push_scope();
-			}
+			self.push_scope(already_type_scoped);
 		}
 
 		let statements = block.0.into_iter()
@@ -113,7 +116,18 @@ impl TypeChecker {
 
 				Ok(Some(TypedStatement::Return(Some(returned))))
 			}
-			Statement::Function(func) => Ok(Some(TypedStatement::Function(self.check_function(func, true)?.0))),
+			Statement::Function(func) => {
+				let (func, func_type) = self.check_function(func, true)?;
+
+				if func.is_method {
+					self.type_env.define_identifier(
+						func.name.as_ref().unwrap(),
+						func_type,
+					);
+				}
+
+				Ok(Some(TypedStatement::Function(func)))
+			}
 			Statement::Struct { name, decl } => {
 				self.check_struct_decl(name, decl)?;
 				Ok(None)
@@ -630,6 +644,15 @@ impl TypeChecker {
 				Some(t) => Ok(t.clone()),
 				None => Err(TypeCheckError::UnknownType(name)),
 			}
+		}
+	}
+
+	pub fn push_scope(&mut self, already_type_scoped: bool) {
+		self.scope_return_types.push(None);
+
+		//Kind of hard-coded bool to include function's parameters in the scope
+		if !already_type_scoped {
+			self.type_env.push_scope();
 		}
 	}
 }

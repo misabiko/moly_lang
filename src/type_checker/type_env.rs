@@ -3,6 +3,7 @@ use crate::token::IntType;
 use crate::type_checker::TypeCheckError;
 use crate::type_checker::typed_ast::TypedFunction;
 
+#[derive(Debug)]
 pub struct TypeEnv {
 	types: Vec<TypeInfo>,
 	bindings: Vec<TypeBinding>,
@@ -10,6 +11,7 @@ pub struct TypeEnv {
 	scope_stack: Vec<TypeScope>,
 }
 
+#[derive(Debug)]
 pub struct TypeInfo {
 	pub id: TypeId,
 	pub expr: TypeExpr,
@@ -325,6 +327,7 @@ pub struct TypeBinding {
 	pub type_id: TypeId,
 }
 
+#[derive(Debug)]
 struct TypeScope {
 	binding_top: usize,
 	type_top: usize,

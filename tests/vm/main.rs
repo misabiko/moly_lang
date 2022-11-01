@@ -373,37 +373,39 @@ fn test_calling_functions_with_arguments_and_bindings() {
 #[test]
 fn test_builtin_functions() {
 	let tests = vec![
-		TestCase {input: r#"len("")"#, expected: Ok(Some(Object::U64(0)))},
-		TestCase {input: r#"len("four")"#, expected: Ok(Some(Object::U64(4)))},
-		TestCase {input: r#"len("hello world")"#, expected: Ok(Some(Object::U64(11)))},
-		TestCase {
-			input: "len(1)",
+		//TODO Add universal function call syntax
+		TestCase {input: r#""".len()"#, expected: Ok(Some(Object::U64(0)))},
+		TestCase {input: r#""four".len()"#, expected: Ok(Some(Object::U64(4)))},
+		TestCase {input: r#""hello world".len()"#, expected: Ok(Some(Object::U64(11)))},
+		/*TODO Add and test array trait
+		   TestCase {
+			input: "1.len()",
 			expected: Ok(Some(Object::Error("argument to `len` not supported, got U8(1)".into())))
-		},
-		TestCase {input: "len([1, 2, 3])", expected: Ok(Some(Object::U64(3)))},
-		TestCase {input: "len([1])", expected: Ok(Some(Object::U64(1)))},
-		TestCase {input: "first([1, 2, 3])", expected: Ok(Some(Object::U8(1)))},
-		TestCase {
-			input: "first(1)",
+		},*/
+		TestCase {input: "[1, 2, 3].len()", expected: Ok(Some(Object::U64(3)))},
+		TestCase {input: "[1].len()", expected: Ok(Some(Object::U64(1)))},
+		TestCase {input: "[1, 2, 3].first()", expected: Ok(Some(Object::U8(1)))},
+		/*TestCase {
+			input: "1.first()",
 			expected: Ok(Some(Object::Error("argument to `first` must be Array, got U8(1)".into())))
-		},
-		TestCase {input: "last([1, 2, 3])", expected: Ok(Some(Object::U8(3)))},
-		TestCase {
-			input: "last(1)",
+		},*/
+		TestCase {input: "[1, 2, 3].last()", expected: Ok(Some(Object::U8(3)))},
+		/*TestCase {
+			input: "1.last()",
 			expected: Ok(Some(Object::Error("argument to `last` must be Array, got U8(1)".into())))
-		},
-		TestCase {input: "rest([1, 2, 3])", expected: Ok(Some(Object::Array(vec![
+		},*/
+		TestCase {input: "[1, 2, 3].rest()", expected: Ok(Some(Object::Array(vec![
 			Object::U8(2),
 			Object::U8(3),
 		])))},
-		TestCase {input: "push([1], 1)", expected: Ok(Some(Object::Array(vec![
+		TestCase {input: "[1].push(1)", expected: Ok(Some(Object::Array(vec![
 			Object::U8(1),
 			Object::U8(1),
 		])))},
-		TestCase {
-			input: "push(1, 1)",
+		/*TestCase {
+			input: "1.push(1)",
 			expected: Ok(Some(Object::Error("argument to `push` must be Array, got U8(1)".into())))
-		},
+		},*/
 	];
 
 	run_vm_tests(tests, true)

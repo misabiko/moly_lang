@@ -1,7 +1,7 @@
 use std::convert::identity;
 use std::fmt::Formatter;
 use crate::ast::{Expression, Function, InfixOperator, IntExpr, ParsedType, PrefixOperator, Program, Statement, StatementBlock, StructConstructor, StructDecl};
-use crate::object::builtins::{get_builtin_functions, get_builtin_traits};
+use crate::object::builtins::{get_builtin_functions};
 use crate::type_checker::type_env::{type_id_eq, TypeBinding, TypeEnv, TypeExpr, TypeId};
 use crate::type_checker::typed_ast::{TypedExpression, TypedFunction, TypedProgram, TypedStatement, TypedStatementBlock};
 
@@ -16,10 +16,6 @@ pub struct TypeChecker {
 impl TypeChecker {
 	pub fn new() -> Self {
 		let mut type_env = TypeEnv::new();
-
-		for v in get_builtin_traits() {
-			type_env.define_type(v.name.into(), v.type_expr).unwrap();
-		}
 
 		for v in get_builtin_functions() {
 			let id = type_env.get_id(&v.type_expr).unwrap();
@@ -273,7 +269,7 @@ impl TypeChecker {
 			Expression::Call { function, arguments } => {
 				let (function, function_type) = self.check_expression(*function)?;
 
-				let (arguments, argument_types): (Vec<TypedExpression>, Vec<TypeId>) = arguments.into_iter()
+				let (mut arguments, mut argument_types): (Vec<TypedExpression>, Vec<TypeId>) = arguments.into_iter()
 					.map(|arg| self.check_expression(arg))
 					.collect::<TCResult<Vec<(TypedExpression, TypeId)>>>()?
 					.into_iter()
@@ -281,8 +277,11 @@ impl TypeChecker {
 
 				let return_type = match function_type {
 					TypeId::Function { parameters: parameter_types, return_type, is_method } => {
-						if let TypedExpression::Field { .. } = &function {
-							if !is_method {
+						if let TypedExpression::Field { left, left_type, .. } = &function {
+							if is_method {
+								arguments.insert(0, *left.clone());
+								argument_types.insert(0, left_type.clone());
+							} else {
 								return Err(TypeCheckError::Generic(format!("{} isn't a method", function)))
 							}
 						}else {

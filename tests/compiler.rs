@@ -682,6 +682,18 @@ fn test_builtins() {
 	let tests = vec![
 		TestCase {
 			input: "
+            [1].len()
+            ",
+			expected_constants: vec![Object::U8(1)],
+			expected_instructions: vec![
+				make(Opcode::GetBuiltin, &[0]),
+				make(Opcode::Constant, &[0]),
+				make(Opcode::Array, &[1]),
+				make(Opcode::Call, &[1]),
+			],
+		},
+		TestCase {
+			input: "
             [1].len();
             [1].push(2)
             ",

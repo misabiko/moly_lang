@@ -13,15 +13,15 @@ fn test_print() {
 			"[]\n",
 		),
 		(
-			"printI32(43)",
+			"printI32(43i32)",
 			"[ 43 ]\n",
 		),
 		(
-			"printI32(8); printI32(300); printI32(70000); ",
+			"printI32(8i32); printI32(300i32); printI32(70000i32); ",
 			"[ 8, 300, 70000 ]\n"
 		),
 		(
-			"printI32(-8); printI32(-300); printI32(-70000); ",
+			"printI32(-8i32); printI32(-300i32); printI32(-70000i32); ",
 			"[ -8, -300, -70000 ]\n"
 		),
 		(
@@ -39,11 +39,11 @@ fn test_print() {
 fn test_infix() {
 	let tests = vec![
 		(
-			"printI32(2 + 4)",
+			"printI32(2i32 + 4i32)",
 			"[ 6 ]\n",
 		),
 		(
-			"printI32((6 - 4) + 10)",
+			"printI32((6i32 - 4i32) + 10i32)",
 			"[ 12 ]\n",
 		),
 	];
@@ -57,7 +57,7 @@ fn test_infix() {
 fn test_variables() {
 	let tests = vec![
 		(
-			"let f = 22; printI32(f);",
+			"let f = 22i32; printI32(f);",
 			"[ 22 ]\n",
 		),
 		(
@@ -65,7 +65,7 @@ fn test_variables() {
 			"[ 22.5 ]\n",
 		),
 		(
-			"let f = 22; f = (f+1); printI32(f);",
+			"let f = 22i32; f = (f+1i32); printI32(f);",
 			"[ 23 ]\n",
 		),
 		(
@@ -83,7 +83,7 @@ fn test_variables() {
 fn test_while() {
 	let tests = vec![
 		(
-			"let f = 0; while f < 5 {f = (f + 1); printI32(f);}",
+			"let f = 0i32; while f < 5i32 {f = (f + 1i32); printI32(f);}",
 			"[ 1, 2, 3, 4, 5 ]\n",
 		),
 	];

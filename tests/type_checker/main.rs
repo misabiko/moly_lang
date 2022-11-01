@@ -384,12 +384,12 @@ fn test_struct_construction() {
 								("name".into(), TypedExpression::String("Bob".into())),
 								("age".into(), TypedExpression::Integer(IntExpr::U8(24))),
 							],
-							type_id: TypeId::Struct(1),
+							type_id: TypeId::Struct(0),
 						},
 						has_semicolon: false,
 					}
 				],
-				return_type: TypeId::Struct(1),
+				return_type: TypeId::Struct(0),
 			}),
 		),
 		(
@@ -403,9 +403,9 @@ fn test_struct_construction() {
 						expr: TypedExpression::Call {
 							function: Box::new(TypedExpression::Identifier {
 								name: "Pair".into(),
-								type_id: TypeId::Struct(1),
+								type_id: TypeId::Struct(0),
 							}),
-							return_type: TypeId::Struct(1),
+							return_type: TypeId::Struct(0),
 							arguments: vec![
 								TypedExpression::Integer(IntExpr::I32(10)),
 								TypedExpression::Integer(IntExpr::U32(1)),
@@ -414,7 +414,7 @@ fn test_struct_construction() {
 						has_semicolon: false,
 					}
 				],
-				return_type: TypeId::Struct(1),
+				return_type: TypeId::Struct(0),
 			}),
 		),
 	];

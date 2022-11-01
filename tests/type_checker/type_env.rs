@@ -35,7 +35,6 @@ fn test_struct_is_registered() {
 				panic!("{}", err);
 			}
 			Ok(_) => {
-				println!("{:#?}", type_checker.type_env);
 				let apple_id = type_checker.type_env.get_custom_type(&"Apple".to_string());
 				assert_eq!(apple_id, Some(&TypeId::Struct(0)));
 			}

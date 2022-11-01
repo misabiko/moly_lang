@@ -1,7 +1,6 @@
 use crate::object::{Builtin, Object};
 use crate::token::IntType;
-use crate::type_checker::type_env::{TypeExpr, TypeId};
-use crate::type_checker::typed_ast::{TypedFunction, TypedStatementBlock};
+use crate::type_checker::type_env::TypeExpr;
 
 pub struct BuiltinInfo {
 	pub name: &'static str,
@@ -9,66 +8,21 @@ pub struct BuiltinInfo {
 	pub builtin: Builtin,
 }
 
-pub struct BuiltinTraitInfo {
-	pub name: &'static str,
-	pub type_expr: TypeExpr,
-	pub builtins: Vec<Builtin>,
-}
-
-pub fn get_builtin_traits() -> Vec<BuiltinTraitInfo> {
+pub fn get_builtin_functions() -> Vec<BuiltinInfo> {
 	vec![
-		/*BuiltinTraitInfo {
-			name: "Array",
-			type_expr: TypeExpr::Trait {
-				methods: vec![
-					TypedFunction {
-						name: Some("first".into()),
-						parameters: vec![TypeExpr::Array(Box::new(TypeExpr::TraitParam()))],
-						body: TypedStatementBlock {},
-						is_method: true
-					}
-				]
-			}
-		},*/
-		BuiltinTraitInfo {
-			name: "Length",
-			type_expr: TypeExpr::Trait {
-				name: "Length".into(),
-				methods: vec![
-					TypedFunction {
-						name: Some("len".into()),
-						parameters: vec![("a".into(), TypeId::TraitParam(0, 0))],
-						body: TypedStatementBlock {
-							statements: vec![],
-							return_type: TypeId::U64,
-						},
-						return_type: TypeId::U64,
-						is_method: true,
-					}
-				]
+		BuiltinInfo {
+			name: "len",
+			type_expr: TypeExpr::Function {
+				parameter_types: vec![TypeExpr::AnyParam(0)],
+				return_type: Box::new(TypeExpr::Int(IntType::U64)),
+				is_method: true,
 			},
-			builtins: vec![|args| {
+			builtin: |args| {
 				Some(match &args[0] {
 					Object::Array(elements) => Object::U64(elements.len() as u64),
 					Object::String(value) => Object::U64(value.len() as u64),
 					arg => Object::Error(format!("argument to `len` not supported, got {:?}", arg)),
 				})
-			}]
-		},
-	]
-}
-
-pub fn get_builtin_functions() -> Vec<BuiltinInfo> {
-	vec![
-		BuiltinInfo {
-			name: "blehlen",
-			type_expr: TypeExpr::Function {
-				parameter_types: vec![TypeExpr::Any],
-				return_type: Box::new(TypeExpr::Int(IntType::U64)),
-				is_method: false,
-			},
-			builtin: |_args| {
-				Some(Object::Error(format!("switching to traits")))
 			},
 		},
 		BuiltinInfo {
@@ -103,11 +57,11 @@ pub fn get_builtin_functions() -> Vec<BuiltinInfo> {
 		},
 		//These require template typing
 		BuiltinInfo {
-			name: "blehfirst",
+			name: "first",
 			type_expr: TypeExpr::Function {
-				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any))],
-				return_type: Box::new(TypeExpr::Any),
-				is_method: false,
+				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::AnyParam(0)))],
+				return_type: Box::new(TypeExpr::AnyParam(0)),
+				is_method: true,
 			},
 			builtin: |args| {
 				if let Object::Array(elements) = &args[0] {
@@ -120,9 +74,9 @@ pub fn get_builtin_functions() -> Vec<BuiltinInfo> {
 		BuiltinInfo {
 			name: "last",
 			type_expr: TypeExpr::Function {
-				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any))],
-				return_type: Box::new(TypeExpr::Any),
-				is_method: false,
+				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::AnyParam(0)))],
+				return_type: Box::new(TypeExpr::AnyParam(0)),
+				is_method: true,
 			},
 			builtin: |args| {
 				if let Object::Array(elements) = &args[0] {
@@ -135,9 +89,9 @@ pub fn get_builtin_functions() -> Vec<BuiltinInfo> {
 		BuiltinInfo {
 			name: "rest",
 			type_expr: TypeExpr::Function {
-				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::Any))],
-				return_type: Box::new(TypeExpr::Any),
-				is_method: false,
+				parameter_types: vec![TypeExpr::Array(Box::new(TypeExpr::AnyParam(0)))],
+				return_type: Box::new(TypeExpr::AnyParam(0)),
+				is_method: true,
 			},
 			builtin: |args| {
 				if let Object::Array(elements) = &args[0] {
@@ -169,7 +123,7 @@ pub fn get_builtin_functions() -> Vec<BuiltinInfo> {
 		BuiltinInfo {
 			name: "printI32",
 			type_expr: TypeExpr::Function {
-				parameter_types: vec![TypeExpr::AnyParam(0)],
+				parameter_types: vec![TypeExpr::Int(IntType::I32)],
 				return_type: Box::new(TypeExpr::Void),
 				is_method: false,
 			},
@@ -180,7 +134,7 @@ pub fn get_builtin_functions() -> Vec<BuiltinInfo> {
 		BuiltinInfo {
 			name: "printF32",
 			type_expr: TypeExpr::Function {
-				parameter_types: vec![TypeExpr::AnyParam(0)],
+				parameter_types: vec![TypeExpr::Float],
 				return_type: Box::new(TypeExpr::Void),
 				is_method: false,
 			},
@@ -191,7 +145,7 @@ pub fn get_builtin_functions() -> Vec<BuiltinInfo> {
 		BuiltinInfo {
 			name: "setpixel",
 			type_expr: TypeExpr::Function {
-				parameter_types: vec![TypeExpr::Any, TypeExpr::Any, TypeExpr::Any],
+				parameter_types: vec![TypeExpr::Float, TypeExpr::Float, TypeExpr::Float],
 				return_type: Box::new(TypeExpr::Void),
 				is_method: false,
 			},

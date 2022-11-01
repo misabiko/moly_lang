@@ -271,10 +271,10 @@ impl Compiler {
 
 				self.emit(Opcode::Call, &[length]);
 			}
-			TypedExpression::Field { field, binding_index, .. } => {
+			TypedExpression::Field { field, binding_index, field_type, .. } => {
 				if let Some(_) = binding_index {
 					todo!()
-				}else {
+				}else if let TypeId::Function { is_method: true, .. } = field_type {
 					let symbol = if let Some(s) = self.symbol_table.borrow_mut().resolve(&field) {
 						s
 					} else {
@@ -282,6 +282,8 @@ impl Compiler {
 					};
 
 					self.load_symbol(symbol);
+				} else {
+					panic!("{:?} not binding or method", field_type);
 				}
 			}
 			TypedExpression::Block { block, .. } => {

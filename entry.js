@@ -18806,6 +18806,23 @@
   // pkg/moly.js
   var import_meta = {};
   var wasm;
+  var heap = new Array(32).fill(void 0);
+  heap.push(void 0, null, true, false);
+  function getObject(idx) {
+    return heap[idx];
+  }
+  var heap_next = heap.length;
+  function dropObject(idx) {
+    if (idx < 36)
+      return;
+    heap[idx] = heap_next;
+    heap_next = idx;
+  }
+  function takeObject(idx) {
+    const ret = getObject(idx);
+    dropObject(idx);
+    return ret;
+  }
   var cachedTextDecoder = new TextDecoder("utf-8", { ignoreBOM: true, fatal: true });
   cachedTextDecoder.decode();
   var cachedUint8Memory0 = new Uint8Array();
@@ -18818,9 +18835,6 @@
   function getStringFromWasm0(ptr, len) {
     return cachedTextDecoder.decode(getUint8Memory0().subarray(ptr, ptr + len));
   }
-  var heap = new Array(32).fill(void 0);
-  heap.push(void 0, null, true, false);
-  var heap_next = heap.length;
   function addHeapObject(obj) {
     if (heap_next === heap.length)
       heap.push(heap.length + 1);
@@ -18828,20 +18842,6 @@
     heap_next = heap[idx];
     heap[idx] = obj;
     return idx;
-  }
-  function getObject(idx) {
-    return heap[idx];
-  }
-  function dropObject(idx) {
-    if (idx < 36)
-      return;
-    heap[idx] = heap_next;
-    heap_next = idx;
-  }
-  function takeObject(idx) {
-    const ret = getObject(idx);
-    dropObject(idx);
-    return ret;
   }
   var WASM_VECTOR_LEN = 0;
   var cachedTextEncoder = new TextEncoder("utf-8");
@@ -18936,12 +18936,12 @@
   function getImports() {
     const imports = {};
     imports.wbg = {};
+    imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
+      takeObject(arg0);
+    };
     imports.wbg.__wbindgen_string_new = function(arg0, arg1) {
       const ret = getStringFromWasm0(arg0, arg1);
       return addHeapObject(ret);
-    };
-    imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
-      takeObject(arg0);
     };
     imports.wbg.__wbindgen_number_new = function(arg0) {
       const ret = arg0;
@@ -19056,8 +19056,8 @@ print(43)
     const result = await WebAssembly.instantiate(bytecode_buffer, {
       env: {
         print: (d) => output.push(d),
-        print2: (d) => output.push(d),
-        printf: (d) => output.push(d),
+        printI32: (d) => output.push(d),
+        printF32: (d) => output.push(d),
         memory,
         display
       }

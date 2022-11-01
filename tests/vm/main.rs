@@ -373,7 +373,7 @@ fn test_calling_functions_with_arguments_and_bindings() {
 #[test]
 fn test_builtin_functions() {
 	let tests = vec![
-		//TODO Add universal function call syntax
+		//TODO Add free function syntax for methods
 		TestCase {input: r#""".len()"#, expected: Ok(Some(Object::U64(0)))},
 		TestCase {input: r#""four".len()"#, expected: Ok(Some(Object::U64(4)))},
 		TestCase {input: r#""hello world".len()"#, expected: Ok(Some(Object::U64(11)))},

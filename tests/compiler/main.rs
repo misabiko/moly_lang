@@ -371,6 +371,79 @@ fn test_function_calls() {
 }
 
 #[test]
+fn test_methods() {
+	let tests = vec![
+		TestCase {
+			input: "fn() u8 { return 5 + 10 }",
+			expected_constants: vec![
+				Object::U8(5),
+				Object::U8(10),
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
+						make(Opcode::Constant, &[0]),
+						make(Opcode::Constant, &[1]),
+						make(Opcode::Add, &[]),
+						make(Opcode::ReturnValue, &[]),
+					]),
+					num_locals: 0,
+					num_parameters: 0,
+				}),
+			],
+			expected_instructions: vec![
+				make(Opcode::Closure, &[2, 0]),
+			],
+		},
+		TestCase {
+			input: "fn() u8 { 5 + 10 }",
+			expected_constants: vec![
+				Object::U8(5),
+				Object::U8(10),
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
+						make(Opcode::Constant, &[0]),
+						make(Opcode::Constant, &[1]),
+						make(Opcode::Add, &[]),
+						make(Opcode::ReturnValue, &[]),
+					]),
+					num_locals: 0,
+					num_parameters: 0,
+				}),
+			],
+			expected_instructions: vec![
+				make(Opcode::Closure, &[2, 0]),
+			],
+		},
+		TestCase {
+			input: "fn() u8 { 1; 2 }",
+			expected_constants: vec![
+				Object::U8(1),
+				Object::U8(2),
+				Object::Function(Function {
+					instructions: concat_instructions(vec![
+						make(Opcode::Constant, &[0]),
+						make(Opcode::Pop, &[]),
+						make(Opcode::Constant, &[1]),
+						make(Opcode::ReturnValue, &[]),
+					]),
+					num_locals: 0,
+					num_parameters: 0,
+				}),
+			],
+			expected_instructions: vec![
+				make(Opcode::Closure, &[2, 0]),
+			],
+		},
+	];
+
+	run_compiler_tests(tests, true)
+}
+
+#[test]
+fn test_method_calls() {
+	todo!()
+}
+
+#[test]
 fn test_let_statement_scopes() {
 	let tests = vec![
 		TestCase {
@@ -801,6 +874,11 @@ fn test_comments() {
 	];
 
 	run_compiler_tests(tests, true);
+}
+
+#[test]
+fn test_assignments() {
+	todo!()
 }
 
 struct TestCase {

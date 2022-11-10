@@ -13,10 +13,13 @@ fn main() {
 			panic!("moly_lib::server::start() threw {:?}", err)
 		},
 		Some(Commands::Wat { input }) => moly_lib::print_wat(&input, false),
+		#[cfg(feature = "llvm")]
 		Some(Commands::LLVM { input }) => match moly_lib::build_llvm(&input) {
 			Ok(str) => println!("{}", str),
 			Err(str) => eprintln!("{}", str),
 		}
+		#[cfg(not(feature = "llvm"))]
+		Some(Commands::LLVM { .. }) => eprintln!("please enable the `llvm` feature")
 	}
 }
 

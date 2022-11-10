@@ -2,8 +2,11 @@ extern crate core;
 
 use std::fmt::{Debug, Formatter};
 use std::path::PathBuf;
-use inkwell::context::Context;
-use inkwell::passes::PassManager;
+#[cfg(feature = "llvm")]
+use inkwell::{
+	context::Context,
+	passes::PassManager,
+};
 use crate::ast::Program;
 
 pub mod token;
@@ -19,6 +22,7 @@ pub mod type_checker;
 pub mod wasm;
 pub mod server;
 pub mod reporting;
+#[cfg(feature = "llvm")]
 pub mod llvm;
 
 use compiler::{Bytecode, Compiler};
@@ -27,6 +31,7 @@ use parser::Parser;
 use token::TokenType;
 use type_checker::{TypeChecker, TypeCheckError};
 use vm::VM;
+#[cfg(feature = "llvm")]
 use crate::llvm::LLVMCompiler;
 use crate::parser::ParserError;
 
@@ -34,7 +39,7 @@ use crate::parser::ParserError;
 //TODO (Go-style) Skip struct initializing field names and depend on order
 //TODO Explore how Elm did List with "1 or more" length
 //TODO Static string in sum type to pattern match with
-	/* type BooleanOperator = "<" | ">" | "<=" | ">=" | "==" | "!="; */
+/* type BooleanOperator = "<" | ">" | "<=" | ">=" | "==" | "!="; */
 //TODO Store line number in Result type for better stack trace
 //Destructure struct directly fn parameters
 
@@ -43,7 +48,7 @@ pub fn parse(input: &str, full_program: bool) -> Result<Program, ParserError> {
 
 	if full_program {
 		parser.parse_program()
-	}else {
+	} else {
 		parser.parse_block_statement(TokenType::EOF)
 	}
 }
@@ -67,7 +72,7 @@ pub fn build(input: &str, full_program: bool) -> Result<Bytecode, String> {
 			}
 		};
 		compiler.compile(program)
-	}else {
+	} else {
 		let program = match type_checker.check_block(program, true, false) {
 			Ok(program) => program,
 			Err(err) => {
@@ -78,7 +83,7 @@ pub fn build(input: &str, full_program: bool) -> Result<Bytecode, String> {
 	};
 	if let Err(err) = compiled {
 		Err(format!("Compilation failed:\n{}", err))
-	}else {
+	} else {
 		Ok(compiler.bytecode())
 	}
 }
@@ -118,6 +123,7 @@ pub fn build_wasm(input: &str, full_program: bool) -> Result<Vec<u8>, String> {
 	}
 }
 
+#[cfg(feature = "llvm")]
 pub fn build_llvm(input: &str) -> Result<String, String> {
 	let context = Context::create();
 	let module = context.create_module("built");
@@ -140,7 +146,7 @@ pub fn build_llvm(input: &str) -> Result<String, String> {
 	};
 	let compiled = LLVMCompiler::compile(
 		&context, &builder, &fpm, &module,
-		program.statements[0].clone()
+		program.statements[0].clone(),
 	);
 	match compiled {
 		Ok(func) => Ok(func.to_string()),
@@ -160,12 +166,12 @@ pub fn run_string(input: &str, full_program: bool) {
 	let mut machine = VM::new(bytecode);
 	if let Err(err) = machine.run() {
 		eprintln!("Executing bytecode failed:\n{}", err);
-		return
+		return;
 	}
 
 	if let Some(obj) = machine.stack_top() {
 		println!("{}", obj)
-	}else {
+	} else {
 		println!()
 	}
 }

@@ -12,7 +12,7 @@ float43.field = 43.0;
 
 u8 u16 u32 u64
 i8 i16 i32 i64
-bool str
+f32 bool str
 
 let add = fn(x u8, y u8) u8 {
   x + y
@@ -89,6 +89,7 @@ enum Fruits => Apple | Banana | Cherry;
 		(TokenType::IntegerType(IntType::I16), TokenLiteral::Static("i16"), true, 5),
 		(TokenType::IntegerType(IntType::I32), TokenLiteral::Static("i32"), true, 5),
 		(TokenType::IntegerType(IntType::I64), TokenLiteral::Static("i64"), true, 5),
+		(TokenType::FloatType, TokenLiteral::Static("f32"), true, 6),
 		(TokenType::Bool, TokenLiteral::Static("bool"), true, 6),
 		(TokenType::Str, TokenLiteral::Static("str"), true, 6),
 		(TokenType::Let, TokenLiteral::Static("let"), true, 8),

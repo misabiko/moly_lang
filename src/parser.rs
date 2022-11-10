@@ -685,6 +685,7 @@ impl Parser {
 			TokenType::IntegerType(IntType::I16) => Ok(TypeExpr::Int(IntType::I16).into()),
 			TokenType::IntegerType(IntType::I32) => Ok(TypeExpr::Int(IntType::I32).into()),
 			TokenType::IntegerType(IntType::I64) => Ok(TypeExpr::Int(IntType::I64).into()),
+			TokenType::FloatType => Ok(TypeExpr::Float.into()),
 			TokenType::Bool => Ok(TypeExpr::Bool.into()),
 			TokenType::Str => Ok(TypeExpr::String.into()),
 			TokenType::Ident => Ok(ParsedType::Custom(self.cur_token.literal.get_string().unwrap().clone())),

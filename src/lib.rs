@@ -2,6 +2,8 @@ extern crate core;
 
 use std::fmt::{Debug, Formatter};
 use std::path::PathBuf;
+use inkwell::context::Context;
+use inkwell::passes::PassManager;
 use crate::ast::Program;
 
 pub mod token;
@@ -17,6 +19,7 @@ pub mod type_checker;
 pub mod wasm;
 pub mod server;
 pub mod reporting;
+pub mod llvm;
 
 use compiler::{Bytecode, Compiler};
 use lexer::Lexer;
@@ -24,6 +27,7 @@ use parser::Parser;
 use token::TokenType;
 use type_checker::{TypeChecker, TypeCheckError};
 use vm::VM;
+use crate::llvm::LLVMCompiler;
 use crate::parser::ParserError;
 
 //TODO Error if returned value is not handled
@@ -111,6 +115,36 @@ pub fn build_wasm(input: &str, full_program: bool) -> Result<Vec<u8>, String> {
 		Err(err) => {
 			Err(format!("Compilation failed:\n{}", err))
 		}
+	}
+}
+
+pub fn build_llvm(input: &str) -> Result<String, String> {
+	let context = Context::create();
+	let module = context.create_module("built");
+	let builder = context.create_builder();
+	let fpm = PassManager::create(&module);
+
+	let program = match parse(input, true) {
+		Ok(program) => program,
+		Err(err) => {
+			return Err(format!("Parsing error: {}", err));
+		}
+	};
+
+	let mut type_checker = TypeChecker::new();
+	let program = match type_checker.check_block(program, true, false) {
+		Ok(program) => program,
+		Err(err) => {
+			return Err(format!("Type checking error: {:?}", err));
+		}
+	};
+	let compiled = LLVMCompiler::compile(
+		&context, &builder, &fpm, &module,
+		program.statements[0].clone()
+	);
+	match compiled {
+		Ok(func) => Ok(func.to_string()),
+		Err(err) => Err(format!("Compilation failed:\n{}", err)),
 	}
 }
 

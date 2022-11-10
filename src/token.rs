@@ -114,6 +114,7 @@ pub enum TokenType {
 
 	Return,
 	IntegerType(IntType),
+	FloatType,
 	Bool,
 	Str,
 
@@ -183,6 +184,7 @@ impl fmt::Display for TokenType {
 			TokenType::IntegerType(IntType::I16) => "I16",
 			TokenType::IntegerType(IntType::I32) => "I32",
 			TokenType::IntegerType(IntType::I64) => "I64",
+			TokenType::FloatType => "F64",
 			TokenType::Bool => "BOOL",
 			TokenType::Str => "STR",
 
@@ -278,6 +280,10 @@ pub fn lookup_ident(keyword: String) -> (TokenType, TokenLiteral) {
 		"i64" => (
 			TokenType::IntegerType(IntType::I64),
 			TokenLiteral::Static("i64")
+		),
+		"f32" => (
+			TokenType::FloatType,
+			TokenLiteral::Static("f32")
 		),
 		"bool" => (
 			TokenType::Bool,

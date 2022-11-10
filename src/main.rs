@@ -13,6 +13,10 @@ fn main() {
 			panic!("moly_lib::server::start() threw {:?}", err)
 		},
 		Some(Commands::Wat { input }) => moly_lib::print_wat(&input, false),
+		Some(Commands::LLVM { input }) => match moly_lib::build_llvm(&input) {
+			Ok(str) => println!("{}", str),
+			Err(str) => eprintln!("{}", str),
+		}
 	}
 }
 
@@ -39,6 +43,10 @@ enum Commands {
 	},
 	Server,
 	Wat {
+		#[clap(value_parser)]
+		input: String,
+	},
+	LLVM {
 		#[clap(value_parser)]
 		input: String,
 	}

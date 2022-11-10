@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Install" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <option name="command" value="install --path . --bin moly" />
+    <option name="command" value="install --features llvm --path . --bin moly" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <option name="channel" value="DEFAULT" />
     <option name="requiredFeatures" value="true" />
@@ -12,8 +12,6 @@
     <envs />
     <option name="isRedirectInput" value="false" />
     <option name="redirectInputPath" value="" />
-    <method v="2">
-      <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-    </method>
+    <method v="2" />
   </configuration>
 </component>

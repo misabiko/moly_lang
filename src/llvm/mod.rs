@@ -3,7 +3,6 @@ use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::FloatPredicate;
 use inkwell::module::Module;
-use inkwell::passes::PassManager;
 use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::{BasicMetadataValueEnum, FloatValue, FunctionValue, PointerValue};
 use crate::ast::InfixOperator;
@@ -12,7 +11,6 @@ use crate::type_checker::typed_ast::{TypedExpression, TypedStatement};
 pub struct LLVMCompiler<'a, 'ctx> {
 	pub context: &'ctx Context,
 	pub builder: &'a Builder<'ctx>,
-	pub fpm: &'a PassManager<FunctionValue<'ctx>>,
 	pub module: &'a Module<'ctx>,
 
 	variables: HashMap<String, PointerValue<'ctx>>,
@@ -22,17 +20,13 @@ impl<'a, 'ctx> LLVMCompiler<'a, 'ctx> {
 	pub fn compile(
 		context: &'ctx Context,
 		builder: &'a Builder<'ctx>,
-		pass_manager: &'a PassManager<FunctionValue<'ctx>>,
 		module: &'a Module<'ctx>,
 		function: TypedStatement,
 	) -> CResult<FunctionValue<'ctx>> {
 		let mut compiler = LLVMCompiler {
 			context,
 			builder,
-			fpm: pass_manager,
 			module,
-			// function,
-			// fn_value_opt: None,
 			variables: HashMap::new(),
 		};
 
@@ -105,8 +99,6 @@ impl<'a, 'ctx> LLVMCompiler<'a, 'ctx> {
 				self.builder.build_return(Some(&return_expr));
 
 				if fn_val.verify(true) {
-					self.fpm.run_on(&fn_val);
-
 					Ok(fn_val)
 				}else {
 					unsafe {

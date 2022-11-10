@@ -3,10 +3,7 @@ extern crate core;
 use std::fmt::{Debug, Formatter};
 use std::path::PathBuf;
 #[cfg(feature = "llvm")]
-use inkwell::{
-	context::Context,
-	passes::PassManager,
-};
+use inkwell::context::Context;
 use crate::ast::Program;
 
 pub mod token;
@@ -128,7 +125,6 @@ pub fn build_llvm(input: &str) -> Result<String, String> {
 	let context = Context::create();
 	let module = context.create_module("built");
 	let builder = context.create_builder();
-	let fpm = PassManager::create(&module);
 
 	let program = match parse(input, true) {
 		Ok(program) => program,
@@ -145,7 +141,7 @@ pub fn build_llvm(input: &str) -> Result<String, String> {
 		}
 	};
 	let compiled = LLVMCompiler::compile(
-		&context, &builder, &fpm, &module,
+		&context, &builder, &module,
 		program.statements[0].clone(),
 	);
 	match compiled {

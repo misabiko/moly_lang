@@ -4,6 +4,7 @@ use std::fmt::{Debug, Formatter};
 use std::path::PathBuf;
 #[cfg(feature = "llvm")]
 use inkwell::context::Context;
+use inkwell::values::AnyValue;
 use crate::ast::Program;
 
 pub mod token;
@@ -145,7 +146,7 @@ pub fn build_llvm(input: &str) -> Result<String, String> {
 		program.statements[0].clone(),
 	);
 	match compiled {
-		Ok(func) => Ok(func.to_string()),
+		Ok(func) => Ok(func.print_to_string().to_string()),
 		Err(err) => Err(format!("Compilation failed:\n{}", err)),
 	}
 }

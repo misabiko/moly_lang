@@ -6,7 +6,8 @@ use inkwell::module::Module;
 use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::{BasicMetadataValueEnum, FloatValue, FunctionValue, PointerValue};
 use crate::ast::InfixOperator;
-use crate::type_checker::typed_ast::{TypedExpression, TypedStatement};
+use crate::type_checker::type_env::TypeId;
+use crate::type_checker::typed_ast::{TypedExpression, TypedProgram, TypedStatement, TypedStatementBlock};
 
 pub struct LLVMCompiler<'a, 'ctx> {
 	pub context: &'ctx Context,
@@ -21,8 +22,8 @@ impl<'a, 'ctx> LLVMCompiler<'a, 'ctx> {
 		context: &'ctx Context,
 		builder: &'a Builder<'ctx>,
 		module: &'a Module<'ctx>,
-		function: TypedStatement,
-	) -> CResult<FunctionValue<'ctx>> {
+		program: TypedProgram,
+	) -> CResult<()> {
 		let mut compiler = LLVMCompiler {
 			context,
 			builder,
@@ -30,7 +31,11 @@ impl<'a, 'ctx> LLVMCompiler<'a, 'ctx> {
 			variables: HashMap::new(),
 		};
 
-		compiler.compile_statement(function)
+		for stmt in program.0 {
+			compiler.compile_statement(stmt)?;
+		}
+
+		Ok(())
 	}
 
 	#[inline]
@@ -51,11 +56,13 @@ impl<'a, 'ctx> LLVMCompiler<'a, 'ctx> {
 		builder.build_alloca(self.context.f32_type(), name)
 	}
 
-	/*fn compile_block(&mut self, block: TypedStatementBlock) -> CResult<FloatValue<'ctx>> {
+	fn compile_block(&mut self, block: TypedStatementBlock) -> CResult<()> {
 		for stmt in block.statements {
-			self.compile_statement(stmt);
+			self.compile_statement(stmt)?;
 		}
-	}*/
+
+		Ok(())
+	}
 
 	fn compile_statement(&mut self, stmt: TypedStatement) -> CResult<FunctionValue<'ctx>> {
 		match stmt {
@@ -89,26 +96,36 @@ impl<'a, 'ctx> LLVMCompiler<'a, 'ctx> {
 					self.variables.insert(func.parameters[i].0.clone(), alloca);
 				}
 
-				//TODO compile_block
-				let return_expr = if let TypedStatement::Expression { expr, .. } = func.body.statements.last().unwrap() {
-					self.compile_expression(expr.clone())?
-				} else {
-					panic!("Function doesn't end with expression")
-				};
+				if func.return_type == TypeId::Void {
+					for stmt in func.body.statements {
+						self.compile_statement(stmt)?;
+					}
+				}else {
+					for stmt in func.body.statements.into_iter().take(func.body.statements.len() - 1) {
+						self.compile_statement(stmt)?;
+					}
 
-				self.builder.build_return(Some(&return_expr));
+					let return_expr = if let TypedStatement::Expression { expr, .. } = func.body.statements.last().unwrap() {
+						self.compile_expression(expr.clone())?
+					} else {
+						panic!("Function doesn't end with expression")
+					};
+
+					self.builder.build_return(Some(&return_expr));
+				}
 
 				if fn_val.verify(true) {
 					Ok(fn_val)
 				}else {
+					//TODO Confirm that we can't just panic
 					unsafe {
-						//TODO Confirm that we can't just panic
 						fn_val.delete();
 					}
 
 					Err("Invalid generated function.".into())
 				}
 			}
+			TypedStatement::Expression { expr, .. } => { self.compile_expression(expr.clone()) },
 			stmt => panic!("compile_statement({:?})", stmt)//TODO compile_statement rest
 		}
 	}
